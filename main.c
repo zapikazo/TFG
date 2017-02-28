@@ -13,8 +13,7 @@
 
 int main(){
     
-
-
+    
    /* tAddress* columnVector = malloc(sizeof(tAddress)*17);
     int i, elems;
     
@@ -113,12 +112,12 @@ int main(){
             free(line);
         }
     }
-    for (a = 0; a < rawDataMatrixNRows; a++){
+    /*for (a = 0; a < rawDataMatrixNRows; a++){
         printf("\n");
         for (b = 0; b < rawDataMatrixNCols; b++){
             printf(" %#x", content[a][b] );
         }
-    }
+    }*/
 
     
     durationSteps[2][1] = time(NULL);
@@ -155,7 +154,7 @@ int main(){
     for(a = 0; a < NDVTop; a++){
     	posdvbackup[a] = (int32_t *)malloc(nRoundsInPattern*sizeof(int32_t));
     }
-
+    
     //xordvmatrixbackup
     uint32_t ***xordvmatrixbackup =(uint32_t ***)malloc(rawDataMatrixNRows*sizeof(uint32_t **));
     for(a = 0; a < rawDataMatrixNRows; a++)
@@ -201,7 +200,7 @@ int main(){
     	xordvhistogram[a] = (int32_t *)malloc((nRoundsInPattern+1)*sizeof(int32_t));
     }
     b = 0;
-    for (a = 0; a < LN; a++) {
+    for (a = 0; a < LN; a++) { 
         xordvhistogram[a][0] = b;
         b++;
     }
@@ -215,7 +214,7 @@ int main(){
         posdvhistogram[a][0] = b;
         b++;
     }
-
+    
     int ktest, elems, k;
     int32_t ndv;
     for (ktest = 1; ktest < nRoundsInPattern+1; ++ktest) {
@@ -248,11 +247,11 @@ int main(){
         xordvvector = create_DVvector(xordvmatrix, elems);
         posdvmatrix = create_DVmatrix(addresses, elems, "pos", RWcyclesVector, nBits4Blocks, (2^20-1));
         posdvvector = create_DVvector(posdvmatrix, elems);
-
+        
         //Rellenar la columna del exp con for
         int32_t* xordvhistogramVector;
         int32_t* posdvhistogramVector;
-
+        
         xordvhistogramVector = create_histogram(xordvvector, ndv, LN);
         posdvhistogramVector = create_histogram(posdvvector, ndv, LN);
         
@@ -266,23 +265,19 @@ int main(){
         
         /* Other variables must be saved as well. But the procedure is a bit different
          * as the elements do not have identical size. */
-        uint32_t** xordvmatrixbackup = (uint32_t **)malloc((elems+1)*sizeof(uint32_t *));
-        uint32_t** posdvmatrixbackup = (uint32_t **)malloc((elems+1)*sizeof(uint32_t *));
-        uint32_t* xordvvectorbackup = (uint32_t*)calloc(ndv, sizeof(uint32_t));
-        uint32_t* posdvvectorbackup = (uint32_t*)calloc(ndv, sizeof(uint32_t));
-        copyOfMatrix(xordvmatrix, xordvmatrixbackup, elems);
-        copyOfMatrix(posdvmatrix, posdvmatrixbackup, elems);
-        copyOfVector(xordvvector, xordvvectorbackup, elems);
-        copyOfVector(posdvvector, posdvvectorbackup, elems);
+      //  uint32_t** xordvmatrixbackup = copyOfMatrix(xordvmatrix, elems);
+      //  uint32_t** posdvmatrixbackup = copyOfMatrix(posdvmatrix, elems);;
+      //  copyOfVector(xordvvector, xordvbackup, ndv, ktest);
+      //  copyOfVector(posdvvector, posdvbackup, ndv, ktest); //WARNING
     }
     
     printf("Completed creation of partial histograms.\n");
     
     if (nRoundsInPattern > 1){
         printf("Creating the combined histogram.\n");
-        int32_t** totalDVHistogram = (int32_t**)malloc(LN*sizeof(int32_t*));
+        uint32_t** totalDVHistogram = (uint32_t**)malloc(LN*sizeof(uint32_t*));
         for(a = 0; a < LN; a++){
-            totalDVHistogram[a] = (int32_t *)malloc(3*sizeof(int32_t));
+            totalDVHistogram[a] = (uint32_t *)malloc(3*sizeof(uint32_t));
         }
         /* PRIMERA RANGO LN, Second column for XOR, Third for subtraction.*/
         int kvalues;
@@ -300,7 +295,7 @@ int main(){
         }
         printf("Done.\n");
     }
-
+    
     durationSteps[3][1] = time(NULL);
             
     printf("Counting repetitions in partial histograms...\n");
@@ -344,7 +339,7 @@ int main(){
     durationSteps[4][1] = time(NULL);
     printf("STARTING TO LOOK UP ANOMALOUSLY REPEATED VALUES...\n");
     durationSteps[5][0] = time(NULL);
-    //XORextracted_values00, POSextracted_values00 =ExtractAnomalDVSelfConsistency(xorDVtotalrepetitions, posDVtotalrepetitions,TotalDVhistogram, LN,RandomnessThreshold)
+    //XORextracted_values00, POSextracted_values00 = ExtractAnomalDVSelfConsistency(xorDVtotalrepetitions, posDVtotalrepetitions,TotalDVhistogram, LN,RandomnessThreshold)
     durationSteps[5][1] = time(NULL);
     
     /* Thus, selfconsistency is completed. Now, it is time to apply the TRACE rule. */

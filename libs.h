@@ -74,7 +74,6 @@ uint32_t* extract_addressvector(uint32_t* columnVector, int* elems){
         newColumnVector = (uint32_t*)realloc(newColumnVector, sizeof(uint32_t)*i);
         return newColumnVector;
     } else {
-        //free
         return columnVector;
     }
 }
@@ -131,15 +130,14 @@ int* flipped_bits(tAddress word, tAddress pattern, int wordWidth){
  * diagonal is an element of the DV. XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
  */
 uint32_t** create_DVmatrix(uint32_t* addresses, int elems, char* op, uint32_t* RWcycles, int nbits4blocks, long int ln){
-    int32_t **DVmatrix = (int32_t **)malloc((elems+1)*sizeof(int32_t *));
+    int32_t **DVmatrix = (int32_t **)malloc((elems+2)*sizeof(int32_t *));
     int i, j, cont = 0, ntriu = 0;
-    /* Número de elementos que debería haber en la triangular superior */
-    for(i = 0; i < elems+1; i++){
-        ntriu += i;
-    }
-
     for (i = 0; i < elems+1; i++){
-        DVmatrix[i] = (int32_t *)malloc((elems+1)*sizeof(int32_t));
+        DVmatrix[i] = (int32_t *)malloc((elems+2)*sizeof(int32_t));
+    }
+    /* Número de elementos que debería haber en la triangular superior */
+    for(i = 0; i < elems; i++){
+        ntriu += i;
     }
     //Rellenar fila superior y columna izquierda
     for (j = 1; j < elems+1; j++){
@@ -149,37 +147,19 @@ uint32_t** create_DVmatrix(uint32_t* addresses, int elems, char* op, uint32_t* R
         DVmatrix[i][0] = addresses[i-1];
     }
 
-    printf("\n");
-    printf("\n");
-    printf("\n");
-    for (i = 0; i < elems+1; i++){
-        printf("\n");
-        for (j = 0; j < elems+1; j++){
-            printf("%#x", DVmatrix[i][j] );
-        }
-    }
-    printf("\n");
-
-
     if (strcmp(op, "xor") == 0){
-        for (i = 1; i <= elems+1; i++){
-            for (j = 2+cont; j <= elems+1; j++){
+        for (i = 1; i < elems+1; i++){
+            for (j = 2+cont; j < elems+1; j++){
                 DVmatrix[i][j] = DVmatrix[0][j] ^ DVmatrix[i][0];
-                if(DVmatrix[i][j] != 0){
-                    ntriu++;
-                }
             }
             cont++;
         }
     } else if (strcmp(op, "pos") == 0){
         /* Subtracting is a problem with unsigned integers. It is better to convert
          * them into signed format and later return to the original format. */
-        for (i = 1; i <= elems+1; i++){
-            for (j = 2+cont; j <= elems+1; j++){
+        for (i = 1; i < elems+1; i++){
+            for (j = 2+cont; j < elems+1; j++){
                 DVmatrix[i][j] = abs(DVmatrix[0][j] - DVmatrix[i][0]);
-                if(DVmatrix[i][j] != 0){
-                    ntriu++;
-                }
             }
             cont++;
         }
@@ -199,13 +179,13 @@ uint32_t** create_DVmatrix(uint32_t* addresses, int elems, char* op, uint32_t* R
                                           
     /* The same for the block division. We multiply the address vector by 2^bits4blocks/LN
      * and round to the floor integer. Traspose and multiply. */
-
+    
     int32_t lnn = pow(2,24)-1;
     uint32_t* nuevo = malloc(sizeof(uint32_t)*elems);
     for (i = 0; i < elems; i++) {
         nuevo[i] = floor(addresses[i]/lnn);
     }
-
+    
     //DVTMP1 = repmat(addressblocks, 1, N);
                                           
     //CoincidenceMatrix = round(Int32, triu(DVTMP1.==DVTMP1'))
@@ -244,20 +224,22 @@ uint32_t* create_DVvector(uint32_t** DVmatrix, int elems){
 }
 
 /* Copia de matrices */
-void copyOfMatrix(uint32_t** matrix, uint32_t** matrixbackup, int elems){
+uint32_t** copyOfMatrix(uint32_t** matrix, int elems){
+    uint32_t** matrixbackup = (uint32_t **)malloc((elems+1)*sizeof(uint32_t *));
     int i, j;
-    for(i = 0; i < elems; i++){
-        for(j = 0; j < 3; j++){
+    for(i = 0; i < elems+1; i++){
+        for(j = 0; j < elems+1; j++){
             matrixbackup[i][j] = matrix[i][j];
         }
     }
+    return matrixbackup;
 }
 
 /* Copia de vectores */
-void copyOfVector(uint32_t* vector, uint32_t* vectorbackup, int elems){
+void copyOfVector(uint32_t* vector, uint32_t** vectorbackup, int ndv, int ktest){
     int i;
-    for(i = 0; i < elems; i++){
-        vectorbackup[i] = vector[i];
+    for(i = 0; i < ndv+1; i++){
+        vectorbackup[i][ktest-1] = vector[i];
     }
 }
 
@@ -340,6 +322,10 @@ double ExpectedRepetitions(int m, int ndv, int LN, char* operation){
   }
   return result;
 }
+
+
+
+
 
 
 #endif
