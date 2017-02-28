@@ -32,6 +32,9 @@
 
 typedef char tAddress[11]; //Has to be 9, 8+(\0)
 
+/*
+ * This function allows getting characters from the file, transforming them into fields
+ */
 char* getfield(FILE* file, char* taken){
     int c = 0, elems = 0;
     char* ch = malloc(sizeof(char));
@@ -224,21 +227,20 @@ uint32_t* create_DVvector(uint32_t** DVmatrix, int elems){
 }
 
 /* Copia de matrices */
-uint32_t** copyOfMatrix(uint32_t** matrix, int elems){
-    uint32_t** matrixbackup = (uint32_t **)malloc((elems+1)*sizeof(uint32_t *));
+uint32_t*** copyOfMatrix(uint32_t** matrix, uint32_t*** matrixbackup, int ndv, int ktest){
     int i, j;
-    for(i = 0; i < elems+1; i++){
-        for(j = 0; j < elems+1; j++){
-            matrixbackup[i][j] = matrix[i][j];
+    for(i = 0; i < ndv; i++){
+        for(j = 0; j < ndv; j++){
+            matrixbackup[i][j][ktest-1] = matrix[i][j];
         }
     }
     return matrixbackup;
 }
 
-/* Copia de vectores */
+/* Copia de vector a matriz */
 void copyOfVector(uint32_t* vector, uint32_t** vectorbackup, int ndv, int ktest){
     int i;
-    for(i = 0; i < ndv+1; i++){
+    for(i = 0; i < ndv; i++){
         vectorbackup[i][ktest-1] = vector[i];
     }
 }
@@ -321,6 +323,10 @@ double ExpectedRepetitions(int m, int ndv, int LN, char* operation){
     result = -1;
   }
   return result;
+}
+
+void extractAnomalDVSelfConsistency(int32_t** xorDVtotalrepetitions, uint32_t** posDVtotalrepetitions, int32_t**  TotalDVhistogram,int LN){
+    
 }
 
 

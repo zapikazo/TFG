@@ -145,9 +145,9 @@ int main(){
     int32_t NDVTop = round(0.5*rawDataMatrixNRows*(rawDataMatrixNRows-1));
     /* The variables are initialized to be used as backups of some critical variables. */
     //xordvbackup
-    uint32_t **xordvbackup = (uint32_t **)malloc(nRoundsInPattern*sizeof(uint32_t *));
-    for(a = 0; a < nRoundsInPattern; a++){
-    	xordvbackup[a] = (uint32_t *)malloc(NDVTop*sizeof(uint32_t));
+    uint32_t **xordvbackup = (uint32_t **)malloc(NDVTop*sizeof(uint32_t *));
+    for(a = 0; a < NDVTop; a++){
+    	xordvbackup[a] = (uint32_t *)malloc(nRoundsInPattern*sizeof(uint32_t));
     }
     //posdvbackup
     int32_t **posdvbackup = (int32_t **)malloc(NDVTop*sizeof(int32_t *));
@@ -265,20 +265,21 @@ int main(){
         
         /* Other variables must be saved as well. But the procedure is a bit different
          * as the elements do not have identical size. */
-      //  uint32_t** xordvmatrixbackup = copyOfMatrix(xordvmatrix, elems);
-      //  uint32_t** posdvmatrixbackup = copyOfMatrix(posdvmatrix, elems);;
-      //  copyOfVector(xordvvector, xordvbackup, ndv, ktest);
-      //  copyOfVector(posdvvector, posdvbackup, ndv, ktest); //WARNING
+        //int32_t** posdvmatrixbackup = copyOfMatrix(posdvmatrix, elems);
+        //copyOfMatrix(xordvmatrix, xordvmatrixbackup, ndv, ktest);
+        copyOfVector(xordvvector, xordvbackup, ndv, ktest);
+        copyOfVector(posdvvector, posdvbackup, ndv, ktest); //WARNING
     }
     
     printf("Completed creation of partial histograms.\n");
-    
+    printf("Creating the combined histogram.\n");
+    uint32_t** totalDVHistogram = (uint32_t**)malloc(LN*sizeof(uint32_t*));
+    for(a = 0; a < LN; a++){
+        totalDVHistogram[a] = (uint32_t *)malloc(3*sizeof(uint32_t));
+    }
+    int maxXORValue = 0, maxPOSValue = 0;
+
     if (nRoundsInPattern > 1){
-        printf("Creating the combined histogram.\n");
-        uint32_t** totalDVHistogram = (uint32_t**)malloc(LN*sizeof(uint32_t*));
-        for(a = 0; a < LN; a++){
-            totalDVHistogram[a] = (uint32_t *)malloc(3*sizeof(uint32_t));
-        }
         /* PRIMERA RANGO LN, Second column for XOR, Third for subtraction.*/
         int kvalues;
         for (kvalues = 0; kvalues < LN; ++kvalues){
@@ -287,6 +288,12 @@ int main(){
             for (b = 1; b < nRoundsInPattern+1; b++) {
                 sumXor += xordvhistogram[kvalues][b];
                 sumPos += posdvhistogram[kvalues][b];
+            }
+            if (sumXor > maxXORValue) {
+                maxXORValue = sumXor;
+            }
+            if (sumPos > maxPOSValue) {
+                maxPOSValue = sumPos;
             }
             totalDVHistogram[kvalues][1] = sumXor;
             totalDVHistogram[kvalues][2] = sumPos;
@@ -301,9 +308,27 @@ int main(){
     printf("Counting repetitions in partial histograms...\n");
     /* Row 5 devoted to counting events */
     durationSteps[4][0] = time(NULL);
-            
-    //xordvrepetitions=zeros(Int32, maximum(xordvhistogram[:, 2:end])+1, NRoundsInPattern+1)
-    //posdvrepetitions=zeros(Int32, maximum(posdvhistogram[:, 2:end])+1, NRoundsInPattern+1)
+    
+    //xordvrepetitions
+    int32_t** xordvrepetitions = (int32_t **)malloc((maxXORValue+1)*sizeof(int32_t *));
+    for(a = 0; a < maxXORValue+1; a++){
+        xordvrepetitions[a] = (int32_t *)malloc((nRoundsInPattern+1)*sizeof(int32_t));
+    }
+    b = 0;
+    for (a = 0; a < LN; a++) {
+        xordvrepetitions[a][0] = b;
+        b++;
+    }    
+    //posdvrepetitions
+    int32_t** posdvrepetitions = (int32_t **)malloc((maxPOSValue+1)*sizeof(int32_t *));
+    for(a = 0; a < maxPOSValue+1; a++){
+        posdvrepetitions[a] = (int32_t *)malloc((nRoundsInPattern+1)*sizeof(int32_t));
+    }
+    b = 0;
+    for (a = 0; a < LN; a++) {
+        posdvrepetitions[a][0] = b;
+        b++;
+    }
             
     //xordvrepetitions[:,1]=collect(0:1:length(xordvrepetitions[:,1])-1)
     //posdvrepetitions[:,1]=collect(0:1:length(posdvrepetitions[:,1])-1)
@@ -323,12 +348,21 @@ int main(){
     }
                 
     printf("Completed task\n.");
-                
+    //xorDVtotalrepetitions
+    int32_t** xorDVtotalrepetitions = (int32_t**)malloc((maxXORValue+1)*sizeof(int32_t *));
+    for(a = 0; a < maxXORValue+1; a++){
+        xorDVtotalrepetitions[a] = (int32_t*)malloc(2*sizeof(int32_t));
+    }
+    //posDVtotalrepetitions
+    int32_t** posDVtotalrepetitions = (int32_t**)malloc((maxPOSValue+1)*sizeof(int32_t*));
+    for(a = 0; a < maxPOSValue+1; a++){
+        posDVtotalrepetitions[a] = (int32_t*)malloc(2*sizeof(int32_t));
+    }
+    
     if (nRoundsInPattern > 1){
+        
         printf("Checking Total Histogram...\n");
-                    //xorDVtotalrepetitions=zeros(Int32, maximum(TotalDVhistogram[:, 2])+1, 2)
-                    //posDVtotalrepetitions=zeros(Int32, maximum(TotalDVhistogram[:, 3])+1, 2)
-                    
+
                     //xorDVtotalrepetitions[:,1]=collect(0:1:length(xorDVtotalrepetitions[:,1])-1)
                     //xorDVtotalrepetitions[:,2]=counts(TotalDVhistogram[:,2], 0:maximum(TotalDVhistogram[:,2]))
                     //posDVtotalrepetitions[:,1]=collect(0:1:length(posDVtotalrepetitions[:,1])-1)
@@ -339,7 +373,9 @@ int main(){
     durationSteps[4][1] = time(NULL);
     printf("STARTING TO LOOK UP ANOMALOUSLY REPEATED VALUES...\n");
     durationSteps[5][0] = time(NULL);
-    //XORextracted_values00, POSextracted_values00 = ExtractAnomalDVSelfConsistency(xorDVtotalrepetitions, posDVtotalrepetitions,TotalDVhistogram, LN,RandomnessThreshold)
+    //XORextracted_values00, POSextracted_values00 =
+    extractAnomalDVSelfConsistency(xordvrepetitions, posDVtotalrepetitions, totalDVHistogram, LN);
+    
     durationSteps[5][1] = time(NULL);
     
     /* Thus, selfconsistency is completed. Now, it is time to apply the TRACE rule. */
