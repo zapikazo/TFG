@@ -325,8 +325,135 @@ double ExpectedRepetitions(int m, int ndv, int LN, char* operation){
   return result;
 }
 
-void extractAnomalDVSelfConsistency(int32_t** xorDVtotalrepetitions, uint32_t** posDVtotalrepetitions, int32_t**  TotalDVhistogram,int LN){
+/*
+ *
+ */
+void extractAnomalDVSelfConsistency(int32_t** xorDVtotalrepetitions, uint32_t** posDVtotalrepetitions, int32_t** TotalDVhistogram,int LN){
+    int i;
+
+    int32_t** XORpreliminary_summary_extracted_values;
+    int32_t** POSpreliminary_summary_extracted_values;
+   
+    printf("\n\tDetermining the threshold for repetition excess:\n");
+    printf("\n\t\tXOR operation...");
     
+    //xorNthreshold=ExcessiveRepetitions(xorDVtotalrepetitions[:,2], LN, "xor", RandomnessThreshold)
+    
+    printf("\n\t\tPOS operation (It can take a long if there are too many addresses)...\n");
+    
+    //posNthreshold=ExcessiveRepetitions(posDVtotalrepetitions[:,2], LN, "pos", RandomnessThreshold)
+    
+    //testXORa, testXORb=find_anomalies_histogram(TotalDVhistogram[:,2], xorDVtotalrepetitions[:, 2], xorNthreshold)
+    //testPOSa, testPOSb=find_anomalies_histogram(TotalDVhistogram[:,3], posDVtotalrepetitions[:, 2], posNthreshold)
+    
+    printf("\n\tXOR operation:\n");
+    
+    bool XORSelfConsistence = true;
+    int n_anomalous_repetitions = 1;
+    
+   // XORextracted_values=extract_some_critical_values(testXORa, testXORb, 1)
+    
+    //while (XORSelfConsistence){
+        //printf("\t\tStep ", n_anomalous_repetitions, ": ");
+        
+        //XORextracted_values = extract_some_critical_values(testXORa, testXORb, n_anomalous_repetitions)
+       // int NXORextrValues = length(XORextracted_values[:,1])
+       /* int32_t** XORPartRepsSelfCons = calloc(NXORextrValues, NXORextrValues*sizeof(int32_t*));
+        for(i = 0; i < NXORextrValues; i++){
+            XORPartRepsSelfCons[i] = calloc(NRoundsInPattern, NRoundsInPattern*sizeof(int32_t));
+        }
+       
+        
+        int kval;
+        for (kval = 1; kval < NXORextrValues; kval++){
+            XORPartRepsSelfCons[kval,:]=xordvhistogram[XORextracted_values[kval,1], 2:end]
+
+        }
+            
+#n_anomalous_repetitions +=1
+            
+            for ktest = 1:NRoundsInPattern
+                print("Test ", ktest, " ")
+                xordvmatrix = xordvmatrixbackup[1:NAddressesInRound[ktest],1:NAddressesInRound[ktest],ktest]
+                XORmarked_pairs = marking_addresses(xordvmatrix, XORextracted_values)
+                XORproposed_MCUs = agrupate_mcus(XORmarked_pairs)
+                
+                LargestMCUSize = length(XORproposed_MCUs[1,:])
+                Continuation=(length(find(XORPartRepsSelfCons[:,ktest].<=LargestMCUSize))==0)
+                if (!Continuation)
+                    XORSelfConsistence = false
+                    end
+                    
+                    end
+                    
+                    if (XORSelfConsistence)
+                        n_anomalous_repetitions +=1;
+    print("\n")
+    if (n_anomalous_repetitions>testXORb)
+        XORSelfConsistence = false
+        print("\n\t\tNo more anomalous elements to check. Exiting\n")
+        end
+        else
+            print("\n\t\tViolation of self-consistence. Returning to previous state and exiting.\n")
+            n_anomalous_repetitions -=1
+            XORextracted_values=extract_some_critical_values(testXORa, testXORb, n_anomalous_repetitions)
+            end
+            
+            } // while
+            
+            println("\n\tPOS operation:\n")
+            POSSelfConsistence = true
+            n_anomalous_repetitions = 1
+            
+            POSextracted_values=extract_some_critical_values(testPOSa, testPOSb, 1)
+            
+            while (POSSelfConsistence)
+                print("\t\tStep ", n_anomalous_repetitions, ": ")
+                
+                POSextracted_values=extract_some_critical_values(testPOSa, testPOSb, n_anomalous_repetitions)
+                NPOSextrValues = length(POSextracted_values[:,1])
+                POSPartRepsSelfCons = zeros(Int32, NPOSextrValues, NRoundsInPattern)
+                
+                for kval=1:NPOSextrValues
+                    POSPartRepsSelfCons[kval,:]=posdvhistogram[POSextracted_values[kval,1], 2:end]
+                    end
+                    
+#n_anomalous_repetitions +=1
+                    
+                    for ktest = 1:NRoundsInPattern
+                        print("Test ", ktest, " ")
+                        
+                        posdvmatrix = posdvmatrixbackup[1:NAddressesInRound[ktest],1:NAddressesInRound[ktest],ktest]
+                        POSmarked_pairs = marking_addresses(posdvmatrix, POSextracted_values)
+                        POSproposed_MCUs = agrupate_mcus(POSmarked_pairs)
+                        
+                        LargestMCUSize = length(POSproposed_MCUs[1,:])
+                        
+                        Continuation=(length(find(POSPartRepsSelfCons[:,ktest].<=LargestMCUSize))==0)
+                        if (!Continuation)
+                            POSSelfConsistence = false
+                            end
+                            
+                            end
+                            
+                            if (POSSelfConsistence)
+                                print("\n")
+                                n_anomalous_repetitions +=1;
+    if (n_anomalous_repetitions>testXORb)
+        POSSelfConsistence = false
+        print("\n\t\tNo more anomalous elements to check. Exiting.\n")
+        end
+        else
+            print("\n\t\tViolation of self-consistence. Returning to previous state and exiting.\n")
+            n_anomalous_repetitions -=1
+            POSextracted_values=extract_some_critical_values(testPOSa, testPOSb, n_anomalous_repetitions)
+            end
+            end
+            
+            return XORextracted_values, POSextracted_values
+            
+            end*/
+
 }
 
 

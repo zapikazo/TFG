@@ -15,29 +15,7 @@ int main(){
     
     
    /* tAddress* columnVector = malloc(sizeof(tAddress)*17);
-    int i, elems;
     
-    elems = 17;
-    
-    strcpy(columnVector[0], "0xABCDEF\0");
-    strcpy(columnVector[1], "0xABCDEF\0");
-    strcpy(columnVector[2], "0xABCFFF\0");
-    strcpy(columnVector[3], "0xABCDEF\0");
-    strcpy(columnVector[4], "0x1245BA\0");
-    strcpy(columnVector[5], "0xABCDEF\0");
-    strcpy(columnVector[6], "0xABCDEF\0");
-    strcpy(columnVector[7], "0xABCDEF\0");
-    strcpy(columnVector[8], "0xABCDEF\0");
-    strcpy(columnVector[9], "0xABCDEF\0");
-    strcpy(columnVector[10], "0xABCDFF\0");
-    strcpy(columnVector[11], "0xFFFFFF\0");
-    strcpy(columnVector[12], "0xFFFFFF\0");
-    strcpy(columnVector[13], "0xFFFFFF\0");
-    strcpy(columnVector[14], "0xFFFFFF\0");
-    strcpy(columnVector[15], "0xFFFFFF\0");
-    strcpy(columnVector[16], "0xFFFFFF\0");
-    
-    //columnVector = extract_addressvector(columnVector, &elems);
     
     for (i = 0; i < elems; i++){
      printf("%s\n", columnVector[i]);
@@ -125,7 +103,6 @@ int main(){
 
     /* Verify everything is correct */
     /* The address bits must be an integer and less than 32 */
-
     bool isAddressSizeGood = false;
     if ((isalnum(nBitsAddress) == 0) && (nBitsAddress > 0) && (nBitsAddress < 32)) {
         isAddressSizeGood = true;
@@ -143,33 +120,34 @@ int main(){
     /* I will use the following value just to initialize some variables.
      * Also used later to determine Shallowness of XORing Rule. */
     int32_t NDVTop = round(0.5*rawDataMatrixNRows*(rawDataMatrixNRows-1));
+    
     /* The variables are initialized to be used as backups of some critical variables. */
     //xordvbackup
-    uint32_t **xordvbackup = (uint32_t **)malloc(NDVTop*sizeof(uint32_t *));
+    uint32_t **xordvbackup = (uint32_t**)malloc(NDVTop*sizeof(uint32_t*));
     for(a = 0; a < NDVTop; a++){
-    	xordvbackup[a] = (uint32_t *)malloc(nRoundsInPattern*sizeof(uint32_t));
+    	xordvbackup[a] = (uint32_t*)malloc(nRoundsInPattern*sizeof(uint32_t));
     }
     //posdvbackup
-    int32_t **posdvbackup = (int32_t **)malloc(NDVTop*sizeof(int32_t *));
+    int32_t **posdvbackup = (int32_t**)malloc(NDVTop*sizeof(int32_t*));
     for(a = 0; a < NDVTop; a++){
-    	posdvbackup[a] = (int32_t *)malloc(nRoundsInPattern*sizeof(int32_t));
+    	posdvbackup[a] = (int32_t*)malloc(nRoundsInPattern*sizeof(int32_t));
     }
     
     //xordvmatrixbackup
-    uint32_t ***xordvmatrixbackup =(uint32_t ***)malloc(rawDataMatrixNRows*sizeof(uint32_t **));
-    for(a = 0; a < rawDataMatrixNRows; a++)
-    	xordvmatrixbackup[a] =(uint32_t **)malloc(rawDataMatrixNRows* sizeof(uint32_t *));
-    for(a = 0; a < rawDataMatrixNRows; a++)
+    uint32_t ***xordvmatrixbackup =(uint32_t***)malloc((rawDataMatrixNRows+2)*sizeof(uint32_t**));
+    for(a = 0; a < (rawDataMatrixNRows+2); a++)
+    	xordvmatrixbackup[a] =(uint32_t**)malloc((rawDataMatrixNRows+2)* sizeof(uint32_t*));
+    for(a = 0; a < (rawDataMatrixNRows+2); a++)
      for(b = 0; b < nRoundsInPattern; b++)
-    	 xordvmatrixbackup[a][b]= (uint32_t *)malloc(nRoundsInPattern*sizeof(uint32_t));
+    	 xordvmatrixbackup[a][b]= (uint32_t*)malloc(nRoundsInPattern*sizeof(uint32_t));
 
     //posdvmatrixbackup
-    int32_t ***posdvmatrixbackup = (int32_t ***)malloc(rawDataMatrixNRows* sizeof(int32_t **));
-    for(a = 0; a < rawDataMatrixNRows; a++)
-    	posdvmatrixbackup[a] = (int32_t **)malloc(rawDataMatrixNRows* sizeof(int32_t *));
-    for(a = 0; a < rawDataMatrixNRows; a++)
+    int32_t ***posdvmatrixbackup = (int32_t***)malloc((rawDataMatrixNRows+2)* sizeof(int32_t**));
+    for(a = 0; a < (rawDataMatrixNRows+2); a++)
+    	posdvmatrixbackup[a] = (int32_t**)malloc((rawDataMatrixNRows+2)* sizeof(int32_t*));
+    for(a = 0; a < (rawDataMatrixNRows+2); a++)
      for(b = 0; b < nRoundsInPattern; b++)
-    	 posdvmatrixbackup[a][b] = (int32_t *)malloc(nRoundsInPattern*sizeof(int32_t));
+    	 posdvmatrixbackup[a][b] = (int32_t*)malloc(nRoundsInPattern*sizeof(int32_t));
 
     bool isConsistentPatternRawData = false;
     if (rawDataMatrixNCols != (3*nRoundsInPattern)){
@@ -195,24 +173,14 @@ int main(){
 
     /* Thus, the first column of the histogram contains the number, the other
      * the number of occurrences in each test (Test K --> Col. K +1). */
-    int32_t **xordvhistogram = (int32_t **)malloc(LN * sizeof(int32_t *));
+    uint32_t **xordvhistogram = (uint32_t**)calloc(LN, sizeof(uint32_t *));
     for(a = 0; a < LN; a++){
-    	xordvhistogram[a] = (int32_t *)malloc((nRoundsInPattern+1)*sizeof(int32_t));
-    }
-    b = 0;
-    for (a = 0; a < LN; a++) { 
-        xordvhistogram[a][0] = b;
-        b++;
+    	xordvhistogram[a] = (uint32_t*)calloc((nRoundsInPattern+1), sizeof(uint32_t));
     }
     /* The PS DV histogram is identically created. */
-    int32_t **posdvhistogram = (int32_t **)malloc(LN * sizeof(int32_t *));
+    int32_t **posdvhistogram = (int32_t**)calloc(LN, sizeof(int32_t *));
     for(a = 0; a < LN; a++){
-    	posdvhistogram[a] = (int32_t *)malloc((nRoundsInPattern+1)*sizeof(int32_t));
-    }
-    b = 0;
-    for (a = 0; a < LN; a++) {
-        posdvhistogram[a][0] = b;
-        b++;
+    	posdvhistogram[a] = (int32_t*)calloc((nRoundsInPattern+1), sizeof(int32_t));
     }
     
     int ktest, elems, k;
@@ -235,7 +203,6 @@ int main(){
         	RWcyclesVector[k] = content[k][3*ktest-1];
         }
         nAddressesInRound[ktest-1] = elems;
-
 
         /* Now, let us create the associated DV vectors: XOR and Positive Subtraction
          * in matrix format and as a vector. */
@@ -266,7 +233,7 @@ int main(){
         /* Other variables must be saved as well. But the procedure is a bit different
          * as the elements do not have identical size. */
         //int32_t** posdvmatrixbackup = copyOfMatrix(posdvmatrix, elems);
-        //copyOfMatrix(xordvmatrix, xordvmatrixbackup, ndv, ktest);
+        copyOfMatrix(xordvmatrix, xordvmatrixbackup, ndv, ktest);
         copyOfVector(xordvvector, xordvbackup, ndv, ktest);
         copyOfVector(posdvvector, posdvbackup, ndv, ktest); //WARNING
     }
@@ -315,7 +282,7 @@ int main(){
         xordvrepetitions[a] = (int32_t *)malloc((nRoundsInPattern+1)*sizeof(int32_t));
     }
     b = 0;
-    for (a = 0; a < LN; a++) {
+    for (a = 0; a < maxXORValue+1; a++) {
         xordvrepetitions[a][0] = b;
         b++;
     }    
@@ -325,7 +292,7 @@ int main(){
         posdvrepetitions[a] = (int32_t *)malloc((nRoundsInPattern+1)*sizeof(int32_t));
     }
     b = 0;
-    for (a = 0; a < LN; a++) {
+    for (a = 0; a < maxPOSValue+1; a++) {
         posdvrepetitions[a][0] = b;
         b++;
     }
@@ -415,7 +382,7 @@ int main(){
  *
  */
     
-    //21:50
+    //22:00
     
     return 0;
 }
