@@ -134,18 +134,18 @@ int main(){
     }
     
     //xordvmatrixbackup
-    uint32_t ***xordvmatrixbackup =(uint32_t***)malloc((rawDataMatrixNRows+2)*sizeof(uint32_t**));
-    for(a = 0; a < (rawDataMatrixNRows+2); a++)
-    	xordvmatrixbackup[a] =(uint32_t**)malloc((rawDataMatrixNRows+2)* sizeof(uint32_t*));
-    for(a = 0; a < (rawDataMatrixNRows+2); a++)
+    uint32_t ***xordvmatrixbackup =(uint32_t***)malloc((rawDataMatrixNRows)*sizeof(uint32_t**));
+    for(a = 0; a < (rawDataMatrixNRows); a++)
+    	xordvmatrixbackup[a] =(uint32_t**)malloc((rawDataMatrixNRows)* sizeof(uint32_t*));
+    for(a = 0; a < (rawDataMatrixNRows+); a++)
      for(b = 0; b < nRoundsInPattern; b++)
     	 xordvmatrixbackup[a][b]= (uint32_t*)malloc(nRoundsInPattern*sizeof(uint32_t));
 
     //posdvmatrixbackup
-    int32_t ***posdvmatrixbackup = (int32_t***)malloc((rawDataMatrixNRows+2)* sizeof(int32_t**));
-    for(a = 0; a < (rawDataMatrixNRows+2); a++)
-    	posdvmatrixbackup[a] = (int32_t**)malloc((rawDataMatrixNRows+2)* sizeof(int32_t*));
-    for(a = 0; a < (rawDataMatrixNRows+2); a++)
+    int32_t ***posdvmatrixbackup = (int32_t***)malloc((rawDataMatrixNRows)* sizeof(int32_t**));
+    for(a = 0; a < (rawDataMatrixNRows); a++)
+    	posdvmatrixbackup[a] = (int32_t**)malloc((rawDataMatrixNRows)* sizeof(int32_t*));
+    for(a = 0; a < (rawDataMatrixNRows); a++)
      for(b = 0; b < nRoundsInPattern; b++)
     	 posdvmatrixbackup[a][b] = (int32_t*)malloc(nRoundsInPattern*sizeof(int32_t));
 
@@ -232,8 +232,8 @@ int main(){
         
         /* Other variables must be saved as well. But the procedure is a bit different
          * as the elements do not have identical size. */
-        //int32_t** posdvmatrixbackup = copyOfMatrix(posdvmatrix, elems);
-        copyOfMatrix(xordvmatrix, xordvmatrixbackup, ndv, ktest);
+        copyOfMatrix(xordvmatrix, xordvmatrixbackup, elems, ktest);
+        copyOfMatrix(posdvmatrix, posdvmatrixbackup, elems, ktest);
         copyOfVector(xordvvector, xordvbackup, ndv, ktest);
         copyOfVector(posdvvector, posdvbackup, ndv, ktest); //WARNING
     }

@@ -227,12 +227,11 @@ uint32_t* create_DVvector(uint32_t** DVmatrix, int elems){
 }
 
 /* Copia de matrices */
-uint32_t*** copyOfMatrix(uint32_t** matrix, uint32_t*** matrixbackup, int ndv, int ktest){
-    int i, j;
-    for(i = 0; i < ndv; i++){
-        for(j = 0; j < ndv; j++){
-            matrixbackup[i][j][ktest-1] = matrix[i][j];
-        }
+uint32_t*** copyOfMatrix(uint32_t** matrix, uint32_t*** matrixbackup, int elems, int ktest){
+    int i;
+    for(i = 1; i < elems; i++){
+        matrixbackup[i][0][ktest-1] = matrix[i][0];
+        matrixbackup[0][i][ktest-1] = matrix[0][i];
     }
     return matrixbackup;
 }
