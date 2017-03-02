@@ -245,6 +245,18 @@ void copyOfVector(uint32_t* vector, uint32_t** vectorbackup, int ndv, int ktest)
 }
 
 /*
+ * This function returns an array which has on it the count of each element on the histogram
+ */
+int32_t* countsOfElems(int32_t** histogram, int maxValue, int ktest, int LN){
+    int32_t* repetitionstmp = (int32_t*)calloc((maxValue+1), sizeof(int32_t));
+    int i;
+    for (i = 0; i < LN; i++) {
+        repetitionstmp[histogram[i][ktest]]++;//ktest+1? por?
+    }
+    return repetitionstmp;
+}
+
+/*
  * This function looks for the number of appearances of an element
  * vector[position]. nvd is the vector's size.
  * Return the number of appearances of that element.
@@ -327,34 +339,71 @@ double ExpectedRepetitions(int m, int ndv, int LN, char* operation){
 /*
  *
  */
-void extractAnomalDVSelfConsistency(int32_t** xorDVtotalrepetitions, uint32_t** posDVtotalrepetitions, int32_t** TotalDVhistogram,int LN){
-    int i;
-
-    int32_t** XORpreliminary_summary_extracted_values;
-    int32_t** POSpreliminary_summary_extracted_values;
-   
-    printf("\n\tDetermining the threshold for repetition excess:\n");
-    printf("\n\t\tXOR operation...");
+void extractAnomalDVSelfConsistency(int32_t** DVtotalrepetitions, char* op, int32_t** TotalDVhistogram, int LN, int nRoundsInPattern){
+    int i, kval, ktest;
     
-    //xorNthreshold=ExcessiveRepetitions(xorDVtotalrepetitions[:,2], LN, "xor", RandomnessThreshold)
-    
-    printf("\n\t\tPOS operation (It can take a long if there are too many addresses)...\n");
-    
-    //posNthreshold=ExcessiveRepetitions(posDVtotalrepetitions[:,2], LN, "pos", RandomnessThreshold)
-    
-    //testXORa, testXORb=find_anomalies_histogram(TotalDVhistogram[:,2], xorDVtotalrepetitions[:, 2], xorNthreshold)
-    //testPOSa, testPOSb=find_anomalies_histogram(TotalDVhistogram[:,3], posDVtotalrepetitions[:, 2], posNthreshold)
-    
-    printf("\n\tXOR operation:\n");
-    
-    bool XORSelfConsistence = true;
-    int n_anomalous_repetitions = 1;
-    
-   // XORextracted_values=extract_some_critical_values(testXORa, testXORb, 1)
-    
-    //while (XORSelfConsistence){
-        //printf("\t\tStep ", n_anomalous_repetitions, ": ");
+    if(strcmp(op, "xor") == 0){ //XOR
+        int32_t** XORpreliminary_summary_extracted_values;
+        printf("\n\tDetermining the threshold for repetition excess:\n");
+        printf("\n\t\tXOR operation...");
+        //xorNthreshold=ExcessiveRepetitions(xorDVtotalrepetitions[:,2], LN, "xor", RandomnessThreshold)
+        //testXORa, testXORb=find_anomalies_histogram(TotalDVhistogram[:,2], xorDVtotalrepetitions[:, 2], xorNthreshold)
+        bool XORSelfConsistence = true;
+        int n_anomalous_repetitions = 1;
+        // XORextracted_values=extract_some_critical_values(testXORa, testXORb, 1)
+        while (XORSelfConsistence){
+            printf("\t\t Step %d", n_anomalous_repetitions);
+            //XORextracted_values=extract_some_critical_values(testXORa, testXORb, n_anomalous_repetitions)
+            //int32_t NXORextrValues = length(XORextracted_values[:,1]);
+            //XORPartRepsSelfCons = zeros(Int32, NXORextrValues, NRoundsInPattern)
+            //for (kval = 1; kval < NXORextrValues; kval++){
+               // XORPartRepsSelfCons[kval,:] = xordvhistogram[XORextracted_values[kval,1], 2:end]
+            //}
+            for (ktest = 1; ktest < nRoundsInPattern; ktest++){
+                print("Test %d", ktest);
+                //xordvmatrix = xordvmatrixbackup[1:NAddressesInRound[ktest],1:NAddressesInRound[ktest],ktest]
+                //XORmarked_pairs = marking_addresses(xordvmatrix, XORextracted_values)
+                //XORproposed_MCUs = agrupate_mcus(XORmarked_pairs)
+                
+               // LargestMCUSize = length(XORproposed_MCUs[1,:])
+                //Continuation=(length(find(XORPartRepsSelfCons[:,ktest].<=LargestMCUSize))==0)
+                if (!Continuation){
+                    XORSelfConsistence = false;
+                }
+            }
+            if (XORSelfConsistence){
+                n_anomalous_repetitions +=1;
+                printf("\n");
+                if (n_anomalous_repetitions > testXORb){
+                    XORSelfConsistence = false;
+                    printf("\n\t\tNo more anomalous elements to check. Exiting\n");
+                }
+            } else {
+                printf("\n\t\tViolation of self-consistence. Returning to previous state and exiting.\n");
+                n_anomalous_repetitions -=1;
+                //XORextracted_values=extract_some_critical_values(testXORa, testXORb, n_anomalous_repetitions)
+            }
+        }
         
+    } else if(strcmp(op, "pos") == 0){ //POS
+        int32_t** POSpreliminary_summary_extracted_values;
+        printf("\n\tDetermining the threshold for repetition excess:\n");
+        printf("\n\t\tPOS operation (It can take a long if there are too many addresses)...\n");
+        //posNthreshold=ExcessiveRepetitions(posDVtotalrepetitions[:,2], LN, "pos", RandomnessThreshold)
+        //testPOSa, testPOSb=find_anomalies_histogram(TotalDVhistogram[:,3], posDVtotalrepetitions[:, 2], posNthreshold)
+        
+        bool POSSelfConsistence = true;
+        int n_anomalous_repetitions = 1;
+        
+    } else {
+        printf("\t Unrecognized operation.");
+        EXIT_FAILURE;
+    }
+
+   
+    
+
+
         //XORextracted_values = extract_some_critical_values(testXORa, testXORb, n_anomalous_repetitions)
        // int NXORextrValues = length(XORextracted_values[:,1])
        /* int32_t** XORPartRepsSelfCons = calloc(NXORextrValues, NXORextrValues*sizeof(int32_t*));
