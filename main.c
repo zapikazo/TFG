@@ -177,12 +177,23 @@ int main(){
     for(a = 0; a < LN; a++){
     	xordvhistogram[a] = (uint32_t*)calloc((nRoundsInPattern+1), sizeof(uint32_t));
     }
+	//la columna cero ponemos numeros del 1 al LN
+	b = 1;																							//NO SE SI EMPEZAR EN 0 O 1
+	for (a = 0; a < LN; a++) {	//																	CAMBIO DE LN POR 10, TARDA MUCHO
+		xordvhistogram[a][0] = b;
+		b++;
+	}
+
     /* The PS DV histogram is identically created. */
     int32_t **posdvhistogram = (int32_t**)calloc(LN, sizeof(int32_t *));
     for(a = 0; a < LN; a++){
     	posdvhistogram[a] = (int32_t*)calloc((nRoundsInPattern+1), sizeof(int32_t));
     }
-    
+	b = 1;																								//NO SE SI EMPEZAR EN 0 O 1
+	for (a = 0; a < LN; a++) { //																		//LO MISMO
+		posdvhistogram[a][0] = b;
+		b++;
+	}
     int ktest, elems, k;
     int32_t ndv;
     for (ktest = 1; ktest < nRoundsInPattern+1; ++ktest) {
@@ -240,34 +251,45 @@ int main(){
     
     printf("Completed creation of partial histograms.\n");
     printf("Creating the combined histogram.\n");
-    uint32_t** totalDVHistogram = (uint32_t**)malloc(LN*sizeof(uint32_t*));
-    for(a = 0; a < LN; a++){
-        totalDVHistogram[a] = (uint32_t *)malloc(3*sizeof(uint32_t));
-    }
-    int maxXORValue = 0, maxPOSValue = 0;
+	uint32_t** totalDVHistogram = (uint32_t**)calloc(LN, sizeof(uint32_t*)); //hay que crearlo antes del IF, si no lo ve el resto del codigo
+	for (a = 0; a < LN; a++){
+		totalDVHistogram[a] = (uint32_t *)calloc(3, sizeof(uint32_t));
+	}
+	b = 1;																								//NO SE SI EMPEZAR EN 0 O 1?¿?
+	/*Rellenamos todas las filas de la matriz de la columna 1 con valores de 1 a LN(numeramos vaya...)*/
+	for (a = 0; a < LN; a++) {
+		totalDVHistogram[a][0] = b;
+		b++;
+	}
+	int maxXORValue = 0, maxPOSValue = 0;
+	if (nRoundsInPattern > 1){
 
-    if (nRoundsInPattern > 1){
-        /* PRIMERA RANGO LN, Second column for XOR, Third for subtraction.*/
-        int kvalues;
-        for (kvalues = 0; kvalues < LN; ++kvalues){
-            // SUMA DE TODAS LAS COLUMNAS DE LOS HISTOGRAMAS QUE CORRESPONDAN A UN LN
-            int32_t sumXor = 0, sumPos = 0;
-            for (b = 1; b < nRoundsInPattern+1; b++) {
-                sumXor += xordvhistogram[kvalues][b];
-                sumPos += posdvhistogram[kvalues][b];
-            }
-            if (sumXor > maxXORValue) {
-                maxXORValue = sumXor;
-            }
-            if (sumPos > maxPOSValue) {
-                maxPOSValue = sumPos;
-            }
-            totalDVHistogram[kvalues][1] = sumXor;
-            totalDVHistogram[kvalues][2] = sumPos;
-            sumXor = 0;
-            sumPos = 0;
-        }
-        printf("Done.\n");
+		/* PRIMERA RANGO LN, Second column for XOR, Third for subtraction.*/
+		int kvalues;
+		/*for kvalues = 1:LN
+			TotalDVhistogram[kvalues, 2] = sum(xordvhistogram[kvalues, 2:end])
+			TotalDVhistogram[kvalues, 3] = sum(posdvhistogram[kvalues, 2:end])
+			end
+		*/
+		for (kvalues = 0; kvalues < LN; ++kvalues){
+			// SUMA DE TODAS LAS COLUMNAS DE LOS HISTOGRAMAS QUE CORRESPONDAN A UN LN
+			int32_t sumXor = 0, sumPos = 0;
+			for (b = 1; b < nRoundsInPattern+1; b++) {
+				sumXor += xordvhistogram[kvalues][b];
+				sumPos += posdvhistogram[kvalues][b];
+			}
+			if (sumXor > maxXORValue) {
+				maxXORValue = sumXor;
+			}
+			if (sumPos > maxPOSValue) {
+				maxPOSValue = sumPos;
+			}
+			totalDVHistogram[kvalues][1] = sumXor;
+			totalDVHistogram[kvalues][2] = sumPos;
+			sumXor = 0;
+			sumPos = 0;
+		}
+		printf("Done.\n");
     }
     
     durationSteps[3][1] = time(NULL);
@@ -287,10 +309,18 @@ int main(){
     for(a = 0; a < maxPOSValue+1; a++){
         posdvrepetitions[a] = (int32_t *)calloc((nRoundsInPattern+1), sizeof(int32_t));
     }
- 
-    //xordvrepetitions[:,1]=collect(0:1:length(xordvrepetitions[:,1])-1)
-    //posdvrepetitions[:,1]=collect(0:1:length(posdvrepetitions[:,1])-1)
-            
+	
+    //xordvrepetitions[:,1]=collect(0:1:length(xordvrepetitions[:,1])-1) 
+    //posdvrepetitions[:,1]=collect(0:1:length(posdvrepetitions[:,1])-1) //
+	//RELLENAR TODAS LAS FILAS,PRIMERA COLUMNA CON-> DESDE 0 A LONG DE LA PRIMERA COLUMNA DE xordrepetitions(es maxXORValue????)
+	
+	for (int i = 0; i < maxXORValue; i++){										//OJO CUAL ES LA LONGITUD??
+		xordvrepetitions[i][0] = i;
+	}
+	for (int i = 0; i < maxPOSValue; i++){										//OJO CUAL ES LA LONGITUD??
+		posdvrepetitions[i][0] = i;
+	}
+
     /* Let us evaluate the repetitions in the histogram. A little confusing, perhaps,
      * but true. Every column xordvhistogram[:,ktest+1] is an independent histogram
      * and counts return the number of times elements between 0 and the maximum
@@ -301,29 +331,70 @@ int main(){
         int32_t* xordvrepetitionstmp;
         int32_t* posdvrepetitionstmp;
         xordvrepetitionstmp = countsOfElems(xordvhistogram, maxXORValue, ktest, LN);
-        posdvrepetitionstmp = countsOfElems(posdvhistogram, maxPOSValue, ktest, LN);
+		posdvrepetitionstmp = countsOfElems(posdvhistogram, maxPOSValue, ktest, LN);
+
+		/*
+		for (int i = 0; i < LN; i++){
+			if ((xordvhistogram[i][ktest + 1] >0) || (xordvhistogram[i][ktest + 1] < maxXORValue)){
+				xordvrepetitionstmp++;
+			}
+		}
+		for (int i = 0; i < LN; i++){
+			if ((posdvhistogram[i][ktest + 1] >0) || (posdvhistogram[i][ktest + 1] < maxPOSValue)){
+				posdvrepetitionstmp++;
+			}
+		}
+		for (int i = 0; i < sizeof(xordvrepetitionstmp); i++){
+			xordvrepetitions[i][ktest + 1] = posdvrepetitionstmp;
+
+		}
+		*/
+		/*
         copyOfVector(xordvrepetitionstmp, xordvrepetitions, maxXORValue, ktest);
         copyOfVector(posdvrepetitionstmp, posdvrepetitions, maxPOSValue, ktest);
+		*/
     }
                 
     printf("Completed task\n.");
-    //xorDVtotalrepetitions
-    int32_t** xorDVtotalrepetitions = (int32_t**)calloc((maxXORValue+1), sizeof(int32_t *));
-    for(a = 0; a < maxXORValue+1; a++){
-        xorDVtotalrepetitions[a] = (int32_t*)calloc(2, sizeof(int32_t));
-    }
-    //posDVtotalrepetitions
-    int32_t** posDVtotalrepetitions = (int32_t**)calloc((maxPOSValue+1), sizeof(int32_t*));
-    for(a = 0; a < maxPOSValue+1; a++){
-        posDVtotalrepetitions[a] = (int32_t*)calloc(2, sizeof(int32_t));
-    }
-    
+	//xorDVtotalrepetitions 
+	int32_t** xorDVtotalrepetitions = (int32_t**)calloc((maxXORValue + 1), sizeof(int32_t *));
+	for (a = 0; a < maxXORValue + 1; a++){
+		xorDVtotalrepetitions[a] = (int32_t*)calloc(2, sizeof(int32_t));
+	}
+	//posDVtotalrepetitions
+	int32_t** posDVtotalrepetitions = (int32_t**)calloc((maxPOSValue + 1), sizeof(int32_t*));
+	for (a = 0; a < maxPOSValue + 1; a++){
+		posDVtotalrepetitions[a] = (int32_t*)calloc(2, sizeof(int32_t));
+	}
     if (nRoundsInPattern > 1){
         printf("Checking Total Histogram...\n");
-                    //xorDVtotalrepetitions[:,1]=collect(0:1:length(xorDVtotalrepetitions[:,1])-1)
-        //xorDVtotalrepetitions[]=counts(TotalDVhistogram[:,2], 0:maximum(TotalDVhistogram[:,2]))
-                    //posDVtotalrepetitions[:,1]=collect(0:1:length(posDVtotalrepetitions[:,1])-1)
-                    //posDVtotalrepetitions[:,2]=counts(TotalDVhistogram[:,3], 0:maximum(TotalDVhistogram[:,3]))
+        //xorDVtotalrepetitions[:,1]=collect(0:1:length(xorDVtotalrepetitions[:,1])-1)
+		for (int j = 0; j < maxXORValue; j++){
+			xorDVtotalrepetitions[j][0] = j;
+		}
+        //xorDVtotalrepetitions[:,2]=counts(TotalDVhistogram[:,2], 0:maximum(TotalDVhistogram[:,2]))
+		int count = 0;
+		for (int j = 0; j < maxXORValue; j++){
+			if ((totalDVHistogram[j][1] >0) || (totalDVHistogram[j][1] < maxXORValue)){
+				count++;
+			}
+			if (j = maxXORValue)
+				xorDVtotalrepetitions[j][1] = count;
+		}
+
+		//posDVtotalrepetitions[:,1]=collect(0:1:length(posDVtotalrepetitions[:,1])-1)
+		for (int i = 0; i < maxPOSValue; i++){
+			posDVtotalrepetitions[i][0] = i;
+		}
+        //posDVtotalrepetitions[:,2]=counts(TotalDVhistogram[:,3], 0:maximum(TotalDVhistogram[:,3]))
+		count = 0;
+		for (int i = 0; i < maxPOSValue; i++){
+			if ((totalDVHistogram[i][2] >0) || (totalDVHistogram[i][2] < maxPOSValue)){
+				count++;
+			}
+			if (i = maxXORValue)
+				posDVtotalrepetitions[i][1] = count;
+		}
         printf("Created statistics for combinations.\n");
     }
                     
@@ -347,6 +418,15 @@ int main(){
     
     /** USING DV VALUES INTRODUCED BY USER. **/
     
+
+
+
+
+
+
+
+
+
 
 
 
@@ -374,7 +454,7 @@ int main(){
  *
  */
     
-    //22:00
+    //00:30
     
     return 0;
 }
