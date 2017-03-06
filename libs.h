@@ -33,14 +33,12 @@
 #define NMaxAddressesInEvent 200
 
 
-typedef char tAddress[11]; //Has to be 9, 8+(\0)
-
 /*
  * This function allows getting characters from the file, transforming them into fields
  */
 char* getfield(FILE* file, char* taken){
     int c = 0, elems = 0;
-    char* ch = malloc(sizeof(char));
+    char* ch = malloc(sizeof(char)); // En visual da excepción, se arregla con calloc y tam = 11
     c = getc(file);
     while ((c != ',') && (c != '\n')) {
         elems++;
@@ -89,8 +87,8 @@ uint32_t* extract_addressvector(uint32_t* columnVector, int* elems){
  * of the bits where a known word differs from the pattern
  */
 int32_t* flipped_bits(int32_t word, int32_t pattern, int wordWidth){
-    int k, nFound = 0;
-    int32_t* result = calloc((wordWidth), sizeof(int32_t));
+    int k, nFound = 0, count = 0;
+    int32_t* result = calloc(wordWidth, sizeof(int32_t));
     for (k = 0; k < wordWidth; k++) {
         result[k] = 1;
         result[k] *= (wordWidth+1);
@@ -104,6 +102,13 @@ int32_t* flipped_bits(int32_t word, int32_t pattern, int wordWidth){
         bitflips = bitflips >> 1;
     }
     //return result[1:findlast(result.!=(wordwidth+1))]
+    // Recorremos el vector desde la última posición para encontrar el primero desde el final,
+    // que cumple result != wordWith+1, realloc de result, para devolver vector con nuevo tamaño
+    k = wordWidth;
+    while (result[k] == wordWidth+1) {
+        count++;
+    }
+    result = realloc(result, (wordWidth-count)*sizeof(int32_t));
     return result;
 }
 
@@ -235,7 +240,7 @@ int32_t* countsOfElems(int32_t** histogram, int maxValue, int ktest, int LN){
     int32_t* repetitionstmp = (int32_t*)calloc((maxValue+1), sizeof(int32_t));
     int i;
     for (i = 0; i < LN; i++) {
-        repetitionstmp[histogram[i][ktest+1]]++;//ktest+1? por?
+        //repetitionstmp[histogram[i][ktest+1]]++;//ktest+1? por?
     }
     return repetitionstmp;
 }
@@ -330,14 +335,14 @@ double ExpectedRepetitions(int m, int ndv, int LN, char* operation){
  * nthreshold indicates the limit value from which repetitions should not
  * be expected in only-SBU experiments.
  */
-int32_t** find_anomalies_histogram(uint32_t** histogram, int32_t histogramLenght, int histogramCol, int32_t** occurrences, int32_t occurrencesLenght, int occurrencesCol, int32_t nthreshold, int n_anomalous_values, int32_t anomaliesLenght){ //n_anomalous_values por referencia porque necesitamos el valor
+int32_t** find_anomalies_histogram(uint32_t** histogram, int32_t histogramLenght, int histogramCol, int32_t** occurrences, int32_t occurrencesLenght, int occurrencesCol, int32_t nthreshold, int* n_anomalous_values, int32_t anomaliesLenght){ //n_anomalous_values por referencia porque necesitamos el valor
     /* The total number of elements anomalously repeated. We use +1 since the first
      * element of the vector is related to 0 repetitions. 
      */
-    int i, index = 1, k, k2;
+    int i, index = 0, k, k2;
     int32_t nAnomalies = 0;
-    for (i = nthreshold+1; i < occurrencesLenght; i++) { // de ocurrences se necesitan todas las filas de la columna 1?
-        nAnomalies += occurrences[i][1];
+    for (i = nthreshold; i < occurrencesLenght; i++) { // nthreshold+1 o nthreshold??????
+        nAnomalies += occurrences[i][occurrencesCol];
     }
     /*The number of repetitions of the most repeated element. Coincides roughly with the vector length. */
     int32_t highestAnomaly = occurrencesLenght - 1;
@@ -349,29 +354,29 @@ int32_t** find_anomalies_histogram(uint32_t** histogram, int32_t histogramLenght
     }
     /* the following variable will be used to indicate the number of elements different
      * from 0, above nthreshold, in the occurrences vector. */
-    n_anomalous_values = 0;
-    for (k = highestAnomaly+1; k > nthreshold+1; k--) {
+    *n_anomalous_values = 0;
+    for (k = highestAnomaly; k > nthreshold; k--) { // Los dos +1 o no????
         /* I've prefered to implement this solution instead of using the native function
          * "find()" since I believe this solution is faster as it includes breaks once
          * the number of anomalous occurrences are achieved. */
         if (occurrences[k][occurrencesCol] != 0){
             int n_occurrence_value = 0;
             int occurrence_value = k-1;
-            n_anomalous_values +=1;
+            *n_anomalous_values += 1;
             for (k2 = 1; k2 < histogramLenght; k2++) {
-                if (histogram[k2][histogramCol] == occurrence_value){ // Se usa la columna 1 y todas las filas?
-                    //Anomalies[index,:] = [k2; occurrence_value]'; FALTA
+                if (histogram[k2][histogramCol] == occurrence_value){
+                    //Anomalies[index,:] = [k2; occurrence_value]'; ?????
+                    anomalies[index][0] = k2;
+                    anomalies[index][1] = occurrence_value;
                     index++;
                     n_occurrence_value++;
                     if (n_occurrence_value == occurrences[k][occurrencesCol]) {
                         break;
                     }
                 }
-                    
             }
         }
     }
-    
     return anomalies;
 /*Example of return:
  #Anomalies=[
@@ -409,7 +414,6 @@ int32_t** find_anomalies_histogram(uint32_t** histogram, int32_t histogramLenght
  # repetition values. If n = 4 or more, the function returns the input matrix
  # unchanged.
  */
-
 int32_t** extract_some_critical_values(int32_t** anomalous_repetitions, int32_t anomalous_repetitionsLenght, int n_anomalous_repetitions, int n){
     int observed_values = 1, nrow = 1, k;
     if (n_anomalous_repetitions <= n) {
@@ -424,7 +428,7 @@ int32_t** extract_some_critical_values(int32_t** anomalous_repetitions, int32_t 
         }
         return extracted_values;
     } else {
-        for (k = 2; k < anomalous_repetitionsLenght; k++){
+        for (k = 1; k < anomalous_repetitionsLenght; k++){
             if (anomalous_repetitions[k][1] != anomalous_repetitions[k-1][1]) {
                 if (observed_values == n) {
                     nrow = k - 1;
@@ -464,15 +468,17 @@ int32_t** extract_some_critical_values(int32_t** anomalous_repetitions, int32_t 
  # If this works, only God knows.
  */
 bool** marking_addresses(int32_t** davmatrix, int32_t davmatrixRows, int32_t davmatrixCols, int32_t** critical_values, int32_t critical_valuesLenght){
-    int value;
+    int i;
+    int32_t value;
     bool** result = calloc(davmatrixRows, sizeof(bool*));
-    for (value = 0; value < davmatrixRows; value++) {
-        result[value] = calloc(davmatrixCols, sizeof(bool));
+    for (i = 0; i < davmatrixRows; i++) {
+        result[i] = calloc(davmatrixCols, sizeof(bool));
     }
     /*for value in critical_values[:,1]
         result = result | (round(Bool, davmatrix.==value*ones(UInt32, size(davmatrix))))
     end*/
-    for (value = 0; value < critical_valuesLenght; value++) {
+    for (i = 0; i < critical_valuesLenght; i++) {
+        value = critical_values[i][0];
         //result = result | (round(Bool, davmatrix.==value*ones(UInt32, size(davmatrix))))
     }
     return result;
@@ -493,7 +499,7 @@ bool** marking_addresses(int32_t** davmatrix, int32_t davmatrixRows, int32_t dav
 int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatrixCols){
     //Let us locate the elements
     //Con FIND tenemos que encontrar los indices cuyos valores no sean cero
-    int count = 0, newCount = 0, i, j;
+    int count = 0, newCount = 0, i, j, k, x, xx;
     int32_t* nonzerovectorelementstmp = calloc(davmatrixRows*davmatrixCols, sizeof(int32_t));
     for (i = 0; i < davmatrixRows; i++) {
         for (j = 0; j < davmatrixCols; j++) {
@@ -505,29 +511,31 @@ int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatr
         }
     }
     // Tenemos que volver a recorrer para encontrar los -1 que son vacíos
-    int32_t* nonzerovectorelements = calloc(newCount, sizeof(int32_t)); // Luego redimensionamos
+    int32_t* nonzerovectorelements = calloc(count, sizeof(int32_t)); // Luego redimensionamos
     for (i = 0; i < count; i++) {
         if (nonzerovectorelementstmp[i] != -1) {
             nonzerovectorelements[newCount] = nonzerovectorelementstmp[i];
             newCount++; // número de elementos reales
         }
     }
+    nonzerovectorelementstmp = NULL;
     free(nonzerovectorelementstmp);
-    nonzerovectorelements = realloc(nonzerovectorelements, newCount); // No sé si está bien
+    nonzerovectorelements = realloc(nonzerovectorelements, newCount);
     //Now, transform the elements in pairs creating a matrix with 2 columns.
     int32_t** relatedpairs = calloc(newCount, sizeof(int32_t*));
     for (i = 0; i < newCount; i++) {
         relatedpairs[i] = calloc(2, sizeof(int32_t));
     }
-    //NROws is necessary
-    //NRows, NCols = size(davmatrix) SE PASAN A LA FUNCION, NO NECESARIO
     
 /*    @simd for k1 = 1:length(nonzerovectorelements)
 # The first operation calculates the column
         @inbounds relatedpairs[k1,:] = [rem(nonzerovectorelements[k1], NRows) div(nonzerovectorelements[k1],NRows)+1]
 # REM means "remainder of division", DIV integer division.
         end*/
-    
+    for (i = 0; i < newCount; i++) {
+        relatedpairs[i][0] = nonzerovectorelements[i] / davmatrixRows;
+        relatedpairs[i][1] = (nonzerovectorelements[i] / davmatrixRows) + 1;
+    }
     /* Good, we have created a matrix containing the related pairs. Now, we must
      # group them in larger events.
      
@@ -550,103 +558,131 @@ int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatr
     }
     //Now, we save the first pair in the first column:
     int nTotalEvents = 0;
-    
-    //for kpair = 1:length(relatedpairs[:,1])
-    //There are several cases. Let us list them in order.
-    //Positions are extrated from the pairs.
-    //FirstAddress, SecondAddress = relatedpairs[kpair,:]
-    //There are several cases. Let us list them in order.
-    //TENEMOS QUE MIRAR SI firstAddress y secondAddress están en thesummary
-    //AQUI, matriz 3 dimensiones
-    bool firstAddressFound = false, secondAddressFound = false;
-    
-    /*
-     # Case 1:
-     # Both addresses are not present in thesummary. They are placed at a new_row
-     # at NTotalEvents
-     */
-    if (!firstAddressFound && !secondAddressFound){
-        nTotalEvents ++;
-        //thesummary[NTotalEvents,1:2]=relatedpairs[kpair,:]
-    }
-    /*
-     # Case 2:
-     # FirstAddress is present, but not SecondAddress
-     */
-    if (firstAddressFound && !secondAddressFound){
-        //First of all, let us locate the row where the FirstAddress is.
-        //AddressPos = find(thesummary.==FirstAddress);
-        //But must be converted into row!!!
-        //AddressRow = rem(AddressPos, length(relatedpairs[:,1]));
-        //Now, it is necessary to locate the first free column to put the new address.
-        //ColumnWithZero=findfirst(thesummary[AddressRow,:].==0);
-        //Fixed problem. We do know exactly the position to put the new value.
-        //thesummary[AddressRow, ColumnWithZero]=SecondAddress;
-    }
-    /*
-     # Case 3:
-     # FirstAddress absent, Second Address present. similar to previous one.
-     */
-    if (!firstAddressFound && secondAddressFound) {
-        //First of all, let us locate the row where the Second Address is.
-        //AddressPos = find(thesummary.==SecondAddress);
-        //But must be converted into row!!!
-        //AddressRow = rem(AddressPos, length(relatedpairs[:,1]));
-        //Now, it is necessary to locate the first free column to put the new address.
-        //ColumnWithZero=findfirst(thesummary[AddressRow,:].==0);
-        //Fixed problem. We do know exactly the position to put the new value.
-        //thesummary[AddressRow, ColumnWithZero]=FirstAddress;
-    }
-    /*
-     #Case 4:
-     # Both addresses had been previously detected. Two subcases appear: They
-     # are included in the same row (MCU) so the program must skip this pair or
-     # are included in differen rows. Therefore, both rows must be carefully merged.
-     */
-    if (firstAddressFound && secondAddressFound) {
-        //AddressPos1 = find(thesummary.==FirstAddress);
-        //AddressPos2 = find(thesummary.==SecondAddress);
-        //But must be converted into row!!!
-        //AddressRow1 = rem(AddressPos1, length(relatedpairs[:,1]))
-        //AddressRow2 = rem(AddressPos2, length(relatedpairs[:,1]))
+    int32_t firstAddress, secondAddress, firstAddressRow = 0, secondAddressRow = 0;
+    for (k = 0; k < newCount; k++) {
+        //There are several cases. Let us list them in order.
+        //Positions are extrated from the pairs.
+        firstAddress = relatedpairs[k][0];
+        secondAddress = relatedpairs[k][1];
+        //TENEMOS QUE MIRAR SI firstAddress y secondAddress están en thesummary
+        bool firstAddressFound = false, secondAddressFound = false;
+        for (i = 0; i < thesummaryRows; i++) {
+            for (j = 0; j < thesummaryCols; j++) {
+                if (thesummary[i][j] == firstAddress) {
+                    firstAddressFound = true;
+                    firstAddressRow = i;
+                }
+                if (thesummary[i][j] == secondAddress) {
+                    secondAddressFound = true;
+                    secondAddressRow = i;
+                }
+            }
+        }
         /*
-         # If both values are identical, the pair must be skipped and the program
-         # continue. If different, the rows must be merged.
+         # Case 1:
+         # Both addresses are not present in thesummary. They are placed at a new_row
+         # at NTotalEvents
          */
-        //if (AddressRow1 != AddressRow2){
-            //First step: It is necessary to range the numbers in increasing order.
-            //AddressRowMin = minimum([AddressRow1 AddressRow2])
-            //AddressRowMax = maximum([AddressRow1 AddressRow2])
-        
-            //Let us copy the preliminary summary to work in.
-            //thesummarytemp = 0*thesummary
-            //All of the rows with index below AddressRowMin must be copied unchanged.
-            //thesummarytemp[1:AddressRowMin-1,:]=thesummary[1:AddressRowMin-1,:]
-            //Now, let us locate elements in RowMin different from 0
-            //RawCombinedAddresses =union(thesummary[AddressRowMin, 1:findfirst(thesummary[AddressRowMin,:].==0)-1], thesummary[AddressRowMax, 1:findfirst(thesummary[AddressRowMax,:].==0)-1]);
+        if (!firstAddressFound && !secondAddressFound){
+            thesummary[nTotalEvents][0] = relatedpairs[k][0];
+            thesummary[nTotalEvents][1] = relatedpairs[k][1];
+            nTotalEvents ++;
+        }
+        /*
+         # Case 2:
+         # FirstAddress is present, but not SecondAddress
+         */
+        if (firstAddressFound && !secondAddressFound){
+            //First of all, let us locate the row where the FirstAddress is.
+            //Now, it is necessary to locate the first free column to put the new address.
+            x = 0;
+            while ((thesummary[firstAddressRow][x] != 0) && (x < thesummaryCols)) {
+                x++;
+            }
+            //Fixed problem. We do know exactly the position to put the new value.
+            if (x < thesummaryCols) {
+                thesummary[firstAddressRow][x] = secondAddress;
+            }
+        }
+        /*
+         # Case 3:
+         # FirstAddress absent, Second Address present. similar to previous one.
+         */
+        if (!firstAddressFound && secondAddressFound) {
+            //First of all, let us locate the row where the Second Address is.
+            //Now, it is necessary to locate the first free column to put the new address.
+            x = 0;
+            while ((thesummary[secondAddressRow][x] != 0) && (x < thesummaryCols)) {
+                x++;
+            }
+            //Fixed problem. We do know exactly the position to put the new value.
+            if (x < thesummaryCols) {
+                thesummary[secondAddressRow][x] = firstAddress;
+            }
+        }
+        /*
+         #Case 4:
+         # Both addresses had been previously detected. Two subcases appear: They
+         # are included in the same row (MCU) so the program must skip this pair or
+         # are included in differen rows. Therefore, both rows must be carefully merged.
+         */
+        if (firstAddressFound && secondAddressFound) {
             /*
-             # But this is a column vector where the elements are not repeated but
-             # not disposed in increasing order. Let us solve this:
+             # If both values are identical, the pair must be skipped and the program
+             # continue. If different, the rows must be merged.
              */
-            //RawCombinedAddresses = sort(vec(RawCombinedAddresses))'
-            /*
-             # Vec vectorizes the elements of the matrix.
-             # Time to put the elements in the row.
-             */
-            //thesummarytemp[AddressRowMin,1:length(RawCombinedAddresses)]=RawCombinedAddresses;
-        
-            //We save the rows between AddressRowMin and AddressRowMax unchanged.
-            //thesummarytemp[AddressRowMin+1:AddressRowMax-1,:]=thesummary[AddressRowMin+1:AddressRowMax-1,:]
-        
-            //And the rest of Rows with the exception of AddressRowMax, which has disappeared.
-            //thesummarytemp[AddressRowMax:end-1,:]=thesummary[AddressRowMax+1:end,:]
-        
-            //And erase the original value of thesummary.
-            // thesummary = thesummarytemp;
-            //Also, as two events have been merged, the number of total events is lower:
-            nTotalEvents--;
-        //}
-        
+            if (firstAddressRow != secondAddressRow){
+                //First step: It is necessary to range the numbers in increasing order.
+                int32_t addressRowMin = 0, addressRowMax = 0;
+                if (firstAddressRow < secondAddressRow) {
+                    addressRowMin = firstAddressRow;
+                    addressRowMax = secondAddressRow;
+                } else {
+                    addressRowMin = secondAddressRow;
+                    addressRowMax = firstAddressRow;
+                }
+                //Let us copy the preliminary summary to work in.
+                int32_t** thesummarytemp = calloc(thesummaryRows, sizeof(int32_t*));
+                for (x = 0; x < thesummaryRows; x++) {
+                    thesummarytemp[x] = calloc(thesummaryCols, sizeof(int32_t));
+                }
+                //All of the rows with index below AddressRowMin must be copied unchanged.
+                for (x = 0; x < addressRowMin; x++) {
+                    for (xx = 0; xx < thesummaryCols; xx++) {
+                        thesummarytemp[x][xx] = thesummary[x][xx];
+                    }
+                }
+                //Now, let us locate elements in RowMin different from 0
+                //RawCombinedAddresses =union(thesummary[AddressRowMin, 1:findfirst(thesummary[AddressRowMin,:].==0)-1], thesummary[AddressRowMax, 1:findfirst(thesummary[AddressRowMax,:].==0)-1]);
+                /*
+                 * But this is a column vector where the elements are not repeated but
+                 * not disposed in increasing order. Let us solve this:
+                 */
+                //RawCombinedAddresses = sort(vec(RawCombinedAddresses))'
+                /*
+                 * Vec vectorizes the elements of the matrix.
+                 * Time to put the elements in the row.
+                 */
+                //thesummarytemp[AddressRowMin,1:length(RawCombinedAddresses)]=RawCombinedAddresses;
+                //We save the rows between AddressRowMin and AddressRowMax unchanged.
+                for (x = addressRowMin + 1; x < addressRowMax; x++) {
+                    for (xx = 0; xx < thesummaryCols; xx++) {
+                        thesummarytemp[x][xx] = thesummary[x][xx];
+                    }
+                }
+                //And the rest of Rows with the exception of AddressRowMax, which has disappeared.
+                for (x = addressRowMax + 1; x < thesummaryRows; x++) {
+                    for (xx = 0; xx < thesummaryCols; xx++) {
+                        thesummarytemp[x][xx] = thesummary[x][xx];
+                    }
+                }
+                //And erase the original value of thesummary.
+                thesummary = thesummarytemp;
+                free(thesummarytemp);
+                //Also, as two events have been merged, the number of total events is lower:
+                nTotalEvents--;
+            }
+        }
     }
     /*
      #Really good. Now, we will separate the cells with information from those with
@@ -654,7 +690,6 @@ int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatr
      # The number of rows is easy to calculate: NTotalEvents. Concerning the other
      # element:
      */
-    
     int32_t largestMCU = 0, sum = 0;
     for (i = 3; i < thesummaryRows; i++) {
         for (j = 0; j < thesummaryCols; j++) {
@@ -665,174 +700,17 @@ int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatr
             break;
         }
     }
-    //return result = thesummary[1:NTotalEvents, 1:LargestMCU]
     int32_t** result = calloc(nTotalEvents, sizeof(int32_t*));
     for (i = 0; i < nTotalEvents; i++) {
         result[i] = calloc(largestMCU, sizeof(int32_t));
     }
-    //Falta copiar uno en otro para el return
+    for (x = 0; x < nTotalEvents; x++) {
+        for (xx = 0; xx < largestMCU; xx++) {
+            result[x][xx] = thesummary[x][xx];
+        }
+    }
     return result;
 }
-
-/*
- #This is a simple function to cut files and rows of redundant zeros in 1 or 2
- #dimensions matrix.
- */
-/*cutZerosFromArray(int32_t** matrix, int32_t matrixRows, int32_t matrixCols){
-    Adimensions = collect(size(A))
-    Ndimension = length(size(A))
-}
-
-
-
-Adimensions = collect(size(A))
-Ndimension = length(size(A))
-
-if ((Ndimension==2)&(1 in Adimensions))
-# Upss, this is a vector. Be careful.
-if (Adimensions[1]==1)
-result =A[findfirst(A.!=0):findlast(A.!=0)]'
-else
-result =A[findfirst(A.!=0):findlast(A.!=0)]
-end
-
-return result
-
-
-elseif ((Ndimension==2)&!(1 in Adimensions))
-# this is a classical matrix.
-firstrow=1;
-lastrow =Adimensions[1];
-firstcol=1;
-lastcol=Adimensions[2];
-for krow = 1:Adimensions[1]
-if (length(find(A[krow,:].!=0))!=0)
-break;
-end
-firstrow +=1;
-end
-for krow = Adimensions[1]:-1:1
-if (length(find(A[krow,:].!=0))!=0)
-break;
-end
-lastrow -=1;
-end
-for kcol = 1:Adimensions[2]
-if (length(find(A[:,kcol].!=0))!=0)
-break;
-end
-firstcol +=1;
-end
-for kcol = Adimensions[2]:-1:1
-if (length(find(A[:,kcol].!=0))!=0)
-break;
-end
-lastcol -=1;
-end
-
-return result = A[firstrow:lastrow, firstcol:lastcol]
-
-else
-
-println("\tMatriz dimension different from 1 or 2. Exiting.")
-return A
-end
-
-end
-// cutZerosFromMcuSummary
- function CutZerosFromMCUsummary(MCUSummary)
- 
- # A very specific function to reduce the size of the summaries with many
- # involved rounds.
- 
- NRounds = length(MCUSummary[1,1,:])
- DimensionsMCU = zeros(Int32, 2,NRounds)
- 
- for ktest = 1:NRounds
- DimensionsMCU[1:2,ktest]=collect(size(CutZerosFromArray(MCUSummary[:,:,ktest])))
- end
- 
- SimpleMCUSummary = MCUSummary[
- 1:maximum(DimensionsMCU[1,:]),
- 1:maximum(DimensionsMCU[2,:]),
- :]
- return SimpleMCUSummary
- 
- end
-
- 
- //TraceRule
-
- 
- 
- 
- CandidatesT1 = 2.^collect(0:Nbits-1)
- 
- #NT1Threshold = ExcessiveRepetitionsSubSet(CandidatesT1, xorDVtotalrepetitions[:,2],
- #                                              LN, "xor", RandomnessThreshold)
- NT1Threshold = ExcessiveRepetitions(xorDVtotalrepetitions[:,2],
- LN, "xor", RandomnessThreshold)
- 
- SelectedT1 = CandidatesT1[find(TotalDVhistogram[CandidatesT1, 2].>=NT1Threshold)]
- 
- WinnersT1 = setdiff(SelectedT1, AnomalXORvalues)
- NWinnersT1= length(WinnersT1)
- print(NWinnersT1, " candidate")
- if (NWinnersT1!=1) print("s") end
- print(" found.")
- #### Elements with 2-trace
- print("\n\tInvestigating Trace = 2: ")
- 
- CandidatesT2 = zeros(Int32, Int32(0.5*Nbits*(Nbits-1)))
- index = 0
- for k1=0:Nbits-2
- for k2 = k1+1:Nbits-1
- index +=1
- CandidatesT2[index]=2^k1+2^k2
- end
- end
- 
- #NT2Threshold = ExcessiveRepetitionsSubSet(CandidatesT2, xorDVtotalrepetitions[:,2],
- #                                              LN, "xor", RandomnessThreshold)
- NT2Threshold = ExcessiveRepetitions(xorDVtotalrepetitions[:,2],
- LN, "xor", RandomnessThreshold)
- 
- SelectedT2 = CandidatesT2[find(TotalDVhistogram[CandidatesT2, 2].>=NT2Threshold)]
- WinnersT2 = setdiff(SelectedT2, AnomalXORvalues)
- NWinnersT2= length(WinnersT2)
- print(NWinnersT2, " candidate")
- if (NWinnersT2!=1) print("s") end
- print(" found.")
- #  print("\n\tEnd of search.\n")
- 
- #### Elements with 3-trace
- print("\n\tInvestigating Trace = 3: ")
- 
- CandidatesT3 = zeros(Int32, Int32(Nbits*(Nbits-1)*(Nbits-2)/6))
- index = 0
- for k1=0:Nbits-3
- for k2 = k1+1:Nbits-2
- for k3 = k2+1:Nbits-1
- index +=1
- CandidatesT3[index]=2^k1+2^k2+2^k3
- end
- end
- end
- 
- SelectedT3 = CandidatesT3[find(TotalDVhistogram[CandidatesT3, 2].>=NT2Threshold)]
- WinnersT3 = setdiff(SelectedT3, AnomalXORvalues)
- NWinnersT3= length(WinnersT3)
- print(NWinnersT3, " candidate")
- if (NWinnersT3!=1) print("s") end
- print(" found.")
- 
- print("\n\tEnd of search.\n")
- 
- return union(WinnersT1, WinnersT2, WinnersT3)
- 
- end
-
- */
 
 /*
  # An alternative implementation of the trace rule.
@@ -841,14 +719,8 @@ end
  ### XORExtractedValues[1,:]
  */
 void traceRule(int32_t** xorDVtotalrepetitions, uint32_t** totalDVhistogram, int32_t** AnomalXORvalues, int32_t LN){
-   int32_t nBits = log(LN+1)/log(2);
-    
-    // Elements with 1-trace
-    printf("\n\tInvestigating Trace = 1: ");
     
 }
-
-
 
 
 /*
