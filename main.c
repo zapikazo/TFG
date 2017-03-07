@@ -13,7 +13,12 @@
 
 int main(){
     
-    
+	int n, p;
+	n = 10;
+	p = 7;
+
+	// Imprime o binomial de n sobre p
+	printf("El binomial de %d sobre %d es: %d\n", n, p, Binomial(n, p));
    /* tAddress* columnVector = malloc(sizeof(tAddress)*17);
     
     

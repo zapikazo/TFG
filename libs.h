@@ -30,14 +30,15 @@
  * swap this constant to false */
 #define DoSecondPassMCURule false
 
-typedef char tAddress[11]; //Has to be 9, 8+(\0)
+#define NMaxAddressesInEvent 200
+
 
 /*
  * This function allows getting characters from the file, transforming them into fields
  */
 char* getfield(FILE* file, char* taken){
     int c = 0, elems = 0;
-    char* ch = malloc(sizeof(char));
+    char* ch = malloc(sizeof(char)); // En visual da excepción, se arregla con calloc y tam = 11
     c = getc(file);
     while ((c != ',') && (c != '\n')) {
         elems++;
@@ -85,41 +86,29 @@ uint32_t* extract_addressvector(uint32_t* columnVector, int* elems){
  * This function returns a vector with variable lenght indicating the positions
  * of the bits where a known word differs from the pattern
  */
-//NO SE COMO FUNCIONA ESTO
-int* flipped_bits(tAddress word, tAddress pattern, int wordWidth){
-    int* bitflips;
-    bitflips = (int*)calloc(wordWidth, sizeof(int));
-    int* result;
-    result = calloc((wordWidth+1), sizeof(wordWidth)); //Array of zeros, != doc
-    int nFound, i;
-    nFound = 0;
-    
-    //We have to create the bitflips' array with xoring, skipping 0x and \0?
- /*   for(i=2; i<wordWidth-1; ++i)
-        bitflips[i-2] = (char)(*word[i] ^ *pattern[i]);
-    for(i=0; i<wordWidth-3; ++i)
-        printf("%02X ", bitflips[i]);
-    printf("\n");*/
-    for(i=0; i<wordWidth-1; ++i){
-        if(word[i] == pattern[i]){
-            bitflips[i] = 0;
-        } else {
-            bitflips[i] = 1;
-        }
+int32_t* flipped_bits(int32_t word, int32_t pattern, int wordWidth){
+    int k, nFound = 0, count = 0;
+    int32_t* result = calloc(wordWidth, sizeof(int32_t));
+    for (k = 0; k < wordWidth; k++) {
+        result[k] = 1;
+        result[k] *= (wordWidth+1);
     }
-    for(i=0; i<wordWidth-1; ++i)
-        printf("%02X ", bitflips[i]);
-    printf("\n");
-    
-    
-    for (i = 0; wordWidth-1; ++i) {
-        if(bitflips[i] % 2 == 1){
+    int32_t bitflips = word ^ pattern;
+    for(k = 0; k < wordWidth-1; k++){
+        if ((bitflips/2) == 1) {
             nFound++;
-            result[nFound] = i;
+            result[nFound] = k;
         }
+        bitflips = bitflips >> 1;
     }
-    
-    //Falta return
+    //return result[1:findlast(result.!=(wordwidth+1))]
+    // Recorremos el vector desde la última posición para encontrar el primero desde el final,
+    // que cumple result != wordWith+1, realloc de result, para devolver vector con nuevo tamaño
+    k = wordWidth;
+    while (result[k] == wordWidth+1) {
+        count++;
+    }
+    result = realloc(result, (wordWidth-count)*sizeof(int32_t));
     return result;
 }
 
@@ -251,7 +240,7 @@ int32_t* countsOfElems(int32_t** histogram, int maxValue, int ktest, int LN){
     int32_t* repetitionstmp = (int32_t*)calloc((maxValue+1), sizeof(int32_t));
     int i;
     for (i = 0; i < LN; i++) {
-        repetitionstmp[histogram[i][ktest+1]]++;//ktest+1? por?
+        //repetitionstmp[histogram[i][ktest+1]]++;//ktest+1? por?
     }
     return repetitionstmp;
 }
@@ -276,7 +265,7 @@ int lookForElem(uint32_t* vector, int ndv, int position){
  * and every time that an element K appears, histogram(k) increases 1.
  * LN determines the length of the set of possible values.
  */
-int32_t* create_histogram(uint32_t* vector, int ndv, int ln){
+int32_t* create_histogram(uint32_t* vector, int ndv, long int ln){
     int32_t* histogram = calloc(ln, sizeof(int32_t));
     int k, sum = 0;
     for (k = 0; k < ndv; k++) {
@@ -286,47 +275,40 @@ int32_t* create_histogram(uint32_t* vector, int ndv, int ln){
     return histogram;
 }
 
-long long binomial(int n,int k)
+long long binomial(int n, int p)
 {
-    long long ans=1;
-    k=k>n-k?n-k:k;
-    int j=1;
-    for(;j<=k;j++,n--)
-    {
-        if(n%j==0)
-        {
-            ans*=n/j;
-        }else
-        if(ans%j==0)
-        {
-            ans=ans/j*n;
-        }else
-        {
-            ans=(ans*n)/j;
-        }
-    }
-    return ans;
+    return (calculaFatorial(n) / (calculaFatorial(p)*calculaFatorial(n - p)));
+}
+int calculaFatorial(int num)
+{
+    return ((num <= 1) ? 1 : (num * calculaFatorial(num - 1)));
 }
 
 /* This function just implements the theoretical expresions to determine expected
  * repetitions.  Variable names are meaningful. */
-double ExpectedRepetitions(int m, int ndv, int LN, char* operation){
-  double result = 0,logresulttmp = 0;
+double ExpectedRepetitions(int m, int ndv, int32_t LN, char* operation){
+  double result = 0,logresulttmp = 0,i;
 
   if (strcmp(operation, "pos") == 0){
     //Difference of values
-    if(abs(ndv/LN) < 0.1){
-      logresulttmp =((1-m)*log(LN)+m*log(2)-log(m+1)+log(binomial((int)ndv,m)));
+    if(fabs(ndv/LN) < 0.1){
+        logresulttmp = (float)((1 - m)*log(LN) + m*log(2) - log(m + 1) + log(binomial((int)ndv, m)));
       result = exp(logresulttmp);
-      //result = result*(1+(3*(m)-2*Int64(ndv))/(LN+1))*(1+2*(ndv-m)/(LN-2)/(m+2));
+      result = result*(1+(3*(m)-2*(int64_t)(ndv))/(LN+1))*(1+2*(ndv-m)/(LN-2)/(m+2));
     }else{
-      //pk=2/LN/(LN+1)*(LN+1-collect(1:1:LN));
-      //result = sum(binomial(BigInt(ndv), m)*(pk.^m).*(1-pk).^(ndv-m));
+        //          OJOOOOOOOOOOOOOOOOOOOOOOOO  EL COLLECT...
+        /*pk=2/LN/(LN+1)*(LN+1-collect(1:1:LN));
+      result = sum(binomial(BigInt(ndv), m)*(pk.^m).*(1-pk).^(ndv-m));*/
+
+        for (i = 0; i < LN; i++){
+            double pk = 2 / LN / (LN + 1)*(LN + 1 - i);
+            result += (binomial((double)(ndv), m)*(pow(pk, m))*pow((1 - pk), (ndv - m)));
+        }
     }
   }
   else if (strcmp(operation, "xor") == 0){
     // XOR
-    //logresulttmp = Float64(log(binomial(BigInt(ndv),m))+(ndv-m)*log(LN-1)-(ndv-1)*log(LN));
+      logresulttmp = (float)(log(binomial((double)(ndv), m)) + (ndv - m)*log(LN - 1) - (ndv - 1)*log(LN));
     result = exp(logresulttmp);
   }else{
     //Badly specified function.
@@ -335,6 +317,445 @@ double ExpectedRepetitions(int m, int ndv, int LN, char* operation){
   }
   return result;
 }
+
+//EXCESSIVEREPETITIONS
+int32_t ExcessiveRepetitions(int32_t** RepInHistVector, int RepInHistVectorCol, int32_t LN, char* operation, int threshold){
+
+    // This function allows calculating the lowest number of repetitions from which
+    // the expected number is below threshold.
+    // RepInHistVector is a column vector containing the statistics.It is assumed
+    // that the first element correspond to 0 repetitions.
+
+    int32_t nthreshold = 0, ndv = 0;
+    int32_t nmax = sizeof(RepInHistVector) / sizeof(int32_t);       //si no le pasamos el tamaño
+
+    int32_t* OccurrenceIndex = (int32_t*)calloc(sizeof(int32_t),(nmax - 1));
+    for (int i = 0; i < nmax; i++)
+        OccurrenceIndex[i] = i;
+
+    for (int i = 0; i < nmax; i++)
+        ndv += ((int32_t)RepInHistVector[i][RepInHistVectorCol] * (int32_t)OccurrenceIndex[i]);
+
+    //Inner product and later addition
+    //LN = sum(RepInHistVector);
+    //just a trick to reobtain the LN value from the data.
+    //REMOVED: LN included as an function argument since it is not easily deducible
+    // in the case of dividing the memory into blocks.
+    int k0 = 0;
+    if (operation == "pos"){
+        if ((ExcessiveRepetitions(RepInHistVector, RepInHistVectorCol, LN, "xor", threshold) - 1) > 0)
+            k0 = ExcessiveRepetitions(RepInHistVector, RepInHistVectorCol, LN, "xor", threshold) - 1;
+    }
+    // This is a trick to speed up "pos" calculations. Instead of starting to
+    // iterate from 0, we calculate the threshold for XOR, which is always the
+    // lowest and it is really easy to determine.
+
+    //for(int k = k0; k < nmax; k++){   // mejor con un while, porque en cuanto encuentre el valor, se sale
+    int k = k0;
+    while ((nthreshold != k) && (k < nmax)){
+        if (ExpectedRepetitions(k, LN, ndv, operation) < threshold){
+            nthreshold = k;
+        }
+        k++;
+    }
+    return nthreshold;
+}
+
+/*
+ * This function lists the element anomalously repeated in the histogram.
+ * occurrences is a column vector [V(0)...V(K)] where V(K) indicates the number
+ * of elements that are repeated K times.
+ * nthreshold indicates the limit value from which repetitions should not
+ * be expected in only-SBU experiments.
+ */
+int32_t** find_anomalies_histogram(uint32_t** histogram, int32_t histogramLenght, int histogramCol, int32_t** occurrences, int32_t occurrencesLenght, int occurrencesCol, int32_t nthreshold, int* n_anomalous_values, int32_t anomaliesLenght){ //n_anomalous_values por referencia porque necesitamos el valor
+    /* The total number of elements anomalously repeated. We use +1 since the first
+     * element of the vector is related to 0 repetitions. 
+     */
+    int i, index = 0, k, k2;
+    int32_t nAnomalies = 0;
+    for (i = nthreshold; i < occurrencesLenght; i++) { // nthreshold+1 o nthreshold??????
+        nAnomalies += occurrences[i][occurrencesCol];
+    }
+    /*The number of repetitions of the most repeated element. Coincides roughly with the vector length. */
+    int32_t highestAnomaly = occurrencesLenght - 1;
+    //initialize the value to return.
+    //Anomalies = round(Int32, zeros(NAnomalies, 2)) NO SE SI LO SIGUIENTE CORRESPONDE
+    int32_t** anomalies = (int32_t**)calloc(nAnomalies, sizeof(int32_t*));
+    for (i = 0; i < nAnomalies; i++) {
+        anomalies[i] = (int32_t*)calloc(2, sizeof(int32_t));
+    }
+    /* the following variable will be used to indicate the number of elements different
+     * from 0, above nthreshold, in the occurrences vector. */
+    *n_anomalous_values = 0;
+    for (k = highestAnomaly; k > nthreshold; k--) { // Los dos +1 o no????
+        /* I've prefered to implement this solution instead of using the native function
+         * "find()" since I believe this solution is faster as it includes breaks once
+         * the number of anomalous occurrences are achieved. */
+        if (occurrences[k][occurrencesCol] != 0){
+            int n_occurrence_value = 0;
+            int occurrence_value = k-1;
+            *n_anomalous_values += 1;
+            for (k2 = 1; k2 < histogramLenght; k2++) {
+                if (histogram[k2][histogramCol] == occurrence_value){
+                    //Anomalies[index,:] = [k2; occurrence_value]'; ?????
+                    anomalies[index][0] = k2;
+                    anomalies[index][1] = occurrence_value;
+                    index++;
+                    n_occurrence_value++;
+                    if (n_occurrence_value == occurrences[k][occurrencesCol]) {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    return anomalies;
+/*Example of return:
+ #Anomalies=[
+ #49152  13
+ #  6   6
+ #49158   4
+ #1974137   4
+ #1974143   4
+ #2023289   4
+ #2023295   4
+ #57344    3
+ #893437   3]
+ #n_anomalous_values=4
+ #Obviously, since {13, 6, 4, 3} are four posibilities.*/
+}
+
+/*
+ # Now, a simple function to extract a subset with the most repeated values in
+ # the anomalous patterns. Take into account that we look at the number of repeated
+ # values and not to the number of elements. For instance, if we have the following
+ # anomalous_repetitions vector:
+ #
+ #   0x0000c000  13
+ #   0x00000006  6
+ #   0x0000c006  4
+ #   0x001e1f79  4
+ #   0x001e1f7f  4
+ #   0x001edf79  4
+ #   0x001edf7f  4
+ #   0x0000e000  3
+ #   0x000da1fd  3
+ #
+ # And we specify n=1, the first row will be returned. If, n=2, rows 1 & 2
+ # but, if n=3, the function returns rows 1->7 as they contain 3 different
+ # repetition values. If n = 4 or more, the function returns the input matrix
+ # unchanged.
+ */
+int32_t** extract_some_critical_values(int32_t** anomalous_repetitions, int32_t anomalous_repetitionsLenght, int n_anomalous_repetitions, int n){
+    int observed_values = 1, nrow = 1, k;
+    if (n_anomalous_repetitions <= n) {
+        int32_t** extracted_values = calloc(anomalous_repetitionsLenght, sizeof(int32_t*));
+        for (k = 0; k < anomalous_repetitionsLenght; k++) {
+            extracted_values[k] = calloc(2, sizeof(int32_t));
+        }
+        //extracted_values = anomalous_repetitions; //Copia de la matriz en otra matriz
+        for (k = 0; k < anomalous_repetitionsLenght; k++) {
+            extracted_values[k][0] = anomalous_repetitions[k][0];
+            extracted_values[k][1] = anomalous_repetitions[k][1];
+        }
+        return extracted_values;
+    } else {
+        for (k = 1; k < anomalous_repetitionsLenght; k++){
+            if (anomalous_repetitions[k][1] != anomalous_repetitions[k-1][1]) {
+                if (observed_values == n) {
+                    nrow = k - 1;
+                }
+                observed_values++;
+            }
+        }
+        int32_t** extracted_values = calloc(nrow, sizeof(int32_t*));
+        for (k = 0; k < nrow; k++) {
+            extracted_values[k] = calloc(2, sizeof(int32_t));
+        }
+        //extracted_values = anomalous_repetitions[1:nrow,:];
+        for (k = 0; k < nrow; k++) {
+            extracted_values[k][0] = anomalous_repetitions[k][0];
+            extracted_values[k][1] = anomalous_repetitions[k][1];
+        }
+        return extracted_values;
+    }
+}
+
+/*
+ #This function marks the elements in the DV matrix that are equal to one of
+ # the elements of the critical_values vector. The procedure is quite simple to
+ # understand. First of all, a boolean matrix with the size of the DV matrix
+ # is created to initialize the result to return.
+ # Later, a matrix with DV size and with all the elements equal to one of
+ # the critical values is created
+ #
+ #           critical_values[kvalue,1]*ones(UInt32, size(davmatrix))
+ #
+ # and compared element to element with the DV matrix:
+ #
+ # round(Bool, davmatrix.==critical_values[kvalue,1]*ones(UInt32, size(davmatrix)))
+ #
+ # and ORED with the preliminary result value. This recursive solution is
+ # implemented in a loop and tried to be parallelized with the instruction @simd
+ # If this works, only God knows.
+ */
+bool** marking_addresses(int32_t** davmatrix, int32_t davmatrixRows, int32_t davmatrixCols, int32_t** critical_values, int32_t critical_valuesLenght){
+    int i;
+    int32_t value;
+    bool** result = calloc(davmatrixRows, sizeof(bool*));
+    for (i = 0; i < davmatrixRows; i++) {
+        result[i] = calloc(davmatrixCols, sizeof(bool));
+    }
+    /*for value in critical_values[:,1]
+        result = result | (round(Bool, davmatrix.==value*ones(UInt32, size(davmatrix))))
+    end*/
+    for (i = 0; i < critical_valuesLenght; i++) {
+        value = critical_values[i][0];
+        //result = result | (round(Bool, davmatrix.==value*ones(UInt32, size(davmatrix))))
+    }
+    return result;
+}
+
+/*
+ # keep in mind that davmatrix is a boolean matrix containing FALSE if two elements
+ # are not involved in the same MCU and TRUE if so.
+ 
+ # First of all, let us detect the elements different from FALSE. It is easy
+ # with the function FIND. The problem is that Julia considers matrix as vectors
+ # following the column order. Therefore, it is necessary to make some calculations
+ # to place the TRUE values in the matrix. Let us remember that, in Julia,
+ # the element [row, col] in a matrix is the element (col-1)*NROws+row in the
+ # equivalent vector, with NROws the total number of columns.
+ */
+
+int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatrixCols){
+    //Let us locate the elements
+    //Con FIND tenemos que encontrar los indices cuyos valores no sean cero
+    int count = 0, newCount = 0, i, j, k, x, xx;
+    int32_t* nonzerovectorelementstmp = calloc(davmatrixRows*davmatrixCols, sizeof(int32_t));
+    for (i = 0; i < davmatrixRows; i++) {
+        for (j = 0; j < davmatrixCols; j++) {
+            nonzerovectorelementstmp[i * davmatrixCols + j] = -1; //metemos -1 de entrada para ahorrar una vuelta
+            if (davmatrix [i][j] != false) {
+                count++; //Sabemos cuantos elementos, pero alguno puede estar repetido
+                nonzerovectorelementstmp[i * davmatrixCols + j] = i * davmatrixCols + j;
+            }
+        }
+    }
+    // Tenemos que volver a recorrer para encontrar los -1 que son vacíos
+    int32_t* nonzerovectorelements = calloc(count, sizeof(int32_t)); // Luego redimensionamos
+    for (i = 0; i < count; i++) {
+        if (nonzerovectorelementstmp[i] != -1) {
+            nonzerovectorelements[newCount] = nonzerovectorelementstmp[i];
+            newCount++; // número de elementos reales
+        }
+    }
+    nonzerovectorelementstmp = NULL;
+    free(nonzerovectorelementstmp);
+    nonzerovectorelements = realloc(nonzerovectorelements, newCount);
+    //Now, transform the elements in pairs creating a matrix with 2 columns.
+    int32_t** relatedpairs = calloc(newCount, sizeof(int32_t*));
+    for (i = 0; i < newCount; i++) {
+        relatedpairs[i] = calloc(2, sizeof(int32_t));
+    }
+    
+/*    @simd for k1 = 1:length(nonzerovectorelements)
+# The first operation calculates the column
+        @inbounds relatedpairs[k1,:] = [rem(nonzerovectorelements[k1], NRows) div(nonzerovectorelements[k1],NRows)+1]
+# REM means "remainder of division", DIV integer division.
+        end*/
+    for (i = 0; i < newCount; i++) {
+        relatedpairs[i][0] = nonzerovectorelements[i] / davmatrixRows;
+        relatedpairs[i][1] = (nonzerovectorelements[i] / davmatrixRows) + 1;
+    }
+    /* Good, we have created a matrix containing the related pairs. Now, we must
+     # group them in larger events.
+     
+     # First step: A matrix initilizing the events. Perhaps too large, but it is better
+     # to have spare space.
+     */
+    //thesummary = zeros(Int32, length(relatedpairs[:,1]), minimum([length(relatedpairs[:,1]),nmaxaddressesinevent]))
+    int32_t** thesummary = calloc(newCount, sizeof(int32_t*));
+    int32_t thesummaryRows = newCount, thesummaryCols;
+    if (newCount < NMaxAddressesInEvent) { // Mínimo es newCount
+        thesummaryCols = newCount;
+        for (i = 0; i < newCount; i++) {
+            thesummary[i] = calloc(newCount, sizeof(int32_t));
+        }
+    } else { // Mínimo es NMaxAddressesInEvent
+        thesummaryCols = NMaxAddressesInEvent;
+        for (i = 0; i < newCount; i++) {
+            thesummary[i] = calloc(NMaxAddressesInEvent, sizeof(int32_t));
+        }
+    }
+    //Now, we save the first pair in the first column:
+    int nTotalEvents = 0;
+    int32_t firstAddress, secondAddress, firstAddressRow = 0, secondAddressRow = 0;
+    for (k = 0; k < newCount; k++) {
+        //There are several cases. Let us list them in order.
+        //Positions are extrated from the pairs.
+        firstAddress = relatedpairs[k][0];
+        secondAddress = relatedpairs[k][1];
+        //TENEMOS QUE MIRAR SI firstAddress y secondAddress están en thesummary
+        bool firstAddressFound = false, secondAddressFound = false;
+        for (i = 0; i < thesummaryRows; i++) {
+            for (j = 0; j < thesummaryCols; j++) {
+                if (thesummary[i][j] == firstAddress) {
+                    firstAddressFound = true;
+                    firstAddressRow = i;
+                }
+                if (thesummary[i][j] == secondAddress) {
+                    secondAddressFound = true;
+                    secondAddressRow = i;
+                }
+            }
+        }
+        /*
+         # Case 1:
+         # Both addresses are not present in thesummary. They are placed at a new_row
+         # at NTotalEvents
+         */
+        if (!firstAddressFound && !secondAddressFound){
+            thesummary[nTotalEvents][0] = relatedpairs[k][0];
+            thesummary[nTotalEvents][1] = relatedpairs[k][1];
+            nTotalEvents ++;
+        }
+        /*
+         # Case 2:
+         # FirstAddress is present, but not SecondAddress
+         */
+        if (firstAddressFound && !secondAddressFound){
+            //First of all, let us locate the row where the FirstAddress is.
+            //Now, it is necessary to locate the first free column to put the new address.
+            x = 0;
+            while ((thesummary[firstAddressRow][x] != 0) && (x < thesummaryCols)) {
+                x++;
+            }
+            //Fixed problem. We do know exactly the position to put the new value.
+            if (x < thesummaryCols) {
+                thesummary[firstAddressRow][x] = secondAddress;
+            }
+        }
+        /*
+         # Case 3:
+         # FirstAddress absent, Second Address present. similar to previous one.
+         */
+        if (!firstAddressFound && secondAddressFound) {
+            //First of all, let us locate the row where the Second Address is.
+            //Now, it is necessary to locate the first free column to put the new address.
+            x = 0;
+            while ((thesummary[secondAddressRow][x] != 0) && (x < thesummaryCols)) {
+                x++;
+            }
+            //Fixed problem. We do know exactly the position to put the new value.
+            if (x < thesummaryCols) {
+                thesummary[secondAddressRow][x] = firstAddress;
+            }
+        }
+        /*
+         #Case 4:
+         # Both addresses had been previously detected. Two subcases appear: They
+         # are included in the same row (MCU) so the program must skip this pair or
+         # are included in differen rows. Therefore, both rows must be carefully merged.
+         */
+        if (firstAddressFound && secondAddressFound) {
+            /*
+             # If both values are identical, the pair must be skipped and the program
+             # continue. If different, the rows must be merged.
+             */
+            if (firstAddressRow != secondAddressRow){
+                //First step: It is necessary to range the numbers in increasing order.
+                int32_t addressRowMin = 0, addressRowMax = 0;
+                if (firstAddressRow < secondAddressRow) {
+                    addressRowMin = firstAddressRow;
+                    addressRowMax = secondAddressRow;
+                } else {
+                    addressRowMin = secondAddressRow;
+                    addressRowMax = firstAddressRow;
+                }
+                //Let us copy the preliminary summary to work in.
+                int32_t** thesummarytemp = calloc(thesummaryRows, sizeof(int32_t*));
+                for (x = 0; x < thesummaryRows; x++) {
+                    thesummarytemp[x] = calloc(thesummaryCols, sizeof(int32_t));
+                }
+                //All of the rows with index below AddressRowMin must be copied unchanged.
+                for (x = 0; x < addressRowMin; x++) {
+                    for (xx = 0; xx < thesummaryCols; xx++) {
+                        thesummarytemp[x][xx] = thesummary[x][xx];
+                    }
+                }
+                //Now, let us locate elements in RowMin different from 0
+                //RawCombinedAddresses =union(thesummary[AddressRowMin, 1:findfirst(thesummary[AddressRowMin,:].==0)-1], thesummary[AddressRowMax, 1:findfirst(thesummary[AddressRowMax,:].==0)-1]);
+                /*
+                 * But this is a column vector where the elements are not repeated but
+                 * not disposed in increasing order. Let us solve this:
+                 */
+                //RawCombinedAddresses = sort(vec(RawCombinedAddresses))'
+                /*
+                 * Vec vectorizes the elements of the matrix.
+                 * Time to put the elements in the row.
+                 */
+                //thesummarytemp[AddressRowMin,1:length(RawCombinedAddresses)]=RawCombinedAddresses;
+                //We save the rows between AddressRowMin and AddressRowMax unchanged.
+                for (x = addressRowMin + 1; x < addressRowMax; x++) {
+                    for (xx = 0; xx < thesummaryCols; xx++) {
+                        thesummarytemp[x][xx] = thesummary[x][xx];
+                    }
+                }
+                //And the rest of Rows with the exception of AddressRowMax, which has disappeared.
+                for (x = addressRowMax + 1; x < thesummaryRows; x++) {
+                    for (xx = 0; xx < thesummaryCols; xx++) {
+                        thesummarytemp[x][xx] = thesummary[x][xx];
+                    }
+                }
+                //And erase the original value of thesummary.
+                thesummary = thesummarytemp;
+                free(thesummarytemp);
+                //Also, as two events have been merged, the number of total events is lower:
+                nTotalEvents--;
+            }
+        }
+    }
+    /*
+     #Really good. Now, we will separate the cells with information from those with
+     #zeros.
+     # The number of rows is easy to calculate: NTotalEvents. Concerning the other
+     # element:
+     */
+    int32_t largestMCU = 0, sum = 0;
+    for (i = 3; i < thesummaryRows; i++) {
+        for (j = 0; j < thesummaryCols; j++) {
+            sum += thesummary[i][j];
+        }
+        if (sum == 0) {
+            largestMCU = i - 1;
+            break;
+        }
+    }
+    int32_t** result = calloc(nTotalEvents, sizeof(int32_t*));
+    for (i = 0; i < nTotalEvents; i++) {
+        result[i] = calloc(largestMCU, sizeof(int32_t));
+    }
+    for (x = 0; x < nTotalEvents; x++) {
+        for (xx = 0; xx < largestMCU; xx++) {
+            result[x][xx] = thesummary[x][xx];
+        }
+    }
+    return result;
+}
+
+/*
+ # An alternative implementation of the trace rule.
+ 
+ ### Anomal XOR values is used to avoid the repetition of elements. It is just
+ ### XORExtractedValues[1,:]
+ */
+void traceRule(int32_t** xorDVtotalrepetitions, uint32_t** totalDVhistogram, int32_t** AnomalXORvalues, int32_t LN){
+    
+}
+
+
 /*
 void extractAnomalDVSelfConsistency(int32_t** DVtotalrepetitions, char* op, int32_t** TotalDVhistogram, int LN, int nRoundsInPattern){
 	int i, kval, ktest;
