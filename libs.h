@@ -501,7 +501,7 @@ int32_t** extract_some_critical_values(int32_t** anomalous_repetitions, int32_t 
  # If this works, only God knows.
  */
 bool** marking_addresses(int32_t** davmatrix, int32_t davmatrixRows, int32_t davmatrixCols, int32_t** critical_values, int32_t critical_valuesLenght){
-    int i;
+    int i, x, y;
     int32_t value;
     bool** result = calloc(davmatrixRows, sizeof(bool*));
     for (i = 0; i < davmatrixRows; i++) {
@@ -513,8 +513,62 @@ bool** marking_addresses(int32_t** davmatrix, int32_t davmatrixRows, int32_t dav
     for (i = 0; i < critical_valuesLenght; i++) {
         value = critical_values[i][0];
         //result = result | (round(Bool, davmatrix.==value*ones(UInt32, size(davmatrix))))
+        for (x = 0; x < davmatrixRows; x++) { // Coste muy alto porque hay que recorrer la matriz entera para cada elemento
+            for (y = 0; y < davmatrixCols; y++) {
+                if (davmatrix[x][y] == value) {
+                    result[x][y] = true;
+                }
+            }
+        }
     }
     return result;
+}
+
+/*
+ * Esta función, crea un vector temporal de tamaño thesummaryCols, para hacer la unión entre las filas addressRowMin y 
+ * addressRowMax, colocando los elementos en orden mientras se insertan.
+ */
+int32_t* unionAgrupate_mcus(int32_t** thesummary, int32_t thesummaryCols, int32_t addressRowMin, int32_t addressRowMax){
+    int i, j, x;
+    int32_t* thesummarytemp = calloc(thesummaryCols, sizeof(int32_t)); // Necesitamos un vector para
+    // guardar los elementos de las dos filas, y poder hacer la unión
+    j = 0; // Indice de thesummarytemp
+    for (i = 0; i < thesummaryCols; i++) {
+        if (thesummary[addressRowMin][i] != 0) {
+            if (thesummarytemp[0] == 0) { // Esta vacío
+                thesummarytemp[j] = thesummary[addressRowMin][i];
+                j++;
+            } else if(thesummarytemp[j-1] < thesummary[addressRowMin][i]){ // Si el valor último menor
+                thesummarytemp[j] = thesummary[addressRowMin][i];
+                j++;
+            } else if(thesummarytemp[j-1] > thesummary[addressRowMin][i]){ // Si el valor último mayor, se abre hueco
+                x = j - 1;
+                while (thesummarytemp[x] > thesummary[addressRowMin][i]) {
+                    thesummarytemp[x+1] = thesummarytemp[x]; // Se desplaza uno
+                    x--;
+                }
+                thesummarytemp[x+1] = thesummary[addressRowMin][i]; // Se copia en su hueco correspondiente
+            }
+        }
+    }for (i = 0; i < thesummaryCols; i++) {
+        if (thesummary[addressRowMax][i] != 0) {
+            if (thesummarytemp[0] == 0) { // Esta vacío
+                thesummarytemp[j] = thesummary[addressRowMax][i];
+                j++;
+            } else if(thesummarytemp[j-1] < thesummary[addressRowMax][i]){ // Si el valor último menor
+                thesummarytemp[j] = thesummary[addressRowMax][i];
+                j++;
+            } else if(thesummarytemp[j-1] > thesummary[addressRowMax][i]){ // Si el valor último mayor, se abre hueco
+                x = j - 1;
+                while (thesummarytemp[x] > thesummary[addressRowMax][i]) {
+                    thesummarytemp[x+1] = thesummarytemp[x]; // Se desplaza uno
+                    x--;
+                }
+                thesummarytemp[x+1] = thesummary[addressRowMax][i]; // Se copia en su hueco correspondiente
+            }
+        }
+    }
+    return thesummarytemp;
 }
 
 /*
@@ -674,18 +728,8 @@ int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatr
                     addressRowMin = secondAddressRow;
                     addressRowMax = firstAddressRow;
                 }
-                //Let us copy the preliminary summary to work in.
-                int32_t** thesummarytemp = calloc(thesummaryRows, sizeof(int32_t*));
-                for (x = 0; x < thesummaryRows; x++) {
-                    thesummarytemp[x] = calloc(thesummaryCols, sizeof(int32_t));
-                }
-                //All of the rows with index below AddressRowMin must be copied unchanged.
-                for (x = 0; x < addressRowMin; x++) {
-                    for (xx = 0; xx < thesummaryCols; xx++) {
-                        thesummarytemp[x][xx] = thesummary[x][xx];
-                    }
-                }
                 //Now, let us locate elements in RowMin different from 0
+                int32_t* thesummarytemp = unionAgrupate_mcus(thesummary, thesummaryCols, addressRowMin, addressRowMax);
                 //RawCombinedAddresses =union(thesummary[AddressRowMin, 1:findfirst(thesummary[AddressRowMin,:].==0)-1], thesummary[AddressRowMax, 1:findfirst(thesummary[AddressRowMax,:].==0)-1]);
                 /*
                  * But this is a column vector where the elements are not repeated but
@@ -697,21 +741,9 @@ int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatr
                  * Time to put the elements in the row.
                  */
                 //thesummarytemp[AddressRowMin,1:length(RawCombinedAddresses)]=RawCombinedAddresses;
-                //We save the rows between AddressRowMin and AddressRowMax unchanged.
-                for (x = addressRowMin + 1; x < addressRowMax; x++) {
-                    for (xx = 0; xx < thesummaryCols; xx++) {
-                        thesummarytemp[x][xx] = thesummary[x][xx];
-                    }
+                for (i = 0; i < thesummaryCols; i++) {
+                    thesummary[addressRowMin][i] = thesummarytemp[i]; // Se copia el vector de la unión en la matriz
                 }
-                //And the rest of Rows with the exception of AddressRowMax, which has disappeared.
-                for (x = addressRowMax + 1; x < thesummaryRows; x++) {
-                    for (xx = 0; xx < thesummaryCols; xx++) {
-                        thesummarytemp[x][xx] = thesummary[x][xx];
-                    }
-                }
-                //And erase the original value of thesummary.
-                thesummary = thesummarytemp;
-                free(thesummarytemp);
                 //Also, as two events have been merged, the number of total events is lower:
                 nTotalEvents--;
             }
@@ -744,6 +776,76 @@ int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatr
     }
     return result;
 }
+
+/*
+ *This is a simple function to cut files and rows of redundant zeros in 1 or 2
+ *dimensions matrix.
+ */
+/*int32_t** CutZerosFromArray(int32_t*** matrix, int32_t matrixRows, int32_t matrixCols, int32_t matrixDim){
+    if (matrixCols == 2) {
+        // Upss, this is a vector. Be careful.
+        7
+    } else if (matrixCols > 2){
+        
+    } else {
+        
+    }
+}*/
+/*
+function CutZerosFromArray(A)
+
+if ((Ndimension==2)&(1 in Adimensions))
+# Upss, this is a vector. Be careful.
+if (Adimensions[1]==1)
+result =A[findfirst(A.!=0):findlast(A.!=0)]'
+else
+result =A[findfirst(A.!=0):findlast(A.!=0)]
+end
+
+return result
+
+
+elseif ((Ndimension==2)&!(1 in Adimensions))
+# this is a classical matrix.
+firstrow=1;
+lastrow =Adimensions[1];
+firstcol=1;
+lastcol=Adimensions[2];
+for krow = 1:Adimensions[1]
+if (length(find(A[krow,:].!=0))!=0)
+break;
+end
+firstrow +=1;
+end
+for krow = Adimensions[1]:-1:1
+if (length(find(A[krow,:].!=0))!=0)
+break;
+end
+lastrow -=1;
+end
+for kcol = 1:Adimensions[2]
+if (length(find(A[:,kcol].!=0))!=0)
+break;
+end
+firstcol +=1;
+end
+for kcol = Adimensions[2]:-1:1
+if (length(find(A[:,kcol].!=0))!=0)
+break;
+end
+lastcol -=1;
+end
+
+return result = A[firstrow:lastrow, firstcol:lastcol]
+
+else
+
+println("\tMatriz dimension different from 1 or 2. Exiting.")
+return A
+end
+
+end
+*/
 
 /*
  # An alternative implementation of the trace rule.
