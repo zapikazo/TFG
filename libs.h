@@ -286,7 +286,7 @@ int calculaFatorial(int num)
 
 /* This function just implements the theoretical expresions to determine expected
  * repetitions.  Variable names are meaningful. */
-double ExpectedRepetitions(int m, int ndv, int32_t LN, char* operation){
+double ExpectedRepetitions(int m, int ndv, long int LN, char* operation){
   double result = 0,logresulttmp = 0,i;
 
   if (strcmp(operation, "pos") == 0){
@@ -319,7 +319,7 @@ double ExpectedRepetitions(int m, int ndv, int32_t LN, char* operation){
 }
 
 //EXCESSIVEREPETITIONS
-int32_t ExcessiveRepetitions(int32_t** RepInHistVector, int RepInHistVectorCol, int32_t LN, char* operation, int threshold){
+int32_t ExcessiveRepetitions(int32_t** RepInHistVector, int RepInHistVectorCol, long int LN, char* operation, int threshold){
 
     // This function allows calculating the lowest number of repetitions from which
     // the expected number is below threshold.
@@ -342,7 +342,7 @@ int32_t ExcessiveRepetitions(int32_t** RepInHistVector, int RepInHistVectorCol, 
     //REMOVED: LN included as an function argument since it is not easily deducible
     // in the case of dividing the memory into blocks.
     int k0 = 0;
-    if (operation == "pos"){
+    if (strcmp(operation, "pos") == 0){
         if ((ExcessiveRepetitions(RepInHistVector, RepInHistVectorCol, LN, "xor", threshold) - 1) > 0)
             k0 = ExcessiveRepetitions(RepInHistVector, RepInHistVectorCol, LN, "xor", threshold) - 1;
     }
@@ -368,7 +368,7 @@ int32_t ExcessiveRepetitions(int32_t** RepInHistVector, int RepInHistVectorCol, 
  * nthreshold indicates the limit value from which repetitions should not
  * be expected in only-SBU experiments.
  */
-int32_t** find_anomalies_histogram(uint32_t** histogram, int32_t histogramLenght, int histogramCol, int32_t** occurrences, int32_t occurrencesLenght, int occurrencesCol, int32_t nthreshold, int* n_anomalous_values, int32_t anomaliesLenght){ //n_anomalous_values por referencia porque necesitamos el valor
+int32_t** find_anomalies_histogram(uint32_t** histogram, int32_t histogramLenght, int histogramCol, int32_t** occurrences, int32_t occurrencesLenght, int occurrencesCol, int32_t nthreshold, int* n_anomalous_values){ //n_anomalous_values por referencia porque necesitamos el valor
     /* The total number of elements anomalously repeated. We use +1 since the first
      * element of the vector is related to 0 repetitions. 
      */
@@ -379,8 +379,7 @@ int32_t** find_anomalies_histogram(uint32_t** histogram, int32_t histogramLenght
     }
     /*The number of repetitions of the most repeated element. Coincides roughly with the vector length. */
     int32_t highestAnomaly = occurrencesLenght - 1;
-    //initialize the value to return.
-    //Anomalies = round(Int32, zeros(NAnomalies, 2)) NO SE SI LO SIGUIENTE CORRESPONDE
+    //initialize the value to return
     int32_t** anomalies = (int32_t**)calloc(nAnomalies, sizeof(int32_t*));
     for (i = 0; i < nAnomalies; i++) {
         anomalies[i] = (int32_t*)calloc(2, sizeof(int32_t));
@@ -531,7 +530,7 @@ bool** marking_addresses(int32_t** davmatrix, int32_t davmatrixRows, int32_t dav
 int32_t* unionAgrupate_mcus(int32_t** thesummary, int32_t thesummaryCols, int32_t addressRowMin, int32_t addressRowMax){
     int i, j, x;
     int32_t* thesummarytemp = calloc(thesummaryCols, sizeof(int32_t)); // Necesitamos un vector para
-    // guardar los elementos de las dos filas, y poder hacer la unión
+    // guardar los elementos de las dos filas, para poder hacer la unión
     j = 0; // Indice de thesummarytemp
     for (i = 0; i < thesummaryCols; i++) {
         if (thesummary[addressRowMin][i] != 0) {
@@ -857,178 +856,193 @@ void traceRule(int32_t** xorDVtotalrepetitions, uint32_t** totalDVhistogram, int
     
 }
 
+// Esta función depende de la operación
+int32_t** extractAnomalDVSelfConsistency(char* op, int32_t** opDVtotalrepetitions, int32_t opDVtotalrepetitionsRows, uint32_t** totalDVhistogram, int32_t histogramLenght, long int LN, int threshold){
+    int32_t opNthreshold;
+    int* n_anomalous_values;
+    int32_t** testOPa;
+    int32_t** oPExtracted_values;
+    bool oPSelfConsistence = true;
+    int n_anomalous_repetitions = 1;
+    printf("\n\tDetermining the threshold for repetition excess:\n");
+    if (strcmp(op, "xor") == 0) {
+        printf("\n\t\tXOR operation...");
+        opNthreshold = ExcessiveRepetitions(opDVtotalrepetitions, 1, LN, "xor", threshold);
+        testOPa = find_anomalies_histogram(totalDVhistogram, histogramLenght, 1, opDVtotalrepetitions, opDVtotalrepetitionsRows, 1, opNthreshold, n_anomalous_values);
+        
+        printf("\n\tXOR operation:\n");
+        oPExtracted_values = extract_some_critical_values(testOPa, (int32_t)(sizeof(testOPa)/sizeof(int32_t)), *n_anomalous_values, n_anomalous_repetitions);
+        
+        while (oPSelfConsistence) {
+            printf("\t\tStep %d ", n_anomalous_repetitions);
+            oPExtracted_values = extract_some_critical_values(testOPa, (int32_t)(sizeof(testOPa)/sizeof(int32_t)), *n_anomalous_values, n_anomalous_repetitions);
+        }
+        
+    } else if(strcmp(op, "pos") == 0){
+        printf("\n\t\tPOS operation (It can take a long if there are too many addresses)...\n");
+        opNthreshold = ExcessiveRepetitions(opDVtotalrepetitions, 1, LN, "pos", threshold);
+        testOPa = find_anomalies_histogram(totalDVhistogram, histogramLenght, 2, opDVtotalrepetitions, opDVtotalrepetitionsRows, 1, opNthreshold, n_anomalous_values);
+        
+        printf("\n\tPOS operation:\n");
+        oPExtracted_values = extract_some_critical_values(testOPa, (int32_t)(sizeof(testOPa)/sizeof(int32_t)), *n_anomalous_values, n_anomalous_repetitions);
+
+    }
+    int32_t** lol;
+    return lol;
+}
+
+
+
 
 /*
-void extractAnomalDVSelfConsistency(int32_t** DVtotalrepetitions, char* op, int32_t** TotalDVhistogram, int LN, int nRoundsInPattern){
-	int i, kval, ktest;
-
-	if (strcmp(op, "xor") == 0){ //XOR
-		int32_t** XORpreliminary_summary_extracted_values;
-		printf("\n\tDetermining the threshold for repetition excess:\n");
-		printf("\n\t\tXOR operation...");
-		//xorNthreshold=ExcessiveRepetitions(xorDVtotalrepetitions[:,2], LN, "xor", RandomnessThreshold)
-		//testXORa, testXORb=find_anomalies_histogram(TotalDVhistogram[:,2], xorDVtotalrepetitions[:, 2], xorNthreshold)
-		bool XORSelfConsistence = true;
-		int n_anomalous_repetitions = 1;
-		// XORextracted_values=extract_some_critical_values(testXORa, testXORb, 1)
-		while (XORSelfConsistence){
-			printf("\t\t Step %d", n_anomalous_repetitions);
-			//XORextracted_values=extract_some_critical_values(testXORa, testXORb, n_anomalous_repetitions)
-			//int32_t NXORextrValues = length(XORextracted_values[:,1]);
-			//XORPartRepsSelfCons = zeros(Int32, NXORextrValues, NRoundsInPattern)
-			//for (kval = 1; kval < NXORextrValues; kval++){
-			// XORPartRepsSelfCons[kval,:] = xordvhistogram[XORextracted_values[kval,1], 2:end]
-			//}
-			for (ktest = 1; ktest < nRoundsInPattern; ktest++){
-				print("Test %d", ktest);
-				//xordvmatrix = xordvmatrixbackup[1:NAddressesInRound[ktest],1:NAddressesInRound[ktest],ktest]
-				//XORmarked_pairs = marking_addresses(xordvmatrix, XORextracted_values)
-				//XORproposed_MCUs = agrupate_mcus(XORmarked_pairs)
-
-				// LargestMCUSize = length(XORproposed_MCUs[1,:])
-				//Continuation=(length(find(XORPartRepsSelfCons[:,ktest].<=LargestMCUSize))==0)
-				if (!Continuation){
-					XORSelfConsistence = false;
-				}
-			}
-			if (XORSelfConsistence){
-				n_anomalous_repetitions += 1;
-				printf("\n");
-				if (n_anomalous_repetitions > testXORb){
-					XORSelfConsistence = false;
-					printf("\n\t\tNo more anomalous elements to check. Exiting\n");
-				}
-			}
-			else {
-				printf("\n\t\tViolation of self-consistence. Returning to previous state and exiting.\n");
-				n_anomalous_repetitions -= 1;
-				//XORextracted_values=extract_some_critical_values(testXORa, testXORb, n_anomalous_repetitions)
-			}
-		}
-
-	}
-	else if (strcmp(op, "pos") == 0){ //POS
-		int32_t** POSpreliminary_summary_extracted_values;
-		printf("\n\tDetermining the threshold for repetition excess:\n");
-		printf("\n\t\tPOS operation (It can take a long if there are too many addresses)...\n");
-		//posNthreshold=ExcessiveRepetitions(posDVtotalrepetitions[:,2], LN, "pos", RandomnessThreshold)
-		//testPOSa, testPOSb=find_anomalies_histogram(TotalDVhistogram[:,3], posDVtotalrepetitions[:, 2], posNthreshold)
-
-		bool POSSelfConsistence = true;
-		int n_anomalous_repetitions = 1;
-
-	}
-	else {
-		printf("\t Unrecognized operation.");
-		EXIT_FAILURE;
-	}
 
 
 
+XORextracted_values=extract_some_critical_values(testXORa, testXORb, n_anomalous_repetitions)
+NXORextrValues = length(XORextracted_values[:,1])
+XORPartRepsSelfCons = zeros(Int32, NXORextrValues, NRoundsInPattern)
+
+for kval=1:NXORextrValues
+XORPartRepsSelfCons[kval,:]=xordvhistogram[XORextracted_values[kval,1], 2:end]
+end
+
+#n_anomalous_repetitions +=1
+
+for ktest = 1:NRoundsInPattern
+print("Test ", ktest, " ")
+xordvmatrix = xordvmatrixbackup[1:NAddressesInRound[ktest],1:NAddressesInRound[ktest],ktest]
+XORmarked_pairs = marking_addresses(xordvmatrix, XORextracted_values)
+XORproposed_MCUs = agrupate_mcus(XORmarked_pairs)
+
+LargestMCUSize = length(XORproposed_MCUs[1,:])
+Continuation=(length(find(XORPartRepsSelfCons[:,ktest].<=LargestMCUSize))==0)
+if (!Continuation)
+XORSelfConsistence = false
+end
+
+end
+
+if (XORSelfConsistence)
+n_anomalous_repetitions +=1;
+print("\n")
+if (n_anomalous_repetitions>testXORb)
+XORSelfConsistence = false
+print("\n\t\tNo more anomalous elements to check. Exiting\n")
+end
+else
+print("\n\t\tViolation of self-consistence. Returning to previous state and exiting.\n")
+n_anomalous_repetitions -=1
+XORextracted_values=extract_some_critical_values(testXORa, testXORb, n_anomalous_repetitions)
+end
+
+end
 
 
-	//XORextracted_values = extract_some_critical_values(testXORa, testXORb, n_anomalous_repetitions)
-	// int NXORextrValues = length(XORextracted_values[:,1])
-	/* int32_t** XORPartRepsSelfCons = calloc(NXORextrValues, NXORextrValues*sizeof(int32_t*));
-	for(i = 0; i < NXORextrValues; i++){
-	XORPartRepsSelfCons[i] = calloc(NRoundsInPattern, NRoundsInPattern*sizeof(int32_t));
-	}
+POSextracted_values=extract_some_critical_values(testPOSa, testPOSb, 1)
 
+while (POSSelfConsistence)
+print("\t\tStep ", n_anomalous_repetitions, ": ")
 
-	int kval;
-	for (kval = 1; kval < NXORextrValues; kval++){
-	XORPartRepsSelfCons[kval,:]=xordvhistogram[XORextracted_values[kval,1], 2:end]
+POSextracted_values=extract_some_critical_values(testPOSa, testPOSb, n_anomalous_repetitions)
+NPOSextrValues = length(POSextracted_values[:,1])
+POSPartRepsSelfCons = zeros(Int32, NPOSextrValues, NRoundsInPattern)
 
-	}
+for kval=1:NPOSextrValues
+POSPartRepsSelfCons[kval,:]=posdvhistogram[POSextracted_values[kval,1], 2:end]
+end
 
-	#n_anomalous_repetitions +=1
+#n_anomalous_repetitions +=1
 
-	for ktest = 1:NRoundsInPattern
-	print("Test ", ktest, " ")
-	xordvmatrix = xordvmatrixbackup[1:NAddressesInRound[ktest],1:NAddressesInRound[ktest],ktest]
-	XORmarked_pairs = marking_addresses(xordvmatrix, XORextracted_values)
-	XORproposed_MCUs = agrupate_mcus(XORmarked_pairs)
+for ktest = 1:NRoundsInPattern
+print("Test ", ktest, " ")
 
-	LargestMCUSize = length(XORproposed_MCUs[1,:])
-	Continuation=(length(find(XORPartRepsSelfCons[:,ktest].<=LargestMCUSize))==0)
-	if (!Continuation)
-	XORSelfConsistence = false
-	end
+posdvmatrix = posdvmatrixbackup[1:NAddressesInRound[ktest],1:NAddressesInRound[ktest],ktest]
+POSmarked_pairs = marking_addresses(posdvmatrix, POSextracted_values)
+POSproposed_MCUs = agrupate_mcus(POSmarked_pairs)
 
-	end
+LargestMCUSize = length(POSproposed_MCUs[1,:])
 
-	if (XORSelfConsistence)
-	n_anomalous_repetitions +=1;
-	print("\n")
-	if (n_anomalous_repetitions>testXORb)
-	XORSelfConsistence = false
-	print("\n\t\tNo more anomalous elements to check. Exiting\n")
-	end
-	else
-	print("\n\t\tViolation of self-consistence. Returning to previous state and exiting.\n")
-	n_anomalous_repetitions -=1
-	XORextracted_values=extract_some_critical_values(testXORa, testXORb, n_anomalous_repetitions)
-	end
+Continuation=(length(find(POSPartRepsSelfCons[:,ktest].<=LargestMCUSize))==0)
+if (!Continuation)
+POSSelfConsistence = false
+end
 
-	} // while
+end
 
-	println("\n\tPOS operation:\n")
-	POSSelfConsistence = true
-	n_anomalous_repetitions = 1
+if (POSSelfConsistence)
+print("\n")
+n_anomalous_repetitions +=1;
+if (n_anomalous_repetitions>testXORb)
+POSSelfConsistence = false
+print("\n\t\tNo more anomalous elements to check. Exiting.\n")
+end
+else
+print("\n\t\tViolation of self-consistence. Returning to previous state and exiting.\n")
+n_anomalous_repetitions -=1
+POSextracted_values=extract_some_critical_values(testPOSa, testPOSb, n_anomalous_repetitions)
+end
+end
 
-	POSextracted_values=extract_some_critical_values(testPOSa, testPOSb, 1)
+return XORextracted_values, POSextracted_values
 
-	while (POSSelfConsistence)
-	print("\t\tStep ", n_anomalous_repetitions, ": ")
-
-	POSextracted_values=extract_some_critical_values(testPOSa, testPOSb, n_anomalous_repetitions)
-	NPOSextrValues = length(POSextracted_values[:,1])
-	POSPartRepsSelfCons = zeros(Int32, NPOSextrValues, NRoundsInPattern)
-
-	for kval=1:NPOSextrValues
-	POSPartRepsSelfCons[kval,:]=posdvhistogram[POSextracted_values[kval,1], 2:end]
-	end
-
-	#n_anomalous_repetitions +=1
-
-	for ktest = 1:NRoundsInPattern
-	print("Test ", ktest, " ")
-
-	posdvmatrix = posdvmatrixbackup[1:NAddressesInRound[ktest],1:NAddressesInRound[ktest],ktest]
-	POSmarked_pairs = marking_addresses(posdvmatrix, POSextracted_values)
-	POSproposed_MCUs = agrupate_mcus(POSmarked_pairs)
-
-	LargestMCUSize = length(POSproposed_MCUs[1,:])
-
-	Continuation=(length(find(POSPartRepsSelfCons[:,ktest].<=LargestMCUSize))==0)
-	if (!Continuation)
-	POSSelfConsistence = false
-	end
-
-	end
-
-	if (POSSelfConsistence)
-	print("\n")
-	n_anomalous_repetitions +=1;
-	if (n_anomalous_repetitions>testXORb)
-	POSSelfConsistence = false
-	print("\n\t\tNo more anomalous elements to check. Exiting.\n")
-	end
-	else
-	print("\n\t\tViolation of self-consistence. Returning to previous state and exiting.\n")
-	n_anomalous_repetitions -=1
-	POSextracted_values=extract_some_critical_values(testPOSa, testPOSb, n_anomalous_repetitions)
-	end
-	end
-
-	return XORextracted_values, POSextracted_values
-
-	end
-
-}
+end
 */
 
+int32_t*** index2address(int32_t*** indexMatrix, int indexMatrixRows, int indexMatrixCols, int indexMatrixDims, int32_t** addressMatrix){
+    int i, j, z;
+    int32_t*** result = calloc(indexMatrixRows, sizeof(int32_t**));
+    for (i = 0; i < indexMatrixRows; i++) {
+        result[i] = calloc(indexMatrixCols, sizeof(int32_t*));
+        for (j = 0; j < indexMatrixDims; j++) {
+            result[i][j] = calloc(indexMatrixDims, sizeof(int32_t));
+        }
+    }
+    for (z = 0; z < indexMatrixDims; z++) {
+        for (i = 0; i < indexMatrixRows; i++) {
+            for (j = 0; j < indexMatrixCols; j++) {
+                if (indexMatrix[i][j][z] == 0) {
+                    break;
+                } else {
+                    result[i][j][z] = addressMatrix[indexMatrix[i][j][z]][z];
+                }
+            }
+        }
+    }
+    return result;
+}
 
+/*
+ # This function investigates occurrences of several bitflips in an only one
+ # address. It returns a matrix of variable number of rows but with four collumns.
+ # The information is:
+ # First Column: Experiment in which it was observed.
+ # Second column: The position of the address in the address vector.
+ # Third Column: The exact address.
+ # Fourth Column: The number of flipped bits.
+ */
+void locate_mbus(int32_t** content, int32_t contentRows, int32_t contentCols, int32_t** pattern, int datawidth){
+    int32_t nRounds = contentCols/3;
+    int i, j, nDetected = 0;
+    uint32_t** summary = calloc(3*contentRows, sizeof(uint32_t*));
+    for (i = 0; i < 3*contentRows; i++) {
+        summary[i] = calloc(4, sizeof(uint32_t));
+    }
+    for (i = 0; i < nRounds; i++) {
+        for (j = 0; j < contentRows; j++) {
+            if (content[j][3*i-2] == 0xFFFFFFFF) {
+                break;
+            } else {
+                int32_t* corruptedBits;
+                corruptedBits = flipped_bits(content[contentRows][3*i-1], pattern[i][1], datawidth);
+                if (length(corruptedBits) > 1){ //Lenght no vale
+                    // Summary[NDetected,:]=[ktest kaddress Content[kaddress, (3ktest-2)] length(CorruptedBits)]
+                    nDetected++;
+                }
+            }
+        }
+    }
+    return cutZerosFromArray(summary);
+}
 
 
 #endif
