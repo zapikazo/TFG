@@ -1044,5 +1044,32 @@ void locate_mbus(int32_t** content, int32_t contentRows, int32_t contentCols, in
     return cutZerosFromArray(summary);
 }
 
+int32_t** condensate_summary(int32_t*** summary3D, int summary3DRows, int summary3DCols, int summary3DDims, int32_t** content, int contentRows){
+    int i, k;
+    int32_t** condensateSummary = calloc(summary3DCols, sizeof(int32_t*));
+    for (i = 0; i < summary3DDims+1; i++) {
+        condensateSummary[i] = calloc(summary3DDims+1, sizeof(int32_t));
+        // CondensateSummary[:,1]=round(Int32,linspace(1,LargestMCU, LargestMCU))
+        // condensateSummary[i][0] =
+    }
+    for (i = 1; i < summary3DDims+1; i++) {
+        // elems tendrá la longitud del nuevo vector
+        int elems = contentRows;
+        uint32_t* columnvector = (uint32_t*)malloc(sizeof(uint32_t)*(elems));
+        for (k = 0; k < elems; ++k) {
+            columnvector[k] = content[k][3*i-3];
+        }
+        uint32_t* addresses = extract_addressvector(columnvector, &elems);
+        //Ahora para cada test: Summary = Summary3D[:,:,ktest]
+        // for kmcu = LargestMCU:-1:2
+        for (k = summary3DCols; k > 1; k--) {
+            //NEvents = length(find(Summary[:,kmcu]))
+            //CondensateSummary[kmcu, ktest+1] = NEvents - sum(CondensateSummary[kmcu+1:end, ktest+1])
+        }
+        // Apparently, the following solution is a bit faster.
+        //CondensateSummary[1, ktest+1] = NAddressesInRound - length(find(Summary))
+    }
+    return condensateSummary;
+}
 
 #endif
