@@ -63,12 +63,12 @@ char* getfield(FILE* file, char* taken){
  * first occurrence of the anomalous value.
  */
 uint32_t* extract_addressvector(uint32_t* columnVector, int* elems){
-	uint32_t* newColumnVector;
-    newColumnVector = (uint32_t*)malloc(sizeof(uint32_t)*(*elems));
     int i;
     // Comparing last position of the array with 0xFFFFFFFF == 4294967295
     if(columnVector[*elems-1] == 0xFFFFFFFF){
         i = 0;
+        uint32_t* newColumnVector;
+        newColumnVector = (uint32_t*)malloc(sizeof(uint32_t)*(*elems));
         while(columnVector[i] != 4294967295){
             newColumnVector[i] = columnVector[i];
             i++;
@@ -122,10 +122,10 @@ int32_t* flipped_bits(int32_t word, int32_t pattern, int wordWidth){
  * diagonal is an element of the DV. XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
  */
 uint32_t** create_DVmatrix(uint32_t* addresses, int elems, char* op, uint32_t* RWcycles, int nbits4blocks, long int ln){
-    int32_t **DVmatrix = (int32_t **)malloc((elems+2)*sizeof(int32_t *));
+    int32_t** DVmatrix = (int32_t **)malloc((elems+2)*sizeof(int32_t *));
     int i, j, cont = 0, ntriu = 0;
     for (i = 0; i < elems+1; i++){
-        DVmatrix[i] = (int32_t *)malloc((elems+2)*sizeof(int32_t));
+        DVmatrix[i] = (int32_t*)malloc((elems+2)*sizeof(int32_t));
     }
     /* Número de elementos que debería haber en la triangular superior */
     for(i = 0; i < elems; i++){
@@ -218,7 +218,7 @@ uint32_t* create_DVvector(uint32_t** DVmatrix, int elems){
 /* Copia de matrices */
 uint32_t*** copyOfMatrix(uint32_t** matrix, uint32_t*** matrixbackup, int elems, int ktest){
     int i;
-    for(i = 1; i < elems; i++){
+    for(i = 0; i < elems; i++){
         matrixbackup[i][0][ktest-1] = matrix[i][0];
         matrixbackup[0][i][ktest-1] = matrix[0][i];
     }
@@ -1034,14 +1034,14 @@ void locate_mbus(int32_t** content, int32_t contentRows, int32_t contentCols, in
             } else {
                 int32_t* corruptedBits;
                 corruptedBits = flipped_bits(content[contentRows][3*i-1], pattern[i][1], datawidth);
-                if (length(corruptedBits) > 1){ //Lenght no vale
+                //if (length(corruptedBits) > 1){ //Lenght no vale
                     // Summary[NDetected,:]=[ktest kaddress Content[kaddress, (3ktest-2)] length(CorruptedBits)]
                     nDetected++;
-                }
+                //}
             }
         }
     }
-    return cutZerosFromArray(summary);
+    //return cutZerosFromArray(summary);
 }
 
 int32_t** condensate_summary(int32_t*** summary3D, int summary3DRows, int summary3DCols, int summary3DDims, int32_t** content, int contentRows){
