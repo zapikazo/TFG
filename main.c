@@ -344,33 +344,26 @@ int main(){
 	}
     if (nRoundsInPattern > 1){
         printf("Checking Total Histogram...\n");
-        //xorDVtotalrepetitions[:,1]=collect(0:1:length(xorDVtotalrepetitions[:,1])-1)
-		for (int j = 0; j < maxXORValue; j++){
-			xorDVtotalrepetitions[j][0] = j;
+        // Se rellena la primera columna con valores del 0 hasta el máximo
+        for (int i = 0; i < maxXORValue; i++){
+			xorDVtotalrepetitions[i][0] = i;
 		}
-        //xorDVtotalrepetitions[:,2]=counts(TotalDVhistogram[:,2], 0:maximum(TotalDVhistogram[:,2]))
-		int count = 0;
-		for (int j = 0; j < maxXORValue; j++){
-			if ((totalDVHistogram[j][1] >0) || (totalDVHistogram[j][1] < maxXORValue)){
-				count++;
-			}
-			if (j == maxXORValue)
-				xorDVtotalrepetitions[j][1] = count;
+        // Se rellena la segunda columna con la aparición de esos valores en el histograma
+        int32_t* xorCounts = countsOfElems(totalDVHistogram, maxXORValue, 1, LN);
+		for (int i = 0; i < maxXORValue; i++){
+            xorDVtotalrepetitions[i][1] = xorCounts[i];
 		}
-
-		//posDVtotalrepetitions[:,1]=collect(0:1:length(posDVtotalrepetitions[:,1])-1)
+        free(xorCounts);
+        // Se rellena la primera columna con valores del 0 hasta el máximo
 		for (int i = 0; i < maxPOSValue; i++){
 			posDVtotalrepetitions[i][0] = i;
 		}
-        //posDVtotalrepetitions[:,2]=counts(TotalDVhistogram[:,3], 0:maximum(TotalDVhistogram[:,3]))
-		count = 0;
-		for (int i = 0; i < maxPOSValue; i++){
-			if ((totalDVHistogram[i][2] >0) || (totalDVHistogram[i][2] < maxPOSValue)){
-				count++;
-			}
-			if (i == maxXORValue)
-				posDVtotalrepetitions[i][1] = count;
-		}
+        // Se rellena la segunda columna con la aparición de esos valores en el histograma
+        int32_t* posCounts = countsOfElems(totalDVHistogram, maxPOSValue, 1, LN);
+        for (int i = 0; i < maxPOSValue; i++){
+            xorDVtotalrepetitions[i][1] = posCounts[i];
+        }
+        free(posCounts);
         printf("Created statistics for combinations.\n");
     }
                     
@@ -378,8 +371,8 @@ int main(){
     printf("STARTING TO LOOK UP ANOMALOUSLY REPEATED VALUES...\n");
     durationSteps[5][0] = time(NULL);
     
-    //XORextracted_values00 = extractAnomalDVSelfConsistency(xorDVtotalrepetitions, "xor", totalDVHistogram, LN, nRoundsInPattern);
-    //POSextracted_values00 = extractAnomalDVSelfConsistency(posDVtotalrepetitions, "pos", totalDVHistogram, LN);
+    int32_t** XORextracted_values00 = extractAnomalDVSelfConsistency("xor", xorDVtotalrepetitions, (maxXORValue + 1), totalDVHistogram, LN, LN, nRoundsInPattern, xordvhistogram, xordvmatrixbackup, rawDataMatrixNRows);
+    int32_t** POSextracted_values00 = extractAnomalDVSelfConsistency("pos", posDVtotalrepetitions, (maxPOSValue + 1), totalDVHistogram, LN, LN, nRoundsInPattern, posdvhistogram, posdvmatrixbackup, rawDataMatrixNRows);
 
     
     durationSteps[5][1] = time(NULL);

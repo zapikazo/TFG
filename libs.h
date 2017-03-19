@@ -236,11 +236,13 @@ void copyOfVector(uint32_t* vector, uint32_t** vectorbackup, int ndv, int ktest)
 /*
  * This function returns an array which has on it the count of each element on the histogram
  */
-int32_t* countsOfElems(int32_t** histogram, int maxValue, int ktest, int LN){
-    int32_t* repetitionstmp = (int32_t*)calloc((maxValue+1), sizeof(int32_t));
+int32_t* countsOfElems(int32_t** histogram, int maxValue, int col, int LN){
+    int32_t* repetitionstmp = (int32_t*)calloc(maxValue, sizeof(int32_t));
     int i;
     for (i = 0; i < LN; i++) {
-        //repetitionstmp[histogram[i][ktest+1]]++;//ktest+1? por?
+        if (histogram[i][col] > 0 && histogram[i][col] < maxValue) {
+            repetitionstmp[histogram[i][col]]++;
+        }
     }
     return repetitionstmp;
 }
@@ -397,7 +399,6 @@ int32_t** find_anomalies_histogram(uint32_t** histogram, int32_t histogramLenght
             *n_anomalous_values += 1;
             for (k2 = 1; k2 < histogramLenght; k2++) {
                 if (histogram[k2][histogramCol] == occurrence_value){
-                    //Anomalies[index,:] = [k2; occurrence_value]'; ?????
                     anomalies[index][0] = k2;
                     anomalies[index][1] = occurrence_value;
                     index++;
@@ -446,9 +447,9 @@ int32_t** find_anomalies_histogram(uint32_t** histogram, int32_t histogramLenght
  # repetition values. If n = 4 or more, the function returns the input matrix
  # unchanged.
  */
-int32_t** extract_some_critical_values(int32_t** anomalous_repetitions, int32_t anomalous_repetitionsLenght, int n_anomalous_repetitions, int n){
+int32_t** extract_some_critical_values(int32_t** anomalous_repetitions, int32_t anomalous_repetitionsLenght, int* n_anomalous_repetitions, int n){
     int observed_values = 1, nrow = 1, k;
-    if (n_anomalous_repetitions <= n) {
+    if (*n_anomalous_repetitions <= n) {
         int32_t** extracted_values = calloc(anomalous_repetitionsLenght, sizeof(int32_t*));
         for (k = 0; k < anomalous_repetitionsLenght; k++) {
             extracted_values[k] = calloc(2, sizeof(int32_t));
@@ -857,38 +858,125 @@ void traceRule(int32_t** xorDVtotalrepetitions, uint32_t** totalDVhistogram, int
 }
 
 // Esta función depende de la operación
-int32_t** extractAnomalDVSelfConsistency(char* op, int32_t** opDVtotalrepetitions, int32_t opDVtotalrepetitionsRows, uint32_t** totalDVhistogram, int32_t histogramLenght, long int LN, int threshold){
+int32_t** extractAnomalDVSelfConsistency(char* op, int32_t** opDVtotalrepetitions, int32_t opDVtotalrepetitionsRows, uint32_t** totalDVhistogram, int32_t histogramLenght, long int LN, int nRoundsInPattern, int32_t** opdvhistogram, int32_t*** opdvmatrixbackup, int opdvmatrixbackupRows){
     int32_t opNthreshold;
-    int* n_anomalous_values;
+    int* n_anomalous_values = malloc(sizeof(int));
     int32_t** testOPa;
     int32_t** oPExtracted_values;
     bool oPSelfConsistence = true;
-    int n_anomalous_repetitions = 1;
+    int n_anomalous_repetitions = 1, i, j, test;
     printf("\n\tDetermining the threshold for repetition excess:\n");
     if (strcmp(op, "xor") == 0) {
         printf("\n\t\tXOR operation...");
-        opNthreshold = ExcessiveRepetitions(opDVtotalrepetitions, 1, LN, "xor", threshold);
+        opNthreshold = ExcessiveRepetitions(opDVtotalrepetitions, 1, LN, "xor", randomnessThreshold);
         testOPa = find_anomalies_histogram(totalDVhistogram, histogramLenght, 1, opDVtotalrepetitions, opDVtotalrepetitionsRows, 1, opNthreshold, n_anomalous_values);
         
         printf("\n\tXOR operation:\n");
-        oPExtracted_values = extract_some_critical_values(testOPa, (int32_t)(sizeof(testOPa)/sizeof(int32_t)), *n_anomalous_values, n_anomalous_repetitions);
+        oPExtracted_values = extract_some_critical_values(testOPa, (sizeof(testOPa)/sizeof(int32_t))/2, n_anomalous_values, 1);
         
         while (oPSelfConsistence) {
             printf("\t\tStep %d ", n_anomalous_repetitions);
-            oPExtracted_values = extract_some_critical_values(testOPa, (int32_t)(sizeof(testOPa)/sizeof(int32_t)), *n_anomalous_values, n_anomalous_repetitions);
+            oPExtracted_values = extract_some_critical_values(testOPa, (sizeof(testOPa)/sizeof(int32_t))/2, n_anomalous_values, n_anomalous_repetitions);
+            int nOPextrValues = (sizeof(testOPa)/sizeof(int32_t))/2;
+            int32_t** opPartRepsSelfCons = calloc(nOPextrValues, sizeof(int32_t*));
+            for (i = 0; i < nOPextrValues; i++) {
+                opPartRepsSelfCons[i] = calloc(nRoundsInPattern, sizeof(int32_t));
+            }
+            for (i = 0; i < nOPextrValues; i++) {
+                for (j = 0; j < nRoundsInPattern; j++) {
+                    opPartRepsSelfCons[i][j] = opdvhistogram[oPExtracted_values[i][0]][j+1]; //lolllz
+                }
+            }
+            for (test = 0; test < nRoundsInPattern; test++) {
+                printf("Test %d", test);
+                int32_t** opdvmatrix = calloc(opdvmatrixbackupRows, sizeof(int32_t*));
+                for (i = 0; i < opdvmatrixbackupRows; i++) {
+                    opdvmatrix[i] = calloc(opdvmatrixbackupRows, sizeof(int32_t));
+                }
+                for (i = 0; i < opdvmatrixbackupRows; i++) {
+                    for (j = 0; j < opdvmatrixbackupRows; j++) {
+                        opdvmatrix[i][j] = opdvmatrixbackup[i][j][test];
+                    }
+                }
+                bool** opMarkedPairs = marking_addresses(opdvmatrix, opdvmatrixbackupRows, opdvmatrixbackupRows, oPExtracted_values, nOPextrValues);
+                int32_t** opProposedMcus = agrupate_mcus(opMarkedPairs, opdvmatrixbackupRows, opdvmatrixbackupRows);
+                // LargestMCUSize = length(XORproposed_MCUs[1,:])
+                int continuation;
+                // Continuation=(length(find(XORPartRepsSelfCons[:,ktest].<=LargestMCUSize))==0)
+                if (continuation == 0) {
+                    oPSelfConsistence = false;
+                }
+            }
+            if (oPSelfConsistence) {
+                n_anomalous_repetitions++;
+                printf("\n");
+                if (n_anomalous_repetitions > *n_anomalous_values) {
+                    oPSelfConsistence = false;
+                    printf("\n\t\tNo more anomalous elements to check. Exiting\n");
+                } else {
+                    printf("\n\t\tViolation of self-consistence. Returning to previous state and exiting.\n");
+                    n_anomalous_repetitions--;
+                    oPExtracted_values = extract_some_critical_values(testOPa, (sizeof(testOPa)/sizeof(int32_t))/2, *n_anomalous_values, n_anomalous_repetitions);
+                }
+            }
         }
         
     } else if(strcmp(op, "pos") == 0){
         printf("\n\t\tPOS operation (It can take a long if there are too many addresses)...\n");
-        opNthreshold = ExcessiveRepetitions(opDVtotalrepetitions, 1, LN, "pos", threshold);
+        opNthreshold = ExcessiveRepetitions(opDVtotalrepetitions, 1, LN, "pos", randomnessThreshold);
         testOPa = find_anomalies_histogram(totalDVhistogram, histogramLenght, 2, opDVtotalrepetitions, opDVtotalrepetitionsRows, 1, opNthreshold, n_anomalous_values);
         
         printf("\n\tPOS operation:\n");
-        oPExtracted_values = extract_some_critical_values(testOPa, (int32_t)(sizeof(testOPa)/sizeof(int32_t)), *n_anomalous_values, n_anomalous_repetitions);
-
+        oPExtracted_values = extract_some_critical_values(testOPa, (int32_t)(sizeof(testOPa)/sizeof(int32_t)), *n_anomalous_values, 1);
+        while (oPSelfConsistence) {
+            printf("\t\tStep %d ", n_anomalous_repetitions);
+            oPExtracted_values = extract_some_critical_values(testOPa, (sizeof(testOPa)/sizeof(int32_t)), *n_anomalous_values, n_anomalous_repetitions);
+            int nOPextrValues = (sizeof(testOPa)/sizeof(int32_t))/2;
+            int32_t** opPartRepsSelfCons = calloc(nOPextrValues, sizeof(int32_t*));
+            for (i = 0; i < nOPextrValues; i++) {
+                opPartRepsSelfCons[i] = calloc(nRoundsInPattern, sizeof(int32_t));
+            }
+            for (i = 0; i < nOPextrValues; i++) {
+                for (j = 0; j < nRoundsInPattern; j++) {
+                    opPartRepsSelfCons[i][j] = opdvhistogram[oPExtracted_values[i][0]][j+1]; //lolllz
+                }
+            }
+            for (test = 0; test < nRoundsInPattern; test++) {
+                printf("Test %d", test);
+                int32_t** opdvmatrix = calloc(opdvmatrixbackupRows, sizeof(int32_t*));
+                for (i = 0; i < opdvmatrixbackupRows; i++) {
+                    opdvmatrix[i] = calloc(opdvmatrixbackupRows, sizeof(int32_t));
+                }
+                for (i = 0; i < opdvmatrixbackupRows; i++) {
+                    for (j = 0; j < opdvmatrixbackupRows; j++) {
+                        opdvmatrix[i][j] = opdvmatrixbackup[i][j][test];
+                    }
+                }
+                bool** opMarkedPairs = marking_addresses(opdvmatrix, opdvmatrixbackupRows, opdvmatrixbackupRows, oPExtracted_values, nOPextrValues);
+                int32_t** opProposedMcus = agrupate_mcus(opMarkedPairs, opdvmatrixbackupRows, opdvmatrixbackupRows);
+                // LargestMCUSize = length(XORproposed_MCUs[1,:])
+                int continuation;
+                // Continuation=(length(find(XORPartRepsSelfCons[:,ktest].<=LargestMCUSize))==0)
+                if (continuation == 0) {
+                    oPSelfConsistence = false;
+                }
+            }
+            if (oPSelfConsistence) {
+                n_anomalous_repetitions++;
+                printf("\n");
+                if (n_anomalous_repetitions > *n_anomalous_values) {
+                    oPSelfConsistence = false;
+                    printf("\n\t\tNo more anomalous elements to check. Exiting\n");
+                } else {
+                    printf("\n\t\tViolation of self-consistence. Returning to previous state and exiting.\n");
+                    n_anomalous_repetitions--;
+                    oPExtracted_values = extract_some_critical_values(testOPa, (sizeof(testOPa)/sizeof(int32_t))/2, *n_anomalous_values, n_anomalous_repetitions);
+                }
+            }
+        }
+        
     }
-    int32_t** lol;
-    return lol;
+    return oPExtracted_values;
 }
 
 
@@ -898,21 +986,6 @@ int32_t** extractAnomalDVSelfConsistency(char* op, int32_t** opDVtotalrepetition
 
 
 
-XORextracted_values=extract_some_critical_values(testXORa, testXORb, n_anomalous_repetitions)
-NXORextrValues = length(XORextracted_values[:,1])
-XORPartRepsSelfCons = zeros(Int32, NXORextrValues, NRoundsInPattern)
-
-for kval=1:NXORextrValues
-XORPartRepsSelfCons[kval,:]=xordvhistogram[XORextracted_values[kval,1], 2:end]
-end
-
-#n_anomalous_repetitions +=1
-
-for ktest = 1:NRoundsInPattern
-print("Test ", ktest, " ")
-xordvmatrix = xordvmatrixbackup[1:NAddressesInRound[ktest],1:NAddressesInRound[ktest],ktest]
-XORmarked_pairs = marking_addresses(xordvmatrix, XORextracted_values)
-XORproposed_MCUs = agrupate_mcus(XORmarked_pairs)
 
 LargestMCUSize = length(XORproposed_MCUs[1,:])
 Continuation=(length(find(XORPartRepsSelfCons[:,ktest].<=LargestMCUSize))==0)
