@@ -874,7 +874,21 @@ end
  ### XORExtractedValues[1,:]
  */
 void traceRule(int32_t** xorDVtotalrepetitions, uint32_t** totalDVhistogram, int32_t** AnomalXORvalues, int32_t LN){
-    
+    	// Anomal XOR values is used to avoid the repetition of elements. It is just
+	// XORExtractedValues[1,:]
+	int32_t nBits = (log(LN + 1) / log(2));
+
+	// Elements with 1-trace
+	printf("\n\tInvestigating Trace = 1: ");
+	//CandidatesT1 = 2.^collect(0:Nbits-1)
+	int32_t CandidatesT1 = 0;
+	for (int i = 0; i < nBits - 1; i++){
+		CandidatesT1 += pow(2, i);
+	}
+
+	int32_t NT1Threshold = ExcessiveRepetitions(xorDVtotalrepetitions, 1, LN, "xor", randomnessThreshold);
+
+	//SelectedT1 =
 }
 
 // Esta función depende de la operación
