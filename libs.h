@@ -110,6 +110,28 @@ int32_t* flipped_bits(int32_t word, int32_t pattern, int wordWidth){
     return result;
 }
 
+uint32_t** Transposed_matrix(uint32_t** A, int NumRow, int NumCol){
+	uint32_t** trans;
+	int a = 0;
+	trans = (int32_t **)malloc(NumRow*sizeof(int32_t *));
+	for (a = 0; a < NumRow; a++)
+		trans[a] = (int32_t *)malloc(NumCol*sizeof(int32_t));
+
+	for (int a = 0; a < NumRow; a++){
+		for (int b = 0; b < NumCol; b++){
+			trans[a][b] = A[b][a];
+		}
+	}
+	//mostrar transpuesta
+	/*for (int a = 0; a < NumRow; a++){
+		printf("\n");
+		for (int b = 0; b < NumCol; b++){
+			printf(" %x", trans[a][b]);
+		}
+	}*/
+
+	return trans;
+}
 //Funcion de relleno de fila superior y columna izquierda vector, elemens y matriz para modificarla
 
 
