@@ -52,8 +52,6 @@ char* getfield(FILE* file, char* taken){
     return taken;
 }
 
-
-
 /*
  * This function allows separating actual values of addresses in tests from
  * those added to create a matrix. As these elements are equal to 0xFFFFFFFF,
@@ -119,12 +117,12 @@ int32_t* flipped_bits(int32_t word, int32_t pattern, int wordWidth){
  * Function to create the DV sets associated with the XOR and positive operations.
  * The idea is simple: The address vector is replicated to create a square matrix
  * traspose it, and operating. Every element in elements above the main
- * diagonal is an element of the DV. XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+ * diagonal is an element of the DV.
  */
 uint32_t** create_DVmatrix(uint32_t* addresses, int elems, char* op, uint32_t* RWcycles, int nbits4blocks, long int ln){
     int32_t** DVmatrix = (int32_t **)malloc((elems+2)*sizeof(int32_t *));
     int i, j, cont = 0, ntriu = 0;
-    for (i = 0; i < elems+1; i++){
+    for (i = 0; i < elems+2; i++){
         DVmatrix[i] = (int32_t*)malloc((elems+2)*sizeof(int32_t));
     }
     /* Número de elementos que debería haber en la triangular superior */
@@ -216,13 +214,13 @@ uint32_t* create_DVvector(uint32_t** DVmatrix, int elems){
 }
 
 /* Copia de matrices */
-uint32_t*** copyOfMatrix(uint32_t** matrix, uint32_t*** matrixbackup, int elems, int ktest){
-    int i;
-    for(i = 0; i < elems; i++){
-        matrixbackup[i][0][ktest-1] = matrix[i][0];
-        matrixbackup[0][i][ktest-1] = matrix[0][i];
+void copyOfMatrix(uint32_t** matrix, uint32_t*** matrixbackup, int elems, int ktest){
+    int i, j;
+    for(i = 0; i < elems+2; i++){ // Se copian con los valores de las direcciones?
+        for (j = 0; j < elems+2; j++) {
+            matrixbackup[i][j][ktest-1] = matrix[i][j];
+        }
     }
-    return matrixbackup;
 }
 
 /* Copia de vector a matriz */
@@ -276,15 +274,16 @@ int32_t* create_histogram(uint32_t* vector, int ndv, long int ln){
     }
     return histogram;
 }
+int calculaFatorial(int num)
+{
+    return ((num <= 1) ? 1 : (num * calculaFatorial(num - 1)));
+}
 
 long long binomial(int n, int p)
 {
     return (calculaFatorial(n) / (calculaFatorial(p)*calculaFatorial(n - p)));
 }
-int calculaFatorial(int num)
-{
-    return ((num <= 1) ? 1 : (num * calculaFatorial(num - 1)));
-}
+
 
 /* This function just implements the theoretical expresions to determine expected
  * repetitions.  Variable names are meaningful. */
@@ -320,7 +319,6 @@ double ExpectedRepetitions(int m, int ndv, long int LN, char* operation){
   return result;
 }
 
-//EXCESSIVEREPETITIONS
 int32_t ExcessiveRepetitions(int32_t** RepInHistVector, int RepInHistVectorCol, long int LN, char* operation, int threshold){
 
     // This function allows calculating the lowest number of repetitions from which
