@@ -1178,5 +1178,216 @@ int32_t** condensate_summary(int32_t*** summary3D, int summary3DRows, int summar
     }
     return condensateSummary;
 }
+int32_t** propose_MCUs(char* op, uint32_t*** XORDVmatrix3D, int numRows, int numCols, int dim, uint32_t*** POSDVmatrix3D, int32_t** anomalXOR, int32_t anomalXORlength, int32_t** anomalPOS, int32_t anomalPOSlength, int* nAddressesInRound){
+
+	int i, j, z, ktest;
+	numRows = ceil(numRows / 2 - 1);
+	if (strcmp(op, "xor") == 0){
+
+		int32_t*** XOR_summary = calloc(numRows, sizeof(int32_t**));
+		for (i = 0; i < numRows; i++) {
+			XOR_summary[i] = calloc(UnrealMCUsize, sizeof(int32_t*));
+			for (j = 0; j < dim; j++) {
+				XOR_summary[i][j] = calloc(dim, sizeof(int32_t));
+			}
+		}
+
+		int32_t*** xordvmatrix = calloc(numRows, sizeof(int32_t**));
+		for (i = 0; i < numRows; i++) {
+			xordvmatrix[i] = calloc(numCols, sizeof(int32_t*));
+			for (j = 0; j < dim; j++) {
+				xordvmatrix[i][j] = calloc(dim, sizeof(int32_t));
+			}
+		}
+
+		for (ktest = 0; ktest < dim; i++){
+
+			for (j = 0; j < numRows; i++) {
+				for (z = 0; z < numRows; i++) {
+					xordvmatrix[j][z] = XORDVmatrix3D[j][z][ktest];
+				}
+			}
+
+
+			bool** XORmarked_pairs = marking_addresses(xordvmatrix, numRows, numCols, anomalXOR, anomalXORlength);
+			//The following results only concern an operation.Just present for illustrative
+			//operations.In practical use, only CMB should be used.
+			int32_t** XORproposed_MCUs = agrupate_mcus(XORmarked_pairs, numRows, numCols);
+
+
+			//Let us save everything.
+			for (i = 0; i < numRows; i++) {
+				for (j = 0; j < numCols; i++) {
+					XOR_summary[i][j][ktest] = XORproposed_MCUs[i][j];
+				}
+			}
+			// However, as there are too many zeros, it is interesting to reshape the matrix.
+			// Thus, some memory is saved.But we must be careful with the different dimensions
+			// of every partial XY matrix in XYZ arrays.A simple but unelegant way is :
+			int32_t*** finalXOR_summary = calloc(numRows, sizeof(int32_t**));
+			for (i = 0; i < numRows; i++) {
+				finalXOR_summary[i] = calloc(numCols, sizeof(int32_t*));
+				for (j = 0; j < dim; j++) {
+					finalXOR_summary[i][j] = calloc(dim, sizeof(int32_t));
+				}
+			}
+			//return finalXOR_summary = CutZerosFromMCUsummary(XOR_summary, numRows, numCols, dim);	//Falta terminar hasta que sepamos que valores pasamos
+		}
+	}
+	else if (strcmp(op, "pos") == 0){
+
+		int32_t*** POS_summary = calloc(numRows, sizeof(int32_t**));
+		for (i = 0; i < numRows; i++) {
+			POS_summary[i] = calloc(UnrealMCUsize, sizeof(int32_t*));
+			for (j = 0; j < dim; j++) {
+				POS_summary[i][j] = calloc(dim, sizeof(int32_t));
+			}
+		}
+
+		int32_t*** posdvmatrix = calloc(numRows, sizeof(int32_t**));
+		for (i = 0; i < numRows; i++) {
+			posdvmatrix[i] = calloc(numCols, sizeof(int32_t*));
+			for (j = 0; j < dim; j++) {
+				posdvmatrix[i][j] = calloc(dim, sizeof(int32_t));
+			}
+		}
+
+		for (ktest = 0; ktest < dim; i++){
+
+			for (j = 0; j < numRows; i++) {
+				for (z = 0; z < numRows; i++) {
+					posdvmatrix[j][z] = POSDVmatrix3D[j][z][ktest];
+				}
+			}
+
+
+			bool** POSmarked_pairs = marking_addresses(posdvmatrix, numRows, numCols, anomalPOS, anomalPOSlength);
+			//The following results only concern an operation.Just present for illustrative
+			//operations.In practical use, only CMB should be used.
+			int32_t** POSproposed_MCUs = agrupate_mcus(POSmarked_pairs, numRows, numCols);
+
+
+			//Let us save everything.
+			for (i = 0; i < numRows; i++) {
+				for (j = 0; j < numCols; i++) {
+					POS_summary[i][j][ktest] = POSproposed_MCUs[i][j];
+				}
+			}
+			// However, as there are too many zeros, it is interesting to reshape the matrix.
+			// Thus, some memory is saved.But we must be careful with the different dimensions
+			// of every partial XY matrix in XYZ arrays.A simple but unelegant way is :
+			int32_t*** finalPOS_summary = calloc(numRows, sizeof(int32_t**));
+			for (i = 0; i < numRows; i++) {
+				finalPOS_summary[i] = calloc(numCols, sizeof(int32_t*));
+				for (j = 0; j < dim; j++) {
+					finalPOS_summary[i][j] = calloc(dim, sizeof(int32_t));
+				}
+			}
+			//return finalPOS_summary = CutZerosFromMCUsummary(POS_summary, numRows, numCols, dim);	//Falta terminar hasta que sepamos que valores pasamos
+		}
+	}
+	else{//op == CMB
+
+		int32_t*** CMB_summary = calloc(numRows, sizeof(int32_t**));
+		for (i = 0; i < numRows; i++) {
+			CMB_summary[i] = calloc(UnrealMCUsize, sizeof(int32_t*));
+			for (j = 0; j < dim; j++) {
+				CMB_summary[i][j] = calloc(dim, sizeof(int32_t));
+			}
+		}
+		int32_t*** xordvmatrix = calloc(numRows, sizeof(int32_t**));
+		for (i = 0; i < numRows; i++) {
+			xordvmatrix[i] = calloc(numCols, sizeof(int32_t*));
+			for (j = 0; j < dim; j++) {
+				xordvmatrix[i][j] = calloc(dim, sizeof(int32_t));
+			}
+		}
+
+		int32_t*** posdvmatrix = calloc(numRows, sizeof(int32_t**));
+		for (i = 0; i < numRows; i++) {
+			posdvmatrix[i] = calloc(numCols, sizeof(int32_t*));
+			for (j = 0; j < dim; j++) {
+				posdvmatrix[i][j] = calloc(dim, sizeof(int32_t));
+			}
+		}
+
+		for (ktest = 0; ktest < dim; i++){
+
+			for (j = 0; j < numRows; i++) {
+				for (z = 0; z < numRows; i++) {
+					xordvmatrix[j][z] = XORDVmatrix3D[j][z][ktest];
+				}
+			}
+			for (j = 0; j < numRows; i++) {
+				for (z = 0; z < numRows; i++) {
+					posdvmatrix[j][z] = POSDVmatrix3D[j][z][ktest];
+				}
+			}
+
+			bool** XORmarked_pairs = marking_addresses(xordvmatrix, numRows, numCols, anomalXOR, anomalXORlength);
+			bool** POSmarked_pairs = marking_addresses(posdvmatrix, numRows, numCols, anomalPOS, anomalPOSlength);
+
+			bool** XOR_POS_marked_pairs = calloc(numRows, sizeof(bool*));
+			for (i = 0; i < numRows; i++) {
+				XOR_POS_marked_pairs[i] = calloc(numCols, sizeof(bool));
+			}
+
+			for (j = 0; j < numRows; i++) {
+				for (z = 0; z < numRows; i++) {
+					XOR_POS_marked_pairs[j][z] = XORmarked_pairs[j][z] | POSmarked_pairs[j][z];
+				}
+			}
+
+			int32_t** CMBproposed_MCUs = agrupate_mcus(XOR_POS_marked_pairs, numRows, numCols);
+
+			//Let us save everything.
+			for (i = 0; i < numRows; i++) {
+				for (j = 0; j < numCols; i++) {
+					CMB_summary[i][j][ktest] = CMBproposed_MCUs[i][j];
+				}
+			}
+			// However, as there are too many zeros, it is interesting to reshape the matrix.
+			// Thus, some memory is saved.But we must be careful with the different dimensions
+			// of every partial XY matrix in XYZ arrays.A simple but unelegant way is :
+			int32_t*** finalCMB_summary = calloc(numRows, sizeof(int32_t**));
+			for (i = 0; i < numRows; i++) {
+				finalCMB_summary[i] = calloc(numCols, sizeof(int32_t*));
+				for (j = 0; j < dim; j++) {
+					finalCMB_summary[i][j] = calloc(dim, sizeof(int32_t));
+				}
+			}
+			//return finalCMB_summary = CutZerosFromMCUsummary(CMB_summary, numRows, numCols, dim);	//Falta terminar hasta que sepamos que valores pasamos
+		}
+	}
+}
+
+int32_t** CriticalXORValuesFromClusters(int32_t*** PrelMCUSummary,int numRows, int numCols, int nRounds, int32_t** AddressMatrix, int32_t** XORextracted_values, int32_t**xorDVtotalrepetitions, int32_t** DVHistogram, long int LN){
+
+
+	int32_t* NewCandidates;
+	int ktest,kRow,kAddress1,kAddress2,i,j;
+
+	int32_t*** index1 = calloc(numRows, sizeof(int32_t**));
+	for (i = 0; i < numRows; i++) {
+		index1[i] = calloc(numCols, sizeof(int32_t*));
+		for (j = 0; j < nRounds; j++) {
+			index1[i][j] = calloc(nRounds, sizeof(int32_t));
+		}
+	}
+
+
+	for (ktest = 0; ktest < nRounds; ktest++){
+
+		for (kRow = 0; kRow < numRows; kRow++){
+			for (kAddress1 = 1; kAddress1 < numCols; kAddress1++){
+				index1 = PrelMCUSummary[kRow][kAddress1][ktest];
+			}
+
+
+		}
+		
+	}
+
+}
 
 #endif
