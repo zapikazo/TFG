@@ -12,7 +12,7 @@
 //TimeMessages POR DEFINIR
 
 int main(){
-
+            /// ROTO2
    /* tAddress* columnVector = malloc(sizeof(tAddress)*17);
     
     
