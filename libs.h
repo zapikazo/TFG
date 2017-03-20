@@ -797,75 +797,165 @@ int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatr
     return result;
 }
 
+// Devuelve el número de elementos que son diferentes de el número a buscar, en una fila o una columna de una matriz
+int findNotEqual(int32_t** matrix, int matrixRows, int matrixCols, int selectedRow, int selectedCol, int search){
+    int count = 0, i;
+    if (selectedCol == -1) { // Búsqueda en columnas de fila seleccionada
+        for (i = 0; i < matrixCols; i++) {
+            if (matrix[selectedRow][i] != search) {
+                count++;
+            }
+        }
+    } else { // Búsqueda en filas de columna seleccionada
+        for (i = 0; i < matrixRows; i++) {
+            if (matrix[i][selectedCol] != search) {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
 /*
  *This is a simple function to cut files and rows of redundant zeros in 1 or 2
  *dimensions matrix.
  */
-/*int32_t** CutZerosFromArray(int32_t*** matrix, int32_t matrixRows, int32_t matrixCols, int32_t matrixDim){
-    if (matrixCols == 2) {
+int32_t** cutZerosFromArray(int32_t** matrix, int32_t matrixRows, int32_t matrixCols, int32_t selectedDim, int* newRows, int* newCols){
+    int i, j = 0, countIni = 0, countFin = 0;
+    *newRows = 0;
+    *newCols = 0;
+    if (matrixRows > 1 && matrixCols > 1) {
+        // this is a classical matrix.
+        // Establecemos las esquinas de la matriz
+        int firstRow = 0;
+        int lastRow = matrixRows;
+        int firstCol = 0;
+        int lastCol = matrixCols;
+        for (i = 0; i < matrixRows; i++) { // Desde la primera fila
+            if (findNotEqual(matrix, matrixRows, matrixCols, i, -1, 0) != 0) {
+                break;
+            }
+            firstRow++;
+        }
+        for (i = matrixRows; i >= 0; i--) { // Desde la última fila
+            if (findNotEqual(matrix, matrixRows, matrixCols, i, -1, 0) != 0) {
+                break;
+            }
+            lastRow--;
+        }
+        for (i = 0; i < matrixCols; i++) { // Desde la primera columna
+            if (findNotEqual(matrix, matrixRows, matrixRows, -1, i, 0) != 0) {
+                break;
+            }
+            firstCol++;
+        }
+        for (i = matrixCols; i >= 0; i--) { // Desde la última columna
+            if (findNotEqual(matrix, matrixRows, matrixCols, -1, i, 0) != 0) {
+                break;
+            }
+            lastCol--;
+        }
+        // Calculamos el nuevo tamaño de matriz y la declaramos
+        *newRows = (lastRow - firstRow) + 1;
+        *newCols = (lastCol - firstCol) + 1;
+        int32_t** result = calloc(*newRows, sizeof(int32_t*));
+        for (i = 0; i < *newRows; i++) {
+            result[i] = calloc(*newCols, sizeof(int32_t));
+        }
+        // Copiamos la antigua en la nueva
+        for (i = firstRow; i <= lastRow; i++) {
+            for (j = firstCol; j <= lastCol; j++) {
+                result[i][j] = matrix[i][j];
+            }
+        }
+        return result;
+    } else if (matrixRows == 1 || matrixCols == 1){
         // Upss, this is a vector. Be careful.
-        7
-    } else if (matrixCols > 2){
-        
+        if (matrixRows == 1) { // Única fila, recorrer en horizontal
+            while (matrix[countIni] == 0 && countIni < matrixCols) {
+                countIni++; // Incrementamos el contador mientras existan 0s, para conocer cuántos hay delante de los valores
+            }
+            i = matrixCols;
+            while (matrix[i] == 0 && i >= 0) {
+                countFin++; // Incrementamos el contador mientras existan 0s, para conocer cuántos hay detrás de los valores
+                i--;
+            }
+            // Una vez acotados los lados, se crea la variable y se copian los datos con las nuevas dimensiones
+            *newCols = matrixCols - (countIni + countFin);
+            int32_t* result = calloc(*newCols, sizeof(int32_t));
+            for (i = countIni; i < (matrixCols-countFin); i++) {
+                result[j] = matrix[0][i];
+                j++;
+            }
+            return &result;
+        } else { // Única columna recorrer en vertical
+            while (matrix[countIni] == 0 && countIni < matrixRows) {
+                countIni++; // Incrementamos el contador mientras existan 0s, para conocer cuántos hay delante de los valores
+            }
+            i = matrixRows;
+            while (matrix[i] == 0 && i >= 0) {
+                countFin++; // Incrementamos el contador mientras existan 0s, para conocer cuántos hay detrás de los valores
+                i--;
+            }
+            // Una vez acotados los lados, se crea la variable y se copian los datos con las nuevas dimensiones
+            *newCols = matrixRows - (countIni + countFin);
+            int32_t* result = calloc(*newCols, sizeof(int32_t));
+            for (i = countIni; i < (matrixRows-countFin); i++) {
+                result[j] = matrix[i][0];
+                j++;
+            }
+            return &result;
+        }
     } else {
-        
+        printf("\tMatriz dimension different from 1 or 2. Exiting.");
     }
-}*/
+    return matrix;
+}
+
 /*
-function CutZerosFromArray(A)
+ # A very specific function to reduce the size of the summaries with many
+ # involved rounds.
+ */
+int32_t*** cutZerosFromMCUsummary(int32_t*** MCUSummary, int rows, int cols, int dims){
+    int i, j, z, maxRows = 0, maxCols = 0;
+    int newRows = 0;
+    int newCols = 0;
+    int32_t** dimensionsMCU = calloc(2, sizeof(int32_t*));
+    for (i = 0; i < 2; i++) {
+        dimensionsMCU[i] = calloc(dims, sizeof(int32_t));
+    }
+    for (i = 0; i < dims; i++) {
+        cutZerosFromArray(*MCUSummary, rows, cols, i, &newRows, &newCols);
+        dimensionsMCU[i][0] = newRows;
+        dimensionsMCU[i][1] = newCols;
+        // Es necesario saber los mayores valores, para adecuar la matriz total
+        if (newRows > maxRows) {
+            maxRows = newRows;
+        }
+        if (newCols > maxCols) {
+            maxCols = newCols;
+        }
+    }
+    // Una vez guardadas en la matriz de valores todos los nuevos tamaños, se copia la matriz en una matriz nueva
+    int32_t*** simpleMCUSummary = calloc(maxRows, sizeof(int32_t**));
+    for (i = 0; i < maxRows; i++) {
+        simpleMCUSummary[i] = calloc(maxCols, sizeof(int32_t*));
+        for (j = 0; j < maxCols; j++) {
+            simpleMCUSummary[i][j] = calloc(dims, sizeof(int32_t));
+        }
+    }
+    //Ojo, apuntado papel
+    for (i = 0; i < maxRows; i++) {
+        for (j = 0; j < maxCols; j++) {
+            for (z = 0; z < dims; z++) {
+                simpleMCUSummary[i][j][z] = MCUSummary[i][j][z];
+            }
+        }
+    }
+    free(dimensionsMCU);
+    return simpleMCUSummary;
+}
 
-if ((Ndimension==2)&(1 in Adimensions))
-# Upss, this is a vector. Be careful.
-if (Adimensions[1]==1)
-result =A[findfirst(A.!=0):findlast(A.!=0)]'
-else
-result =A[findfirst(A.!=0):findlast(A.!=0)]
-end
-
-return result
-
-
-elseif ((Ndimension==2)&!(1 in Adimensions))
-# this is a classical matrix.
-firstrow=1;
-lastrow =Adimensions[1];
-firstcol=1;
-lastcol=Adimensions[2];
-for krow = 1:Adimensions[1]
-if (length(find(A[krow,:].!=0))!=0)
-break;
-end
-firstrow +=1;
-end
-for krow = Adimensions[1]:-1:1
-if (length(find(A[krow,:].!=0))!=0)
-break;
-end
-lastrow -=1;
-end
-for kcol = 1:Adimensions[2]
-if (length(find(A[:,kcol].!=0))!=0)
-break;
-end
-firstcol +=1;
-end
-for kcol = Adimensions[2]:-1:1
-if (length(find(A[:,kcol].!=0))!=0)
-break;
-end
-lastcol -=1;
-end
-
-return result = A[firstrow:lastrow, firstcol:lastcol]
-
-else
-
-println("\tMatriz dimension different from 1 or 2. Exiting.")
-return A
-end
-
-end
-*/
 
 /*
  # An alternative implementation of the trace rule.
