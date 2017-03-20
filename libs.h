@@ -603,7 +603,7 @@ int32_t* unionAgrupate_mcus(int32_t** thesummary, int32_t thesummaryCols, int32_
  # equivalent vector, with NROws the total number of columns.
  */
 
-int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatrixCols){
+int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatrixCols, int* nTotalEvents, int* largestMCU){
     //Let us locate the elements
     //Con FIND tenemos que encontrar los indices cuyos valores no sean cero
     int count = 0, newCount = 0, i, j, k, x, xx;
@@ -664,7 +664,7 @@ int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatr
         }
     }
     //Now, we save the first pair in the first column:
-    int nTotalEvents = 0;
+    *nTotalEvents = 0;
     int32_t firstAddress, secondAddress, firstAddressRow = 0, secondAddressRow = 0;
     for (k = 0; k < newCount; k++) {
         //There are several cases. Let us list them in order.
@@ -691,9 +691,9 @@ int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatr
          # at NTotalEvents
          */
         if (!firstAddressFound && !secondAddressFound){
-            thesummary[nTotalEvents][0] = relatedpairs[k][0];
-            thesummary[nTotalEvents][1] = relatedpairs[k][1];
-            nTotalEvents ++;
+            thesummary[*nTotalEvents][0] = relatedpairs[k][0];
+            thesummary[*nTotalEvents][1] = relatedpairs[k][1];
+            *nTotalEvents ++;
         }
         /*
          # Case 2:
@@ -765,7 +765,7 @@ int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatr
                     thesummary[addressRowMin][i] = thesummarytemp[i]; // Se copia el vector de la unión en la matriz
                 }
                 //Also, as two events have been merged, the number of total events is lower:
-                nTotalEvents--;
+                *nTotalEvents--;
             }
         }
     }
@@ -775,22 +775,22 @@ int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatr
      # The number of rows is easy to calculate: NTotalEvents. Concerning the other
      # element:
      */
-    int32_t largestMCU = 0, sum = 0;
+    int sum = 0;
     for (i = 3; i < thesummaryRows; i++) {
         for (j = 0; j < thesummaryCols; j++) {
             sum += thesummary[i][j];
         }
         if (sum == 0) {
-            largestMCU = i - 1;
+            *largestMCU = i - 1;
             break;
         }
     }
-    int32_t** result = calloc(nTotalEvents, sizeof(int32_t*));
-    for (i = 0; i < nTotalEvents; i++) {
-        result[i] = calloc(largestMCU, sizeof(int32_t));
+    int32_t** result = calloc(*nTotalEvents, sizeof(int32_t*));
+    for (i = 0; i < *nTotalEvents; i++) {
+        result[i] = calloc(*largestMCU, sizeof(int32_t));
     }
-    for (x = 0; x < nTotalEvents; x++) {
-        for (xx = 0; xx < largestMCU; xx++) {
+    for (x = 0; x < *nTotalEvents; x++) {
+        for (xx = 0; xx < *largestMCU; xx++) {
             result[x][xx] = thesummary[x][xx];
         }
     }
@@ -1178,7 +1178,9 @@ int32_t** condensate_summary(int32_t*** summary3D, int summary3DRows, int summar
     }
     return condensateSummary;
 }
-int32_t** propose_MCUs(char* op, uint32_t*** XORDVmatrix3D, int numRows, int numCols, int dim, uint32_t*** POSDVmatrix3D, int32_t** anomalXOR, int32_t anomalXORlength, int32_t** anomalPOS, int32_t anomalPOSlength, int* nAddressesInRound){
+
+
+int32_t** propose_MCUs(char* op, uint32_t*** XORDVmatrix3D, int numRows, int numCols, int dim, int32_t*** POSDVmatrix3D, int32_t** anomalXOR, int32_t anomalXORlength, int32_t** anomalPOS, int32_t anomalPOSlength, int* nAddressesInRound){
 
 	int i, j, z, ktest;
 	numRows = ceil(numRows / 2 - 1);
@@ -1192,9 +1194,9 @@ int32_t** propose_MCUs(char* op, uint32_t*** XORDVmatrix3D, int numRows, int num
 			}
 		}
 
-		int32_t*** xordvmatrix = calloc(numRows, sizeof(int32_t**));
+		int32_t*** xordvmatrix = calloc(nAddressesInRound[ktest], sizeof(int32_t**));
 		for (i = 0; i < numRows; i++) {
-			xordvmatrix[i] = calloc(numCols, sizeof(int32_t*));
+			xordvmatrix[i] = calloc(nAddressesInRound[ktest], sizeof(int32_t*));
 			for (j = 0; j < dim; j++) {
 				xordvmatrix[i][j] = calloc(dim, sizeof(int32_t));
 			}
