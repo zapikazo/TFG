@@ -1429,34 +1429,52 @@ int32_t** propose_MCUs(char* op, uint32_t*** XORDVmatrix3D, int numRows, int num
 		}
 	}
 }
-
 int32_t** CriticalXORValuesFromClusters(int32_t*** PrelMCUSummary,int numRows, int numCols, int nRounds, int32_t** AddressMatrix, int32_t** XORextracted_values, int32_t**xorDVtotalrepetitions, int32_t** DVHistogram, long int LN){
 
 
 	int32_t* NewCandidates;
-	int ktest,kRow,kAddress1,kAddress2,i,j;
-
-	int32_t*** index1 = calloc(numRows, sizeof(int32_t**));
-	for (i = 0; i < numRows; i++) {
-		index1[i] = calloc(numCols, sizeof(int32_t*));
-		for (j = 0; j < nRounds; j++) {
-			index1[i][j] = calloc(nRounds, sizeof(int32_t));
-		}
-	}
-
-
+	int ktest,kRow,kAddress1,kAddress2,i,j,z=0;
+	bool find = false;
 	for (ktest = 0; ktest < nRounds; ktest++){
 
 		for (kRow = 0; kRow < numRows; kRow++){
 			for (kAddress1 = 1; kAddress1 < numCols; kAddress1++){
-				index1 = PrelMCUSummary[kRow][kAddress1][ktest];
+
+				int32_t index1 = PrelMCUSummary[kRow][kAddress1][ktest];
+				if (index1 == 0){
+					break;
+				}
+				else{
+					int32_t index2;
+					int32_t address1 = AddressMatrix[index1][ktest];
+					
+					for (kAddress2 = 0; kAddress2 < kAddress1 - 1; kAddress2++){
+						index2 = PrelMCUSummary[kRow][kAddress2][ktest];
+						int32_t address2 = AddressMatrix[index2][ktest];
+						int32_t candidate = address1 ^ address2;
+
+						for (i = 0; i < numRows; i++){
+							for (j = 0; j < numCols; j++){
+								if (XORextracted_values[i][j] == candidate)
+									find = true;
+							}
+						}
+						if (!find){
+							NewCandidates[i] = candidate;
+							z++;
+						}
+					}
+				}		
 			}
-
-
-		}
-		
+		}		
 	}
 
+	int32_t xorNthreshold = ExcessiveRepetitions(xorDVtotalrepetitions, 2, LN, "xor", randomnessThreshold);
+
+
+	int32_t* purgedCandidatesXOR = NewCandidates[find(DVHistogram[NewCandidates, 2]. >= xorNthreshold)];
+
+	return purgedCandidatesXOR;
 }
 
 #endif
