@@ -12,16 +12,6 @@
 //TimeMessages POR DEFINIR
 
 int main(){
-            /// ROTO2
-   /* tAddress* columnVector = malloc(sizeof(tAddress)*17);
-    
-    
-    for (i = 0; i < elems; i++){
-     printf("%s\n", columnVector[i]);
-     }
-    //flipped_bits(columnVector[0], columnVector[2], sizeof(tAddress));
-    */
-    
     /* Matrix which save times involved in the different stages to detect bottlenecks */
     float durationSteps[11][2] = {0}; //EL VALOR A COPIAR AQUI F-1 y C-1
     
@@ -242,10 +232,16 @@ int main(){
         free(xordvhistogramVector);
         free(posdvhistogramVector);
         
+       /* for (a = 0; a < LN; a++) {
+            for (b = 0; nRoundsInPattern+1; b++) {
+                printf(" %#x", xordvhistogram[a][b] );
+            }
+        }*/
+        
         /* Other variables must be saved as well. But the procedure is a bit different
          * as the elements do not have identical size. */
-        //copyOfMatrix(xordvmatrix, xordvmatrixbackup, elems, ktest);
-        //copyOfMatrix(posdvmatrix, posdvmatrixbackup, elems, ktest);
+        copyOfMatrix(xordvmatrix, xordvmatrixbackup, elems, ktest);
+        copyOfMatrix(posdvmatrix, posdvmatrixbackup, elems, ktest);
         copyOfVector(xordvvector, xordvbackup, ndv, ktest);
         copyOfVector(posdvvector, posdvbackup, ndv, ktest); //WARNING
         free(xordvvector);
