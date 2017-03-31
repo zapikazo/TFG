@@ -496,7 +496,7 @@ int32_t** extract_some_critical_values(int32_t** anomalous_repetitions, int32_t 
 			extracted_values[k][1] = anomalous_repetitions[k][1];
 		}
 		return extracted_values;*/
-        newLenght = anomalous_repetitionsLenght;
+        newLenght = &anomalous_repetitionsLenght;
         return anomalous_repetitions;
 	}
 	else {
@@ -512,7 +512,7 @@ int32_t** extract_some_critical_values(int32_t** anomalous_repetitions, int32_t 
 		for (k = 0; k < nrow; k++) {
 			extracted_values[k] = calloc(2, sizeof(int32_t));
 		}
-        newLenght = nrow;
+        newLenght = &nrow;
 		//extracted_values = anomalous_repetitions[1:nrow,:];
 		for (k = 0; k < nrow; k++) {
 			extracted_values[k][0] = anomalous_repetitions[k][0];
@@ -996,27 +996,112 @@ int32_t*** cutZerosFromMCUsummary(int32_t*** MCUSummary, int rows, int cols, int
 }
 
 /*
+ * Función que recibe un vector y una matriz, devuelve un vector con los elementos que estén en el vector inicial, 
+ * pero que no estén en la matriz. Si no, devuelve array vacío
+ */
+int32_t* setdiffTraceRule(int32_t* vector, int vectorLenght, int32_t** matrix, int matrixRows, int matrixCols, int* newLenght){
+    int i, x, y, cont = 0;
+    bool find = false;
+    int32_t* newVector = calloc(vectorLenght, sizeof(int32_t));
+    for (i = 0; i < vectorLenght; i++) {
+        for (x = 0; x < matrixRows; x++) {
+            for (y = 0; y < matrixCols; y++) {
+                if (vector[i] == matrix[x][y]) {
+                    find = true;
+                }
+            }
+        }
+        if (find == false) {
+            newVector[cont] = vector[i];
+            cont++;
+        }
+        find = false;
+    }
+    
+    newVector = realloc(newVector, cont*sizeof(int32_t));
+    *newLenght = cont;
+    return newVector;
+}
+
+/*
 # An alternative implementation of the trace rule.
 
 ### Anomal XOR values is used to avoid the repetition of elements. It is just
 ### XORExtractedValues[1,:]
 */
-void traceRule(int32_t** xorDVtotalrepetitions, uint32_t** totalDVhistogram, int32_t** AnomalXORvalues, int32_t LN){
+int32_t* traceRule(int32_t** xorDVtotalrepetitions, uint32_t** totalDVhistogram, int32_t** anomalXORvalues, int anomalXORvaluesRows, long int LN){
 	// Anomal XOR values is used to avoid the repetition of elements. It is just
-	// XORExtractedValues[1,:]
-	int32_t nBits = (log(LN + 1) / log(2));
+    int i, j, z, index;
+    int32_t nBits = (log(LN + 1) / log(2)); // ejemplo nBits = 24
 
 	// Elements with 1-trace
 	printf("\n\tInvestigating Trace = 1: ");
-	//CandidatesT1 = 2.^collect(0:Nbits-1)
-	int32_t CandidatesT1 = 0;
-	for (int i = 0; i < nBits - 1; i++){
-		CandidatesT1 += pow(2, i);
+	//CandidatesT1 = 2.^collect(0:Nbits-1) //Crea un array de 24 elementos 0 -> 24-1 con valores potencia de 2
+	int32_t* candidatesT1 = calloc(nBits, sizeof(int32_t));
+	for (i = 0; i < nBits; i++){
+		candidatesT1[i] = pow(2, i);
 	}
+    
+	int32_t nT1Threshold = ExcessiveRepetitions(xorDVtotalrepetitions, 1, LN, "xor", randomnessThreshold);
 
-	int32_t NT1Threshold = ExcessiveRepetitions(xorDVtotalrepetitions, 1, LN, "xor", randomnessThreshold);
+    // (vector) SelectedT1 = CandidatesT1[find(TotalDVhistogram[CandidatesT1, 2].>=NT1Threshold)]
+    int32_t* selectedT1;
+    int sT1Lenght = 0;
 
-	//SelectedT1 =
+    // Devolver array con los elementos que estén en selectedt1, pero que no estén en anomalxorvalues
+    int nWinnersT1 = 0;
+    int32_t* winnersT1 = setdiffTraceRule(selectedT1, sT1Lenght, anomalXORvalues, anomalXORvaluesRows, 2, &nWinnersT1);
+    printf("%d candidate", nWinnersT1);
+    if (nWinnersT1 != 1)
+        printf("s");
+    printf(" found.");
+    
+    /// Elements with 2-trace
+    printf("\n\tInvestigating Trace = 2: ");
+    int32_t* candidatesT2 = calloc((0.5*nBits*(nBits-1)), sizeof(int32_t));
+    index = 0;
+    for (i = 0; i < (nBits-2); i++) {
+        for (j = i+1; j < (nBits-1); j++) {
+            candidatesT2[index] = (pow(2, i))+(pow(2, j)); // CandidatesT2[index]=2^k1+2^k2
+            index++;
+        }
+    }
+    int32_t nT2Threshold = ExcessiveRepetitions(xorDVtotalrepetitions, 1, LN, "xor", randomnessThreshold);
+    //SelectedT2 = CandidatesT2[find(TotalDVhistogram[CandidatesT2, 2].>=NT2Threshold)]
+    int32_t* selectedT2;
+    int sT2Lenght = 0;
+    int nWinnersT2 = 0;
+    int32_t* winnersT2 = setdiffTraceRule(selectedT2, sT2Lenght, anomalXORvalues, anomalXORvaluesRows, 2, &nWinnersT2);
+    printf("%d candidate", nWinnersT2);
+    if (nWinnersT2 != 1)
+        printf("s");
+    printf(" found.");
+    
+    /// Elements with 3-trace
+    printf("\n\tInvestigating Trace = 3: ");
+    int32_t* candidatesT3 = calloc((nBits*(nBits-1)*(nBits-2)/6), sizeof(int32_t));
+    index = 0;
+    for (i = 0; i < (nBits-3); i++) {
+        for (j = i+1; j < (nBits-2); j++) {
+            for (z = j+1; z < (nBits-1); z++) {
+                candidatesT3[index] = (pow(2, 1))+(pow(2, j))+(pow(2, z)); // 2^k1+2^k2+2^k3
+            }
+        }
+    }
+    //SelectedT3 = CandidatesT3[find(TotalDVhistogram[CandidatesT3, 2].>=NT2Threshold)]
+    int32_t* selectedT3;
+    int sT3Lenght = 0;
+    int nWinnersT3 = 0;
+    int32_t* winnersT3 = setdiffTraceRule(selectedT3, sT3Lenght, anomalXORvalues, anomalXORvaluesRows, 2, &nWinnersT3);
+    printf("%d candidate", nWinnersT3);
+    if (nWinnersT3 != 1)
+        printf("s");
+    printf(" found.");
+
+    printf("\n\tEnd of search.\n");
+    
+    //return union(WinnersT1, WinnersT2, WinnersT3) HACER FUNCION DE UNION DE 3 vectores en 1
+    return winnersT1;
 }
 
 
@@ -1248,7 +1333,7 @@ uint32_t** locate_mbus(int32_t** content, int32_t contentRows, int32_t contentCo
 
 
 // Esta función depende de la operación
-int32_t** extractAnomalDVSelfConsistency(char* op, int32_t** opDVtotalrepetitions, int32_t opDVtotalrepetitionsRows, uint32_t** totalDVhistogram, int32_t histogramLenght, long int LN, int nRoundsInPattern, int32_t** opdvhistogram, int32_t*** opdvmatrixbackup, int opdvmatrixbackupRows){
+int32_t** extractAnomalDVSelfConsistency(char* op, int32_t** opDVtotalrepetitions, int32_t opDVtotalrepetitionsRows, uint32_t** totalDVhistogram, int32_t histogramLenght, long int LN, int nRoundsInPattern, int32_t** opdvhistogram, int32_t*** opdvmatrixbackup, int opdvmatrixbackupRows, int* lenght){
 	int32_t opNthreshold;
 	int* n_anomalous_values = malloc(sizeof(int));
     int* testOPaLenght = malloc(sizeof(int));
@@ -1376,6 +1461,7 @@ int32_t** extractAnomalDVSelfConsistency(char* op, int32_t** opDVtotalrepetition
         }
 
 	}
+    lenght = testOPaLenght;
 	return oPExtracted_values;
 }
 

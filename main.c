@@ -373,9 +373,10 @@ int main(){
     durationSteps[4][1] = time(NULL);
     printf("STARTING TO LOOK UP ANOMALOUSLY REPEATED VALUES...\n");
     durationSteps[5][0] = time(NULL);
+    int XORextracted_values00Lenght = 0, POSextracted_values00Lenght = 0;
     
-    int32_t** XORextracted_values00 = extractAnomalDVSelfConsistency("xor", xorDVtotalrepetitions, (maxXORValue + 1), totalDVHistogram, LN, LN, nRoundsInPattern, xordvhistogram, xordvmatrixbackup, rawDataMatrixNRows);
-    int32_t** POSextracted_values00 = extractAnomalDVSelfConsistency("pos", posDVtotalrepetitions, (maxPOSValue + 1), totalDVHistogram, LN, LN, nRoundsInPattern, posdvhistogram, posdvmatrixbackup, rawDataMatrixNRows);
+    int32_t** XORextracted_values00 = extractAnomalDVSelfConsistency("xor", xorDVtotalrepetitions, (maxXORValue + 1), totalDVHistogram, LN, LN, nRoundsInPattern, xordvhistogram, xordvmatrixbackup, rawDataMatrixNRows, &XORextracted_values00Lenght);
+    int32_t** POSextracted_values00 = extractAnomalDVSelfConsistency("pos", posDVtotalrepetitions, (maxPOSValue + 1), totalDVHistogram, LN, LN, nRoundsInPattern, posdvhistogram, posdvmatrixbackup, rawDataMatrixNRows, &POSextracted_values00Lenght);
 
     
     durationSteps[5][1] = time(NULL);
@@ -383,6 +384,7 @@ int main(){
     /* Thus, selfconsistency is completed. Now, it is time to apply the TRACE rule. */
     printf("APPLYING THE TRACE RULE FOR XOR DV SET...\n");
    // XORextracted_TraceRule=TraceRule(xorDVtotalrepetitions, TotalDVhistogram,XORextracted_values00, LN, RandomnessThreshold)
+    traceRule(xorDVtotalrepetitions, totalDVHistogram, XORextracted_values00, XORextracted_values00Lenght, LN);
     //XORextracted_values01=vcat(XORextracted_values00, TotalDVhistogram[XORextracted_TraceRule, 1:2])
     //POSextracted_values01=POSextracted_values00
     
@@ -390,10 +392,92 @@ int main(){
     
     /** USING DV VALUES INTRODUCED BY USER. **/
     
+    printf("\nRECYCLING PREVIOUSLY KNOWN DV ELEMENTS...");
+    //UnknowXORValues = setdiff(PreviouslyKnownXOR, XORextracted_values01[:,1])
+    //XORextracted_values02=vcat(XORextracted_values01, TotalDVhistogram[UnknowXORValues, 1:2])
+    //UnknowPOSValues = setdiff(PreviouslyKnownPOS, POSextracted_values01[:,1])
+    //POSextracted_values02=vcat(POSextracted_values01, TotalDVhistogram[UnknowPOSValues, [1,3]])
+    int nUnknownXORValues, nUnknownPOSValues;
+    //NUnknownXORValues = length(UnknowXORValues)
+    //NUnknownPOSValues = length(UnknowPOSValues)
+    
+    printf("\n\tXOR: ");
+    if (nUnknownXORValues > 0){
+        printf("%d unknown value", nUnknownXORValues);
+        if (nUnknownXORValues != 1){
+            printf("s");
+            }
+        printf(" added.");
+    } else {
+        printf("Nothing to include.");
+    }
+    printf("\n\tPositive Subtraction: ");
+    if (nUnknownPOSValues > 0) {
+        printf("%d unknown value", nUnknownPOSValues);
+        if (nUnknownPOSValues != 1) {
+            printf("s");
+        }
+        printf(" added.");
+    } else {
+        printf("Nothing to include.\n");
+    }
+    printf(" ");
 
+// Time for Exploring MCUs
+    printf("\nSEARCHING INSIDE MCUs (FIRST PASS)...");
+  /*  XORDVsMCU1, POSDVsMCU1, XORextracted_values03,
+    POSextracted_values03=ExtractAnomalDVfromClusters(  Content[:,1:3:end],
+                                                      XORextracted_values02,
+                                                      POSextracted_values02,
+                                                      xorDVtotalrepetitions,
+                                                      posDVtotalrepetitions,
+                                                      TotalDVhistogram,
+                                                      xordvmatrixbackup,
+                                                      posdvmatrixbackup,
+                                                      LN,
+                                                      RandomnessThreshold)*/
+    printf("\n\tWARNING: MCUs IN POSITIVE SUBTRACION IN QUARANTINE.\n");
+    //POSDVsMCU1=[];
+    //POSextracted_values03=POSextracted_values02;
+// XORing RULE
+    printf("\n\nAPPLYING XORING RULE...");
+    /*XORDVfromXORing,  XORextracted_values04=CriticalXORvaluesFromXORingRule( XORextracted_values03,
+                                                                            xorDVtotalrepetitions,
+                                                                            TotalDVhistogram, LN,RandomnessThreshold)*/
+    //POSextracted_values04=POSextracted_values03
 
-
-
+// Time for Exploring MCUs
+    printf("\nSEARCHING INSIDE MCUs (SECOND PASS)...");
+    /*XORDVsMCU2, POSDVsMCU2, XORextracted_values05,
+    POSextracted_values05=ExtractAnomalDVfromClusters(  Content[:,1:3:end],
+                                                      XORextracted_values04,
+                                                      POSextracted_values04,
+                                                      xorDVtotalrepetitions,
+                                                      posDVtotalrepetitions,
+                                                      TotalDVhistogram,
+                                                      xordvmatrixbackup,
+                                                      posdvmatrixbackup,
+                                                      LN,
+                                                      RandomnessThreshold)*/
+    printf("\n\tWARNING: MCUs IN POSITIVE SUBTRACION IN QUARANTINE.\n");
+    //POSDVsMCU2=[];
+    //POSextracted_values05=POSextracted_values04;
+    durationSteps[0][1]=time(NULL);
+    
+    printf(" ");
+    
+    printf("\nMAKING THE FINAL ORGANIZATION OF ADDRESSES FOR PRESENTATION...");
+   /* CMBRES,XORRES, POSRES=propose_MCUs(xordvmatrixbackup,
+                                       posdvmatrixbackup,
+                                       XORextracted_values05[:,1],
+                                       POSextracted_values05[:,1],
+                                       NAddressesInRound,
+                                       UnrealMCUsize)*/
+    //FinalResult = condensate_summary(CMBRES, Content)
+    printf("\tEnded.");
+    
+    printf("*******************************************************************");
+    printf("*******************************************************************");
 
 
 
