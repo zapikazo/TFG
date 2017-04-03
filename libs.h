@@ -51,7 +51,29 @@ char* getfield(FILE* file, char* taken){
 	taken = realloc(taken, elems);
 	return taken;
 }
+int elemsInVector(int32_t* vector){
+	int elems = 0,i;
 
+	while(vector[i] != '\0' || vector[i] > 0){
+		elems++;
+	}
+	return elems;
+}
+
+void sort(int32_t* A, int n)
+{
+	int min, i, j, aux;
+	for (i = 0; i<n - 1; i++)
+	{
+		min = i;
+		for (j = i + 1; j<n; j++)
+		if (A[min] > A[j])
+			min = j;
+		aux = A[min];
+		A[min] = A[i];
+		A[i] = aux;
+	}
+}
 /*
 * This function allows separating actual values of addresses in tests from
 * those added to create a matrix. As these elements are equal to 0xFFFFFFFF,
@@ -1537,94 +1559,152 @@ int32_t** CriticalXORValuesFromClusters(int32_t*** PrelMCUSummary,int numRows, i
 	return &purgedCandidatesXOR;
 }
 
-/*function CriticalXORvaluesFromXORingRule(XORextracted_values,
-                                        XORDVtotalrepetitions,
-                                        DVHistogram,
-                                        LN,
-                                        RandomnessThreshold)
 
-#  Nrows, Ncols, Nrounds = size(PrelMCUSummary)
-# Case 1: Xoring know XORDVvalues
-  print("\n\tCase 1: XORing known values... ")
-  PrelCandidates = [];
+//Ojo a DVhistogram, se lo pasa y luego usa totalDVhistogram.REVISAR!
+void CriticalXORvaluesFromXORingRule(int32_t** XORextracted_values, int numRow, int oldXORValuesLength, int32_t** XORDVtotalrepetitions, uint32_t** totalDVhistogram, long int LN){
 
-  OldXORValues = sort(XORextracted_values[:,1])
-  NOldXORValues = length(OldXORValues)
+	int i, j;
+	bool candidateFind = false, prelCandidateFind = false;
+	printf("\n\tCase 1: XORing known values... ");
+	int32_t* PrelCandidates = (int32_t*)calloc(sizeof(int32_t),numRow);
+	int32_t* oldXORValues = (int32_t*)malloc(sizeof(int32_t),numRow);
+	copyOfVector(oldXORValues, XORextracted_values, LN, 1);
+	sort(oldXORValues, numRow);
 
-  for k1=1:NOldXORValues-1
-    Old1 = OldXORValues[k1]
-    for k2 = k1+1:NOldXORValues
-      Old2 = OldXORValues[k2]
-      Candidate = Old1$Old2
-      if !(Candidate in OldXORValues)&&!(Candidate in PrelCandidates)
-        PrelCandidates = union(PrelCandidates, [Candidate])
-      end
-    end
-  end
+	int k1, k2, PrelCandidatesTam = 0,pos = 0,posCandidatesCase1 = 0;
+	for (k1 = 0; k1 < oldXORValuesLength - 1; k1++){
+		int old1 = oldXORValues[k1];
+		for (k2 = k1 + 1; k2< oldXORValuesLength; k2++){
+			candidateFind = false, prelCandidateFind = false;
+			int old2 = oldXORValues[k2];
+			int candidate = old1^old2;
+			for (i = 0; i < oldXORValuesLength; i++){
+				if (candidate == oldXORValues[i])
+					candidateFind = true;	
+			}
+			for (j = 0; j < PrelCandidatesTam; j++){
+				if (candidate == PrelCandidates[j]){
+					prelCandidateFind = true;
+				}
+			}
+			if (!candidateFind && !prelCandidateFind){
+				PrelCandidates[PrelCandidatesTam] = candidate;
+				PrelCandidatesTam++;
+			}
+		}
 
-  PrelCandidates = sort(PrelCandidates)
+	}
+	sort(PrelCandidates, PrelCandidatesTam);
 
-  NthresholdCase1=ExcessiveRepetitions(xorDVtotalrepetitions[:,2], LN, "xor",
-                                RandomnessThreshold)
-  CandidatesCase1=PrelCandidates[find(TotalDVhistogram[PrelCandidates, 2].>=NthresholdCase1)]
+	int nThresholdCase1 = ExcessiveRepetitions(XORDVtotalrepetitions, 1, LN, "xor", randomnessThreshold);
+	int32_t* candidatesCase1 = (int32_t*)malloc(sizeof(int32_t)*(PrelCandidatesTam));
 
-  NCandidatesCase1 = length(CandidatesCase1)
+	for (i = 0; i < PrelCandidatesTam; i++){
+		if (totalDVhistogram[PrelCandidates[i]][1] >= nThresholdCase1){
+			candidatesCase1[posCandidatesCase1] = i;
+			posCandidatesCase1++;
+		}
+	}
+	candidatesCase1 = realloc(candidatesCase1, posCandidatesCase1);
+	if (posCandidatesCase1 > 0){
+		printf("%d new value", posCandidatesCase1);
+		if (posCandidatesCase1 != 1)
+			printf("s");
+		printf(" obtained. \n");
+	}
+	else{
+		printf("No new values. Going on.\n");
+		}
+		
+		//Union de 2 vectores
+		//OldXORValues = sort(union(OldXORValues, CandidatesCase1))
 
-  if(NCandidatesCase1>0)
-    print(NCandidatesCase1, " new value")
-    if (NCandidatesCase1!=1) print("s") end
-    print(" obtained. \n")
-  else
-    print("No new values. Going on.\n")
-  end
+// Case 2: XORingDV elements with confirmed XORs to obtain another one.
 
-  OldXORValues = sort(union(OldXORValues, CandidatesCase1))
+		printf("\tCASE 2: XORing DV elements with confirmed values... ");
+		int32_t* DVElements = (int32_t*)malloc(sizeof(int32_t)*(LN));
+		int index = 0;
+		for (i = 0; i < LN; i++){
+			if (totalDVhistogram[i][1] != 0){
+				DVElements[index] = i;
+				index++;
+			}
+		}
+// This allows reobtaining the elements in the DV set.
+		bool* PresencePrelCandidates = calloc(LN+1, sizeof(bool));
 
-  #### Case 2: XORingDV elements with confirmed XORs to obtain another one.
+// This +1 is placed since, sometimes, XORED can be 0.
+		int32_t* SelectedPrelCandidates = (int32_t*)malloc(sizeof(int32_t)*(index));
+		printf(" Searching... ");
+		int kdv,kxor;
+		bool xoredFind = false, kdvFind = false;
+		for (kdv = 0; kdv < index; kdv++){
+			for (kxor = 0; kxor < oldXORValuesLength; kxor++){
+				xoredFind = false, kdvFind = false;
+				int xored = DVElements[kdv] ^ oldXORValues[kxor];
+				PresencePrelCandidates[xored + 1] = true;
 
-  print("\tCASE 2: XORing DV elements with confirmed values... ")
-  DVElements = find(TotalDVhistogram[:,2].!=0)
-### This allows reobtaining the elements in the DV set.
-  PresencePrelCandidates = zeros(Bool, LN+1)
-  ### This +1 is placed since, sometimes, XORED can be 0.
-  SelectedPrelCandidates =[]
-  print(" Searching... ")
-  for kdv in DVElements
-    for kxor in OldXORValues
-      XORED = kdv$kxor
-      PresencePrelCandidates[XORED+1]=true
-      if (XORED in OldXORValues)&&!(kdv in OldXORValues)
-        SelectedPrelCandidates=union(SelectedPrelCandidates, kdv)
-      end
-    end
-  end
+				for (i = 0; i < oldXORValuesLength; i++){
+					if (xored == oldXORValues[i])
+						xoredFind = true;
+				}
+				for (j = 0; j < PrelCandidatesTam; j++){
+					if (kdv == PrelCandidates[j]){
+						kdvFind = true;
+					}
+				}
+				if (xoredFind && !kdvFind){
+					//SelectedPrelCandidates = union(SelectedPrelCandidates, kdv);
+				}
+			}
+		}
+		bool* PresenceCandidate = calloc(LN, sizeof(bool));
+		for (i = 1; i < LN; i++){
+			PresenceCandidate = PresencePrelCandidates[i];
+		}
 
-  PresenceCandidate = PresencePrelCandidates[2:end]
-  # Get rid of possible ZEROS.
-  PresencePrelCandidates = [];
-  #releasing RAM.
-  NthresholdCase2=ExcessiveRepetitions(xorDVtotalrepetitions[:,2], LN, "xor",
-                                RandomnessThreshold)
+// Get rid of possible ZEROS.
+			PresencePrelCandidates = NULL;
+//releasing RAM.
+			int nThresholdCase2 = ExcessiveRepetitions(XORDVtotalrepetitions, 1, LN, "xor", randomnessThreshold);
+			int SelectedPrelCandidatesTam = elemsInVector(SelectedPrelCandidates);
+			int32_t* candidatesCase2 = (int32_t*)malloc(sizeof(int32_t)*(SelectedPrelCandidatesTam));
+			int posCandidatesCase2 = 0;
 
-  CandidatesCase2=SelectedPrelCandidates[find(TotalDVhistogram[SelectedPrelCandidates, 2].>=NthresholdCase2)]
+			for (i = 0; i < SelectedPrelCandidatesTam; i++){
+				if (totalDVhistogram[SelectedPrelCandidates[i]][1] >= nThresholdCase2){
+					candidatesCase2[posCandidatesCase2] = i;
+					posCandidatesCase2++;
+				}
+			}
+			candidatesCase2 = realloc(candidatesCase2, posCandidatesCase2);
+			if (posCandidatesCase2 > 0){
+				printf("%d new value", posCandidatesCase2);
+				if (posCandidatesCase2 != 1)
+					printf("s");
+				printf(" obtained. \n");
+			}
+			else{
+				printf("No new values. Going on.\n");
+			}
 
-  NCandidatesCase2 = length(CandidatesCase2)
+			if (posCandidatesCase2 > 0){
+				printf("%d new value", posCandidatesCase2);
+				if (posCandidatesCase2 != 1) print("s")
+					printf(" obtained. \n");
+			}
+			else{
+				print("No new values. Going on.\n")
+			}
+			int32_t* candidates = (int32_t*)malloc(sizeof(int32_t)*(SelectedPrelCandidatesTam));
+			/*
+			Candidates = union(candidatesCase1, candidatesCase2);
 
-  if(NCandidatesCase2>0)
-    print(NCandidatesCase2, " new value")
-    if (NCandidatesCase2!=1) print("s") end
-    print(" obtained. \n")
-  else
-    print("No new values. Going on.\n")
-  end
+		NewXORDVvalues = vcat(XORextracted_values, round(Int32, TotalDVhistogram[Candidates, 1:2]))
 
-  Candidates = union(CandidatesCase1, CandidatesCase2)
-
-  NewXORDVvalues=vcat(XORextracted_values, round(Int32, TotalDVhistogram[Candidates, 1:2]))
-
-  return Candidates, NewXORDVvalues
-
-end*/
-
+		return Candidates, NewXORDVvalues
+		tipo void
+		*/
+}
 
 #endif
