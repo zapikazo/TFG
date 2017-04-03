@@ -1045,6 +1045,46 @@ int32_t* setdiffTraceRule(int32_t* vector, int vectorLenght, int32_t** matrix, i
     return newVector;
 }
 
+//UNION de max 3 vectores, no ordena
+int32_t* unionVec(int32_t* v1, int v1Elems, int32_t* v2, int v2Elems, int32_t* v3, int v3Elems, int* tam){
+    int32_t* unionVec;
+    int i, j, cont = 0;
+    if (v3 == NULL) { //Solo unión de dos vectores
+        unionVec = calloc((v1Elems+v2Elems), sizeof(int32_t));
+        for (i = 0; i < v1Elems; i++) { // Se copia el primer vector eliminando los elementos repetidos
+            if (i == 0) {
+                unionVec[i] = v1[i];
+                cont++;
+            } else {
+                j = 0;
+                while (v1[i] != unionVec[j] && j < cont) {
+                    j++;
+                }
+                if (j == cont) { // No se ha encontrado elemento igual
+                    unionVec[cont] = v1[i];
+                    cont++;
+                }
+            }
+        }
+        for (i = 0; i < v2Elems; i++) {
+            j = 0;
+            while (j < cont && v2[i] != unionVec[j]) {
+                j++;
+            }
+            if (j == cont) { // No se ha encontrado elemento igual
+                unionVec[cont] = v2[i];
+                cont++;
+            }
+        }
+        realloc(<#void *__ptr#>, <#size_t __size#>)
+    }else { // Unión de 3 vectores
+        unionVec = calloc((v1Elems+v2Elems+v3Elems), sizeof(int32_t));
+
+    }
+    *tam = cont;
+    return unionVec;
+}
+
 /*
 # An alternative implementation of the trace rule.
 
@@ -1567,7 +1607,7 @@ void CriticalXORvaluesFromXORingRule(int32_t** XORextracted_values, int numRow, 
 	bool candidateFind = false, prelCandidateFind = false;
 	printf("\n\tCase 1: XORing known values... ");
 	int32_t* PrelCandidates = (int32_t*)calloc(sizeof(int32_t),numRow);
-	int32_t* oldXORValues = (int32_t*)malloc(sizeof(int32_t),numRow);
+	int32_t* oldXORValues = (int32_t*)calloc(sizeof(int32_t), numRow);
 	copyOfVector(oldXORValues, XORextracted_values, LN, 1);
 	sort(oldXORValues, numRow);
 
@@ -1660,7 +1700,7 @@ void CriticalXORvaluesFromXORingRule(int32_t** XORextracted_values, int numRow, 
 		}
 		bool* PresenceCandidate = calloc(LN, sizeof(bool));
 		for (i = 1; i < LN; i++){
-			PresenceCandidate = PresencePrelCandidates[i];
+			PresenceCandidate[i] = PresencePrelCandidates[i];
 		}
 
 // Get rid of possible ZEROS.
@@ -1690,11 +1730,12 @@ void CriticalXORvaluesFromXORingRule(int32_t** XORextracted_values, int numRow, 
 
 			if (posCandidatesCase2 > 0){
 				printf("%d new value", posCandidatesCase2);
-				if (posCandidatesCase2 != 1) print("s")
-					printf(" obtained. \n");
+                if (posCandidatesCase2 != 1)
+                    printf("s");
+                printf(" obtained. \n");
 			}
 			else{
-				print("No new values. Going on.\n")
+                printf("No new values. Going on.\n");
 			}
 			int32_t* candidates = (int32_t*)malloc(sizeof(int32_t)*(SelectedPrelCandidatesTam));
 			/*

@@ -12,6 +12,30 @@
 //TimeMessages POR DEFINIR
 
 int main(){
+    
+    int32_t* v1 = calloc(4, sizeof(int32_t));
+    int32_t* v2 = calloc(3, sizeof(int32_t));
+    v1[0] = 1;
+    v1[1] = 1;
+    v1[2] = 0;
+    v1[3] = 2;
+    
+    v2[0] = 2;
+    v2[1] = 1;
+    v2[2] = 3;
+
+    int tam = 0;
+    int32_t* newVectorUnion = unionVec(v1, 4, v2, 3, NULL, 0, &tam);
+    
+    for (int o = 0; o < tam; o++) {
+        printf("%d ", newVectorUnion[o]);
+    }
+    
+    
+    
+    
+    
+    
     /* Matrix which save times involved in the different stages to detect bottlenecks */
     float durationSteps[11][2] = {0}; //EL VALOR A COPIAR AQUI F-1 y C-1
     
