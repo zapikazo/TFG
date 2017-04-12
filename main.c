@@ -15,17 +15,22 @@ int main(){
     
     int32_t* v1 = calloc(4, sizeof(int32_t));
     int32_t* v2 = calloc(3, sizeof(int32_t));
+    int32_t* v3 = calloc(3, sizeof(int32_t));
     v1[0] = 1;
-    v1[1] = 1;
+    v1[1] = 0;
     v1[2] = 0;
-    v1[3] = 2;
+    v1[3] = 1;
     
     v2[0] = 2;
     v2[1] = 1;
-    v2[2] = 3;
+    v2[2] = 2;
+    
+    v3[0] = 0;
+    v3[1] = 2;
+    v3[2] = 1;
 
     int tam = 0;
-    int32_t* newVectorUnion = unionVec(v1, 4, v2, 3, NULL, 0, &tam);
+    int32_t* newVectorUnion = unionVec(v1, 4, v2, 3, v3, 3, &tam);
     
     for (int o = 0; o < tam; o++) {
         printf("%d ", newVectorUnion[o]);
@@ -325,7 +330,7 @@ int main(){
     for(a = 0; a < maxPOSValue+1; a++){
         posdvrepetitions[a] = (int32_t *)calloc((nRoundsInPattern+1), sizeof(int32_t));
     }
-	//RELLENAR TODAS LAS FILAS,PRIMERA COLUMNA CON-> DESDE 0 A LONG DE LA PRIMERA COLUMNA DE xordrepetitions(es maxXORValue????)
+
 	for (int i = 0; i < maxXORValue; i++){
 		xordvrepetitions[i][0] = i;
 	}
@@ -407,8 +412,10 @@ int main(){
     
     /* Thus, selfconsistency is completed. Now, it is time to apply the TRACE rule. */
     printf("APPLYING THE TRACE RULE FOR XOR DV SET...\n");
-   // XORextracted_TraceRule=TraceRule(xorDVtotalrepetitions, TotalDVhistogram,XORextracted_values00, LN, RandomnessThreshold)
-    traceRule(xorDVtotalrepetitions, totalDVHistogram, XORextracted_values00, XORextracted_values00Lenght, LN);
+    
+    int traceRuleLong = 0;
+    int32_t* XORextracted_TraceRule = traceRule(xorDVtotalrepetitions, totalDVHistogram, XORextracted_values00, XORextracted_values00Lenght, LN, &traceRuleLong);
+    
     //XORextracted_values01=vcat(XORextracted_values00, TotalDVhistogram[XORextracted_TraceRule, 1:2])
     //POSextracted_values01=POSextracted_values00
     

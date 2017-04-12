@@ -32,6 +32,9 @@
 
 #define NMaxAddressesInEvent 200
 
+/*
+ * Función de apertura de fichero
+ */
 
 /*
 * This function allows getting characters from the file, transforming them into fields
@@ -51,6 +54,7 @@ char* getfield(FILE* file, char* taken){
 	taken = realloc(taken, elems);
 	return taken;
 }
+
 int elemsInVector(int32_t* vector){
 	int elems = 0,i;
 
@@ -412,7 +416,7 @@ int32_t ExcessiveRepetitions(int32_t** RepInHistVector, int RepInHistVectorCol, 
 	//for(int k = k0; k < nmax; k++){   // mejor con un while, porque en cuanto encuentre el valor, se sale
 	int k = k0;
 	while ((nthreshold != k) && (k < nmax)){
-		if (ExpectedRepetitions(k, LN, ndv, operation) < threshold){
+		if (ExpectedRepetitions(k, LN, ndv, operation) < (int)threshold){
 			nthreshold = k;
 		}
 		k++;
@@ -569,12 +573,9 @@ bool** marking_addresses(int32_t** davmatrix, int32_t davmatrixRows, int32_t dav
 	for (i = 0; i < davmatrixRows; i++) {
 		result[i] = calloc(davmatrixCols, sizeof(bool));
 	}
-	/*for value in critical_values[:,1]
-	result = result | (round(Bool, davmatrix.==value*ones(UInt32, size(davmatrix))))
-	end*/
+
 	for (i = 0; i < critical_valuesLenght; i++) {
 		value = critical_values[i][0];
-		//result = result | (round(Bool, davmatrix.==value*ones(UInt32, size(davmatrix))))
 		for (x = 0; x < davmatrixRows; x++) { // Coste muy alto porque hay que recorrer la matriz entera para cada elemento
 			for (y = 0; y < davmatrixCols; y++) {
 				if (davmatrix[x][y] == value) {
@@ -695,7 +696,6 @@ int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatr
      # First step: A matrix initilizing the events. Perhaps too large, but it is better
      # to have spare space.
      */
-    //thesummary = zeros(Int32, length(relatedpairs[:,1]), minimum([length(relatedpairs[:,1]),nmaxaddressesinevent]))
     int32_t** thesummary = calloc(newCount, sizeof(int32_t*));
     int32_t thesummaryRows = newCount, thesummaryCols;
     if (newCount < NMaxAddressesInEvent) { // Mínimo es newCount
@@ -843,6 +843,19 @@ int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatr
     return result;
 }
 
+// Devuelve el número de elementos que son diferentes de el número a buscar en una matriz
+int findNotEqualMatrix(int32_t** matrix, int matrixRows, int matrixCols, int search){
+    int count = 0, i, j;
+    for (i = 0; i < matrixRows; i++) {
+        for (j = 0; j < matrixCols; j++) {
+            if (matrix[i][j] != search) {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
 // Devuelve el número de elementos que son diferentes de el número a buscar, en una fila o una columna de una matriz
 int findNotEqual(int32_t** matrix, int matrixRows, int matrixCols, int selectedRow, int selectedCol, int search){
     int count = 0, i;
@@ -855,6 +868,25 @@ int findNotEqual(int32_t** matrix, int matrixRows, int matrixCols, int selectedR
     } else { // Búsqueda en filas de columna seleccionada
         for (i = 0; i < matrixRows; i++) {
             if (matrix[i][selectedCol] != search) {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
+// Devuelve el número de elementos que son iguales de el número a buscar, en una fila o una columna de una matriz
+int findEqual(int32_t** matrix, int matrixRows, int matrixCols, int selectedRow, int selectedCol, int search){
+    int count = 0, i;
+    if (selectedCol == -1) { // Búsqueda en columnas de fila seleccionada
+        for (i = 0; i < matrixCols; i++) {
+            if (matrix[selectedRow][i] == search) {
+                count++;
+            }
+        }
+    } else { // Búsqueda en filas de columna seleccionada
+        for (i = 0; i < matrixRows; i++) {
+            if (matrix[i][selectedCol] == search) {
                 count++;
             }
         }
@@ -966,7 +998,7 @@ int32_t** cutZerosFromArray(int32_t** matrix, int32_t matrixRows, int32_t matrix
 # A very specific function to reduce the size of the summaries with many
 # involved rounds.
 */
-int32_t*** cutZerosFromMCUsummary(int32_t*** MCUSummary, int rows, int cols, int dims){
+int32_t*** cutZerosFromMCUsummary(int32_t*** MCUSummary, int* rows, int* cols, int dims){
 	int i, j, z, maxRows = 0, maxCols = 0;
 	int newRows = 0;
 	int newCols = 0;
@@ -1013,6 +1045,8 @@ int32_t*** cutZerosFromMCUsummary(int32_t*** MCUSummary, int rows, int cols, int
 			}
 		}
 	}
+    rows = maxRows;
+    cols = maxCols;
 	free(dimensionsMCU);
 	return simpleMCUSummary;
 }
@@ -1076,10 +1110,45 @@ int32_t* unionVec(int32_t* v1, int v1Elems, int32_t* v2, int v2Elems, int32_t* v
                 cont++;
             }
         }
-        realloc(<#void *__ptr#>, <#size_t __size#>)
+        unionVec = realloc(unionVec, cont*sizeof(int32_t));
     }else { // Unión de 3 vectores
         unionVec = calloc((v1Elems+v2Elems+v3Elems), sizeof(int32_t));
-
+        for (i = 0; i < v1Elems; i++) { // Se copia el primer vector eliminando los elementos repetidos
+            if (i == 0) {
+                unionVec[i] = v1[i];
+                cont++;
+            } else {
+                j = 0;
+                while (v1[i] != unionVec[j] && j < cont) {
+                    j++;
+                }
+                if (j == cont) { // No se ha encontrado elemento igual
+                    unionVec[cont] = v1[i];
+                    cont++;
+                }
+            }
+        }
+        for (i = 0; i < v2Elems; i++) {
+            j = 0;
+            while (j < cont && v2[i] != unionVec[j]) {
+                j++;
+            }
+            if (j == cont) { // No se ha encontrado elemento igual
+                unionVec[cont] = v2[i];
+                cont++;
+            }
+        }
+        for (i = 0; i < v3Elems; i++) {
+            j = 0;
+            while (j < cont && v3[i] != unionVec[j]) {
+                j++;
+            }
+            if (j == cont) { // No se ha encontrado elemento igual
+                unionVec[cont] = v3[i];
+                cont++;
+            }
+        }
+        unionVec = realloc(unionVec, cont*sizeof(int32_t));
     }
     *tam = cont;
     return unionVec;
@@ -1091,14 +1160,14 @@ int32_t* unionVec(int32_t* v1, int v1Elems, int32_t* v2, int v2Elems, int32_t* v
 ### Anomal XOR values is used to avoid the repetition of elements. It is just
 ### XORExtractedValues[1,:]
 */
-int32_t* traceRule(int32_t** xorDVtotalrepetitions, uint32_t** totalDVhistogram, int32_t** anomalXORvalues, int anomalXORvaluesRows, long int LN){
+int32_t* traceRule(int32_t** xorDVtotalrepetitions, uint32_t** totalDVhistogram, int32_t** anomalXORvalues, int anomalXORvaluesRows, long int LN, int* traceRuleLong){
 	// Anomal XOR values is used to avoid the repetition of elements. It is just
     int i, j, z, index;
     int32_t nBits = (log(LN + 1) / log(2)); // ejemplo nBits = 24
 
 	// Elements with 1-trace
 	printf("\n\tInvestigating Trace = 1: ");
-	//CandidatesT1 = 2.^collect(0:Nbits-1) //Crea un array de 24 elementos 0 -> 24-1 con valores potencia de 2
+	//Crea un array de 24 elementos 0 -> 24-1 con valores potencia de 2
 	int32_t* candidatesT1 = calloc(nBits, sizeof(int32_t));
 	for (i = 0; i < nBits; i++){
 		candidatesT1[i] = pow(2, i);
@@ -1162,12 +1231,17 @@ int32_t* traceRule(int32_t** xorDVtotalrepetitions, uint32_t** totalDVhistogram,
 
     printf("\n\tEnd of search.\n");
     
-    //return union(WinnersT1, WinnersT2, WinnersT3) HACER FUNCION DE UNION DE 3 vectores en 1
-    return winnersT1;
+    int tam = 0;
+    int32_t* vectorUnion = unionVec(winnersT1, nWinnersT1, winnersT2, nWinnersT2, winnersT3, nWinnersT3, &tam);
+    *traceRuleLong = tam;
+    free(winnersT1);
+    free(winnersT2);
+    free(winnersT3);
+    return vectorUnion;
 }
 
 
-int32_t*** propose_MCUs(char* op, uint32_t*** XORDVmatrix3D, int numRows, int numCols, int dim, uint32_t*** POSDVmatrix3D, int32_t** anomalXOR, int32_t anomalXORlength, int32_t** anomalPOS, int32_t anomalPOSlength, int* nAddressesInRound){
+int32_t*** propose_MCUs(char* op, uint32_t*** XORDVmatrix3D, int numRows, int numCols, int dim, uint32_t*** POSDVmatrix3D, int32_t** anomalXOR, int32_t anomalXORlength, int32_t** anomalPOS, int32_t anomalPOSlength, int* nAddressesInRound, int* rowss, int* colss){
 
 	int i, j, z, ktest;
 	int rows = ceil(numRows / 2 - 1);
@@ -1208,7 +1282,9 @@ int32_t*** propose_MCUs(char* op, uint32_t*** XORDVmatrix3D, int numRows, int nu
 			// Thus, some memory is saved.But we must be careful with the different dimensions
 			// of every partial XY matrix in XYZ arrays.A simple but unelegant way is :
 
-			int32_t*** finalXOR_summary = cutZerosFromMCUsummary(XOR_summary, nTotalEvents, largestMCUs, dim);
+			int32_t*** finalXOR_summary = cutZerosFromMCUsummary(XOR_summary, &nTotalEvents, &largestMCUs, dim);
+            *rowss = nTotalEvents;
+            *colss = largestMCUs;
             free(XOR_summary);
             return finalXOR_summary;
 		}
@@ -1252,7 +1328,9 @@ int32_t*** propose_MCUs(char* op, uint32_t*** XORDVmatrix3D, int numRows, int nu
 			// However, as there are too many zeros, it is interesting to reshape the matrix.
 			// Thus, some memory is saved.But we must be careful with the different dimensions
 			// of every partial XY matrix in XYZ arrays.A simple but unelegant way is :
-			int32_t*** finalPOS_summary = cutZerosFromMCUsummary(POS_summary, nTotalEvents, largestMCUs, dim);
+			int32_t*** finalPOS_summary = cutZerosFromMCUsummary(POS_summary, &nTotalEvents, &largestMCUs, dim);
+            *rowss = nTotalEvents;
+            *colss = largestMCUs;
             free(POS_summary);
             return finalPOS_summary;
 		}
@@ -1317,7 +1395,9 @@ int32_t*** propose_MCUs(char* op, uint32_t*** XORDVmatrix3D, int numRows, int nu
 			// Thus, some memory is saved.But we must be careful with the different dimensions
 			// of every partial XY matrix in XYZ arrays.A simple but unelegant way is :
 
-            int32_t*** finalCMB_summary = cutZerosFromMCUsummary(CMB_summary, nTotalEvents, largestMCUs, dim);
+            int32_t*** finalCMB_summary = cutZerosFromMCUsummary(CMB_summary, &nTotalEvents, &largestMCUs, dim);
+            *rowss = nTotalEvents;
+            *colss = largestMCUs;
             free(CMB_summary);
             return finalCMB_summary;
             
@@ -1328,7 +1408,7 @@ int32_t*** propose_MCUs(char* op, uint32_t*** XORDVmatrix3D, int numRows, int nu
 }
 
 int32_t** condensate_summary(int32_t*** summary3D, int summary3DRows, int summary3DCols, int summary3DDims, int32_t** content, int contentRows){
-	int i, k = 0;
+	int i, j, k = 0, sum = 0;
 	int32_t** condensateSummary = calloc(summary3DCols, sizeof(int32_t*));
 	for (i = 0; i < summary3DDims + 1; i++) {
 		condensateSummary[i] = calloc(summary3DDims + 1, sizeof(int32_t));
@@ -1337,23 +1417,35 @@ int32_t** condensate_summary(int32_t*** summary3D, int summary3DRows, int summar
 	}
 	for (i = 1; i < summary3DDims + 1; i++) {
 		// elems tendrá la longitud del nuevo vector
-		int elems = contentRows;
+		int elems = contentRows, nEvents = 0;
 		uint32_t* columnvector = (uint32_t*)malloc(sizeof(uint32_t)*(elems));
 		for (k = 0; k < elems; ++k) {
 			columnvector[k] = content[k][3*i-3];
 		}
 		uint32_t* addresses = extract_addressvector(columnvector, &elems);
+        free(columnvector);
+        free(addresses);
 		//Ahora para cada test: Summary = Summary3D[:,:,ktest]
-		// for kmcu = LargestMCU:-1:2
-		for (k = summary3DCols; k > 1; k--) {
-			//NEvents = length(find(Summary[:,kmcu]))
-			//CondensateSummary[kmcu, ktest+1] = NEvents - sum(CondensateSummary[kmcu+1:end, ktest+1])
+        int32_t** summary2D = calloc(summary3DRows, sizeof(int32_t*));
+        for (k = 0; k < summary3DRows; k++) {
+            summary2D[k] = calloc(summary3DCols, sizeof(int32_t*));
+        }
+        copyOfMatrix3to2(summary3D, summary2D, summary3DRows, summary3DCols, (i-1));
+		for (k = summary3DCols; k > 0; k--) {
+            nEvents = findEqual(summary2D, summary3DRows, summary3DCols, -1, k, 0);
+            for (j = k; j < summary3DCols; j++) {
+                sum += condensateSummary[j][i];
+            }
+            condensateSummary[k][i] = nEvents - sum;
+            sum = 0;
 		}
 		// Apparently, the following solution is a bit faster.
-		//CondensateSummary[1, ktest+1] = NAddressesInRound - length(find(Summary))
+        condensateSummary[0][i] = elems - findNotEqualMatrix(summary2D, summary3DRows, summary3DCols, 0);
+        free(summary2D);
 	}
 	return condensateSummary;
 }
+
 /*
 # This function investigates occurrences of several bitflips in an only one
 # address. It returns a matrix of variable number of rows but with four collumns.
@@ -1461,10 +1553,9 @@ int32_t** extractAnomalDVSelfConsistency(char* op, int32_t** opDVtotalrepetition
                     oPExtracted_values = extract_some_critical_values(testOPa, *testOPaLenght, &newLenght, n_anomalous_values, n_anomalous_repetitions);
 				}
 			}
-		}
+        }
 
-	}
-	else if (strcmp(op, "pos") == 0){
+	} else if (strcmp(op, "pos") == 0){
 		printf("\n\t\tPOS operation (It can take a long if there are too many addresses)...\n");
 		opNthreshold = ExcessiveRepetitions(opDVtotalrepetitions, 1, LN, "pos", randomnessThreshold);
         testOPa = find_anomalies_histogram(totalDVhistogram, histogramLenght, 2, opDVtotalrepetitions, opDVtotalrepetitionsRows, 1, opNthreshold, testOPaLenght, n_anomalous_values);
@@ -1598,6 +1689,96 @@ int32_t** CriticalXORValuesFromClusters(int32_t*** PrelMCUSummary,int numRows, i
 
 	return &purgedCandidatesXOR;
 }
+
+void extractAnomalDVfromClusters(int32_t** content, int contentRows, int32_t** XORextracted_values, int XOREVRows, int XOREVCols, int32_t** POSextracted_values, int POSEVRows, int POSEVCols, int32_t** xorDVtotalrepetitions, int32_t** posDVtotalrepetitions, uint32_t** totalDVhistogram, int32_t** xordvmatrixbackup, int xordvmatrixbackupRows, int xordvmatrixbackupCols, int xordvmatrixbackupDims, int32_t** posdvmatrixbackup, int nAddressesInRound, int32_t* discoveredXORDVs, int32_t* discoveredPOSDVs, int32_t** tempXORDVvalues, int32_t** tempPOSDVvalues){
+    // Cuatro últimos elementos de la función son las devoluciones, matrices por referecia?
+    bool foundNewDVValues = true;
+    int step = 0, i, j, addressesInRound = nAddressesInRound;
+    
+    //Copia obligada de matrices para manipulación
+    tempXORDVvalues = calloc(XOREVRows, sizeof(int32_t*));
+    for (i = 0; i < XOREVRows; i++) {
+        tempXORDVvalues = calloc(XOREVCols, sizeof(int32_t));
+    }
+    
+    tempPOSDVvalues = calloc(POSEVRows, sizeof(int32_t*));
+    for (i = 0; i < XOREVRows; i++) {
+        tempPOSDVvalues = calloc(POSEVCols, sizeof(int32_t));
+    }
+
+    //Se podría hacer función de copia de matriz simple a otra matriz simple
+    for (i = 0; i < XOREVRows; i++) {
+        for (j = 0; j < XOREVCols; j++) {
+            tempXORDVvalues[i][j] = XORextracted_values[i][j];
+        }
+    }
+    for (i = 0; i < POSEVRows; i++) {
+        for (j = 0; j < POSEVCols; j++) {
+            tempPOSDVvalues[i][j] = POSextracted_values[i][j];
+        }
+    }
+    
+    while (foundNewDVValues) {
+        step++;
+        printf("/nStep: %d", step);
+        printf("Creating preliminary organization...");
+        int32_t*** tempCMB_summary;
+        int cmbRows, cmbCols;
+        int32_t*** tempXOR_summary;
+        int xorRows, xorCols;
+        int32_t*** tempPOS_summary;
+        int posRows, posCols;
+        tempCMB_summary = propose_MCUs("cmb", xordvmatrixbackup, xordvmatrixbackupRows, xordvmatrixbackupCols, xordvmatrixbackupDims, posdvmatrixbackup, tempXORDVvalues, XOREVRows, tempPOSDVvalues, POSEVRows, &addressesInRound, &cmbRows, &cmbCols);
+        tempXOR_summary = propose_MCUs("xor", xordvmatrixbackup, xordvmatrixbackupRows, xordvmatrixbackupCols, xordvmatrixbackupDims, posdvmatrixbackup, tempXORDVvalues, XOREVRows, tempPOSDVvalues, POSEVRows, &addressesInRound, &xorRows, &xorCols);
+        tempPOS_summary = propose_MCUs("pos", xordvmatrixbackup, xordvmatrixbackupRows, xordvmatrixbackupCols, xordvmatrixbackupDims, posdvmatrixbackup, tempXORDVvalues, XOREVRows, tempPOSDVvalues, POSEVRows, &addressesInRound, &posRows, &posCols);
+
+        printf(" Ended. Searching new Elements...");
+        printf(" XOR...");
+        //CriticalXORValuesFromClusters(tempCMB_summary, cmbRows, cmbCols, <#int nRounds#>, content, <#int32_t **XORextracted_values#>, <#int32_t **xorDVtotalrepetitions#>, <#int32_t **DVHistogram#>, <#long LN#>)
+    }
+}
+
+/*
+
+discoveredXORDVs =[];
+discoveredPOSDVs =[];
+
+
+ProposedXORDV=CriticalXORValuesFromClusters(tempCMB_summary, AddressMatrix,
+                                            tempXORDVvalues, xorDVtotalrepetitions,
+                                            TotalDVhistogram, LN, RandomnessThreshold)
+NProposedXORDV = length(ProposedXORDV)
+print(" POS. SUB...")
+
+ProposedPOSDV = [];
+NProposedPOSDV = length(ProposedPOSDV)
+print(" Ended. ")
+
+if(NProposedXORDV!=0)
+print("\n\t\tXOR operation: ", NProposedXORDV, " new DV element")
+if(NProposedXORDV!=1) print("s") end
+print(" found.")
+discoveredXORDVs=union(ProposedXORDV, discoveredXORDVs)
+tempXORDVvalues=vcat(tempXORDVvalues, round(Int32, TotalDVhistogram[ProposedXORDV, 1:2]))
+
+end
+if(NProposedPOSDV!=0)
+print("\n\t\tPOS operation: ", NProposedPOSDV, " new DV element")
+if(NProposedPOSDV!=1) print("s") end
+print(" found.")
+discoveredPOSDVs=union(ProposedPOSDV, discoveredPOSDVs)
+tempPOSDVvalues=vcat(tempPOSDVvalues, round(Int32, TotalDVhistogram[ProposedPOSDV, [1,3]]))
+end
+if(NProposedXORDV==0)&&(NProposedPOSDV==0)
+FoundNewDVvalues = false
+print("\n\n\t\tNO MORE ELEMENTS DISCOVERED. Stopping analysis.")
+end
+end
+
+return discoveredXORDVs, discoveredPOSDVs,tempXORDVvalues, tempPOSDVvalues
+
+end
+*/
 
 
 //Ojo a DVhistogram, se lo pasa y luego usa totalDVhistogram.REVISAR!
