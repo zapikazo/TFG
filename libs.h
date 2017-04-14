@@ -55,15 +55,6 @@ char* getfield(FILE* file, char* taken){
 	return taken;
 }
 
-int elemsInVector(int32_t* vector){
-	int elems = 0,i;
-
-	while(vector[i] != '\0' || vector[i] > 0){
-		elems++;
-	}
-	return elems;
-}
-
 void sort(int32_t* A, int n)
 {
 	int min, i, j, aux;
@@ -1008,16 +999,16 @@ int32_t*** cutZerosFromMCUsummary(int32_t*** MCUSummary, int* rows, int* cols, i
 	}
 	for (i = 0; i < dims; i++) { // Cada matriz de cada dimensión separar para cutzeros?
         // MCU matriz para cada test
-        int32_t** tmpMatrix = calloc(rows, sizeof(int32_t*));
-        for (j = 0; j < rows; j++) {
-            tmpMatrix = calloc(cols, sizeof(int32_t));
+        int32_t** tmpMatrix = calloc(*rows, sizeof(int32_t*));
+        for (j = 0; j < *rows; j++) {
+            tmpMatrix = calloc(*cols, sizeof(int32_t));
         }
-        for (j = 0; j < rows; j++) {
-            for (z = 0; z < cols; z++) {
+        for (j = 0; j < *rows; j++) {
+            for (z = 0; z < *cols; z++) {
                 tmpMatrix[j][z] = MCUSummary[j][z][i];
             }
         }
-		cutZerosFromArray(tmpMatrix, rows, cols, &newRows, &newCols);
+		cutZerosFromArray(tmpMatrix, *rows, *cols, &newRows, &newCols);
 		dimensionsMCU[i][0] = newRows;
 		dimensionsMCU[i][1] = newCols;
 		// Es necesario saber los mayores valores, para adecuar la matriz total
@@ -1045,8 +1036,8 @@ int32_t*** cutZerosFromMCUsummary(int32_t*** MCUSummary, int* rows, int* cols, i
 			}
 		}
 	}
-    rows = maxRows;
-    cols = maxCols;
+    *rows = maxRows;
+    *cols = maxCols;
 	free(dimensionsMCU);
 	return simpleMCUSummary;
 }
@@ -1762,7 +1753,11 @@ void extractAnomalDVfromClusters(int32_t** content, int contentRows, int32_t** X
         printf(" Ended. Searching new Elements...");
         printf(" XOR...");
         int nProposedXORDV;
+        /*ProposedXORDV=CriticalXORValuesFromClusters(tempCMB_summary, AddressMatrix,
+                                                    tempXORDVvalues, xorDVtotalrepetitions,
+                                                    TotalDVhistogram, LN, RandomnessThreshold)*/
         int32_t* proposedXORDV = criticalXORValuesFromClusters(tempCMB_summary, cmbRows, cmbCols, cmbDims, content, tempXORDVvalues, xorDVtotalrepetitions, totalDVhistogram, LN, &nProposedXORDV);
+        int32_t* proposedPOSDV = NULL;
         int nProposedPOSDV = 0;
         printf(" POS. SUB...");
         
@@ -1776,46 +1771,29 @@ void extractAnomalDVfromClusters(int32_t** content, int contentRows, int32_t** X
             printf("found.");
             int nDiscoveredXORDVs = 0;
             discoveredXORDVs = unionVec(proposedXORDV, nProposedXORDV, discoveredXORDVs, 0, NULL, 0, &nDiscoveredXORDVs);
+            //tempXORDVvalues = vcat(tempXORDVvalues, round(Int32, TotalDVhistogram[ProposedXORDV, 1:2]))
+
+        }
+        if (nProposedPOSDV != 0) {
+            printf("\n\t\tPOS operation:  %d new DV element", nProposedPOSDV);
+            if (nProposedPOSDV != 1) {
+                printf("s");
+            }
+            printf("found.");
+            int nDiscoveredPOSDVs = 0;
+            discoveredPOSDVs = unionVec(proposedPOSDV, nProposedPOSDV, discoveredPOSDVs, 0, NULL, 0, &nDiscoveredPOSDVs);
+            //tempPOSDVvalues=vcat(tempPOSDVvalues, round(Int32, TotalDVhistogram[ProposedPOSDV, [1,3]]))
             
+        }
+        if ((nProposedXORDV == 0) && (nProposedPOSDV == 0)) {
+            foundNewDVValues = false;
+            printf("\n\n\t\tNO MORE ELEMENTS DISCOVERED. Stopping analysis.");
         }
 
     }
 }
 
-/*
 
-discoveredXORDVs =[];
-discoveredPOSDVs =[];
-
-
-ProposedXORDV=CriticalXORValuesFromClusters(tempCMB_summary, AddressMatrix,
-                                            tempXORDVvalues, xorDVtotalrepetitions,
-                                            TotalDVhistogram, LN, RandomnessThreshold)
-
-ProposedPOSDV = [];
-
-
-discoveredXORDVs=union(ProposedXORDV, discoveredXORDVs)
-tempXORDVvalues=vcat(tempXORDVvalues, round(Int32, TotalDVhistogram[ProposedXORDV, 1:2]))
-
-end
-if(NProposedPOSDV!=0)
-print("\n\t\tPOS operation: ", NProposedPOSDV, " new DV element")
-if(NProposedPOSDV!=1) print("s") end
-print(" found.")
-discoveredPOSDVs=union(ProposedPOSDV, discoveredPOSDVs)
-tempPOSDVvalues=vcat(tempPOSDVvalues, round(Int32, TotalDVhistogram[ProposedPOSDV, [1,3]]))
-end
-if(NProposedXORDV==0)&&(NProposedPOSDV==0)
-FoundNewDVvalues = false
-print("\n\n\t\tNO MORE ELEMENTS DISCOVERED. Stopping analysis.")
-end
-end
-
-return discoveredXORDVs, discoveredPOSDVs,tempXORDVvalues, tempPOSDVvalues
-
-end
-*/
 
 
 //Ojo a DVhistogram, se lo pasa y luego usa totalDVhistogram.REVISAR!
