@@ -1509,7 +1509,7 @@ int32_t** extractAnomalDVSelfConsistency(char* op, int32_t** opDVtotalrepetition
 	int* n_anomalous_values = malloc(sizeof(int));
     int* testOPaLenght = malloc(sizeof(int));
 	int32_t** testOPa;
-	int32_t** oPExtracted_values;
+	int32_t** oPExtracted_values = NULL;
 	bool oPSelfConsistence = true;
 	int n_anomalous_repetitions = 1, i, j, test, newLenght, propMCUSrows = 0, propMCUScols = 0;
 	printf("\n\tDetermining the threshold for repetition excess:\n");
@@ -1550,9 +1550,8 @@ int32_t** extractAnomalDVSelfConsistency(char* op, int32_t** opDVtotalrepetition
 				bool** opMarkedPairs = marking_addresses(opdvmatrix, opdvmatrixbackupRows, opdvmatrixbackupRows, oPExtracted_values, nOPextrValues);
 				int32_t** opProposedMcus = agrupate_mcus(opMarkedPairs, opdvmatrixbackupRows, opdvmatrixbackupRows, &propMCUSrows, &propMCUScols);
                 int largestMCUSize = propMCUScols;
-				int continuation;
                 
-				// Continuation=(length(find(XORPartRepsSelfCons[:,ktest].<=LargestMCUSize))==0)
+                int continuation = findEqual(opPartRepsSelfCons, nOPextrValues, nRoundsInPattern, 0, test, largestMCUSize);
 				if (continuation == 0) {
 					oPSelfConsistence = false;
 				}
@@ -1609,8 +1608,7 @@ int32_t** extractAnomalDVSelfConsistency(char* op, int32_t** opDVtotalrepetition
 				bool** opMarkedPairs = marking_addresses(opdvmatrix, opdvmatrixbackupRows, opdvmatrixbackupRows, oPExtracted_values, nOPextrValues);
                 int32_t** opProposedMcus = agrupate_mcus(opMarkedPairs, opdvmatrixbackupRows, opdvmatrixbackupRows, &propMCUSrows, &propMCUScols);
                 int largestMCUSize = propMCUScols;
-				int continuation;
-				// Continuation=(length(find(XORPartRepsSelfCons[:,ktest].<=LargestMCUSize))==0)
+                int continuation = findEqual(opPartRepsSelfCons, nOPextrValues, nRoundsInPattern, 0, test, largestMCUSize);
 				if (continuation == 0) {
 					oPSelfConsistence = false;
 				}
@@ -1772,6 +1770,13 @@ void extractAnomalDVfromClusters(int32_t** content, int contentRows, int32_t** X
             int nDiscoveredXORDVs = 0;
             discoveredXORDVs = unionVec(proposedXORDV, nProposedXORDV, discoveredXORDVs, 0, NULL, 0, &nDiscoveredXORDVs);
             //tempXORDVvalues = vcat(tempXORDVvalues, round(Int32, TotalDVhistogram[ProposedXORDV, 1:2]))
+            tempXORDVvalues = realloc(tempXORDVvalues, (XOREVRows*XOREVCols)+(nProposedXORDV*2));
+            j = XOREVRows;
+            for (i = 0; i < nProposedXORDV; i++) {
+                tempXORDVvalues[j][0] = totalDVhistogram[proposedXORDV[i]][0];
+                tempXORDVvalues[j][1] = totalDVhistogram[proposedXORDV[i]][1];
+                j++;
+            }
 
         }
         if (nProposedPOSDV != 0) {
@@ -1783,6 +1788,13 @@ void extractAnomalDVfromClusters(int32_t** content, int contentRows, int32_t** X
             int nDiscoveredPOSDVs = 0;
             discoveredPOSDVs = unionVec(proposedPOSDV, nProposedPOSDV, discoveredPOSDVs, 0, NULL, 0, &nDiscoveredPOSDVs);
             //tempPOSDVvalues=vcat(tempPOSDVvalues, round(Int32, TotalDVhistogram[ProposedPOSDV, [1,3]]))
+            tempPOSDVvalues = realloc(tempPOSDVvalues, (POSEVRows*POSEVCols)+(nProposedPOSDV*2));
+            j = POSEVRows;
+            for (i = 0; i < nProposedPOSDV; i++) {
+                tempPOSDVvalues[j][0] = totalDVhistogram[proposedPOSDV[i]][0];
+                tempPOSDVvalues[j][1] = totalDVhistogram[proposedPOSDV[i]][1];
+                j++;
+            }
             
         }
         if ((nProposedXORDV == 0) && (nProposedPOSDV == 0)) {
