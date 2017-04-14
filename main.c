@@ -423,7 +423,7 @@ int main(){
     
     /** USING DV VALUES INTRODUCED BY USER. **/
     
-    printf("\nRECYCLING PREVIOUSLY KNOWN DV ELEMENTS...");
+ /*   printf("\nRECYCLING PREVIOUSLY KNOWN DV ELEMENTS...");
     //UnknowXORValues = setdiff(PreviouslyKnownXOR, XORextracted_values01[:,1])
     //XORextracted_values02=vcat(XORextracted_values01, TotalDVhistogram[UnknowXORValues, 1:2])
     //UnknowPOSValues = setdiff(PreviouslyKnownPOS, POSextracted_values01[:,1])
@@ -452,7 +452,7 @@ int main(){
     } else {
         printf("Nothing to include.\n");
     }
-    printf(" ");
+    printf(" ");*/
 
 // Time for Exploring MCUs
     printf("\nSEARCHING INSIDE MCUs (FIRST PASS)...");

@@ -1175,13 +1175,21 @@ int32_t* traceRule(int32_t** xorDVtotalrepetitions, uint32_t** totalDVhistogram,
     
 	int32_t nT1Threshold = ExcessiveRepetitions(xorDVtotalrepetitions, 1, LN, "xor", randomnessThreshold);
 
-    // (vector) SelectedT1 = CandidatesT1[find(TotalDVhistogram[CandidatesT1, 2].>=NT1Threshold)]
-    int32_t* selectedT1;
+    int32_t* selectedT1 = calloc(nBits, sizeof(int32_t)); //Luego se redimensiona al número de elemntos real
     int sT1Lenght = 0;
+    for (i = 0; i < nBits; i++) {
+        if (totalDVhistogram[candidatesT1[i]][1] >= nT1Threshold) {
+            selectedT1[sT1Lenght] = candidatesT1[i];
+            sT1Lenght++;
+        }
+    }
+    selectedT1 = realloc(selectedT1, sT1Lenght);
+    free(candidatesT1);
 
     // Devolver array con los elementos que estén en selectedt1, pero que no estén en anomalxorvalues
     int nWinnersT1 = 0;
     int32_t* winnersT1 = setdiffTraceRule(selectedT1, sT1Lenght, anomalXORvalues, anomalXORvaluesRows, 2, &nWinnersT1);
+    free(selectedT1);
     printf("%d candidate", nWinnersT1);
     if (nWinnersT1 != 1)
         printf("s");
@@ -1198,11 +1206,20 @@ int32_t* traceRule(int32_t** xorDVtotalrepetitions, uint32_t** totalDVhistogram,
         }
     }
     int32_t nT2Threshold = ExcessiveRepetitions(xorDVtotalrepetitions, 1, LN, "xor", randomnessThreshold);
-    //SelectedT2 = CandidatesT2[find(TotalDVhistogram[CandidatesT2, 2].>=NT2Threshold)]
-    int32_t* selectedT2;
+    int32_t* selectedT2 = calloc(nBits, sizeof(int32_t)); //Luego se redimensiona al número de elemntos real
     int sT2Lenght = 0;
+    for (i = 0; i < nBits; i++) {
+        if (totalDVhistogram[candidatesT2[i]][1] >= nT2Threshold) {
+            selectedT2[sT2Lenght] = candidatesT2[i];
+            sT2Lenght++;
+        }
+    }
+    selectedT2 = realloc(selectedT2, sT2Lenght);
+    free(candidatesT2);
+    
     int nWinnersT2 = 0;
     int32_t* winnersT2 = setdiffTraceRule(selectedT2, sT2Lenght, anomalXORvalues, anomalXORvaluesRows, 2, &nWinnersT2);
+    free(selectedT2);
     printf("%d candidate", nWinnersT2);
     if (nWinnersT2 != 1)
         printf("s");
@@ -1219,12 +1236,21 @@ int32_t* traceRule(int32_t** xorDVtotalrepetitions, uint32_t** totalDVhistogram,
             }
         }
     }
-    //SelectedT3 = CandidatesT3[find(TotalDVhistogram[CandidatesT3, 2].>=NT2Threshold)]
-    int32_t* selectedT3;
+    int32_t* selectedT3 = calloc(nBits, sizeof(int32_t)); //Luego se redimensiona al número de elemntos real
     int sT3Lenght = 0;
+    for (i = 0; i < nBits; i++) {
+        if (totalDVhistogram[candidatesT3[i]][1] >= nT2Threshold) {
+            selectedT3[sT3Lenght] = candidatesT3[i];
+            sT3Lenght++;
+        }
+    }
+    selectedT3 = realloc(selectedT3, sT3Lenght);
+    free(candidatesT3);
+    
     int nWinnersT3 = 0;
     int32_t* winnersT3 = setdiffTraceRule(selectedT3, sT3Lenght, anomalXORvalues, anomalXORvaluesRows, 2, &nWinnersT3);
     printf("%d candidate", nWinnersT3);
+    free(selectedT3);
     if (nWinnersT3 != 1)
         printf("s");
     printf(" found.");
@@ -1241,7 +1267,7 @@ int32_t* traceRule(int32_t** xorDVtotalrepetitions, uint32_t** totalDVhistogram,
 }
 
 
-int32_t*** propose_MCUs(char* op, uint32_t*** XORDVmatrix3D, int numRows, int numCols, int dim, uint32_t*** POSDVmatrix3D, int32_t** anomalXOR, int32_t anomalXORlength, int32_t** anomalPOS, int32_t anomalPOSlength, int* nAddressesInRound, int* rowss, int* colss){
+int32_t*** propose_MCUs(char* op, uint32_t*** XORDVmatrix3D, int numRows, int numCols, int dim, uint32_t*** POSDVmatrix3D, int32_t** anomalXOR, int32_t anomalXORlength, int32_t** anomalPOS, int32_t anomalPOSlength, int* nAddressesInRound, int* rowss, int* colss, int* dimss){
 
 	int i, j, z, ktest;
 	int rows = ceil(numRows / 2 - 1);
@@ -1642,7 +1668,7 @@ int32_t*** index2address(int32_t*** indexMatrix, int indexMatrixRows, int indexM
 	return result;
 }
 
-int32_t** CriticalXORValuesFromClusters(int32_t*** PrelMCUSummary,int numRows, int numCols, int nRounds, int32_t** AddressMatrix, int32_t** XORextracted_values, int32_t**xorDVtotalrepetitions, int32_t** DVHistogram, long int LN){
+int32_t* CriticalXORValuesFromClusters(int32_t*** PrelMCUSummary,int numRows, int numCols, int nRounds, int32_t** AddressMatrix, int32_t** XORextracted_values, int32_t**xorDVtotalrepetitions, int32_t** DVHistogram, long int LN, int* rows, int* cols){
 
 	int32_t* NewCandidates;
 	int ktest,kRow,kAddress1,kAddress2,i,j,z=0;
@@ -1690,7 +1716,8 @@ int32_t** CriticalXORValuesFromClusters(int32_t*** PrelMCUSummary,int numRows, i
 	return &purgedCandidatesXOR;
 }
 
-void extractAnomalDVfromClusters(int32_t** content, int contentRows, int32_t** XORextracted_values, int XOREVRows, int XOREVCols, int32_t** POSextracted_values, int POSEVRows, int POSEVCols, int32_t** xorDVtotalrepetitions, int32_t** posDVtotalrepetitions, uint32_t** totalDVhistogram, int32_t** xordvmatrixbackup, int xordvmatrixbackupRows, int xordvmatrixbackupCols, int xordvmatrixbackupDims, int32_t** posdvmatrixbackup, int nAddressesInRound, int32_t* discoveredXORDVs, int32_t* discoveredPOSDVs, int32_t** tempXORDVvalues, int32_t** tempPOSDVvalues){
+void extractAnomalDVfromClusters(int32_t** content, int contentRows, int32_t** XORextracted_values, int XOREVRows, int XOREVCols, int32_t** POSextracted_values, int POSEVRows, int POSEVCols, int32_t** xorDVtotalrepetitions, int32_t** posDVtotalrepetitions, uint32_t** totalDVhistogram, int32_t** xordvmatrixbackup, int xordvmatrixbackupRows, int xordvmatrixbackupCols, int xordvmatrixbackupDims, int32_t** posdvmatrixbackup, int nAddressesInRound, long int LN, int32_t* discoveredXORDVs, int32_t* discoveredPOSDVs, int32_t** tempXORDVvalues, int32_t** tempPOSDVvalues){
+
     // Cuatro últimos elementos de la función son las devoluciones, matrices por referecia?
     bool foundNewDVValues = true;
     int step = 0, i, j, addressesInRound = nAddressesInRound;
@@ -1723,18 +1750,35 @@ void extractAnomalDVfromClusters(int32_t** content, int contentRows, int32_t** X
         printf("/nStep: %d", step);
         printf("Creating preliminary organization...");
         int32_t*** tempCMB_summary;
-        int cmbRows, cmbCols;
+        int cmbRows, cmbCols, cmbDims;
         int32_t*** tempXOR_summary;
-        int xorRows, xorCols;
+        int xorRows, xorCols, xorDims;
         int32_t*** tempPOS_summary;
-        int posRows, posCols;
-        tempCMB_summary = propose_MCUs("cmb", xordvmatrixbackup, xordvmatrixbackupRows, xordvmatrixbackupCols, xordvmatrixbackupDims, posdvmatrixbackup, tempXORDVvalues, XOREVRows, tempPOSDVvalues, POSEVRows, &addressesInRound, &cmbRows, &cmbCols);
-        tempXOR_summary = propose_MCUs("xor", xordvmatrixbackup, xordvmatrixbackupRows, xordvmatrixbackupCols, xordvmatrixbackupDims, posdvmatrixbackup, tempXORDVvalues, XOREVRows, tempPOSDVvalues, POSEVRows, &addressesInRound, &xorRows, &xorCols);
-        tempPOS_summary = propose_MCUs("pos", xordvmatrixbackup, xordvmatrixbackupRows, xordvmatrixbackupCols, xordvmatrixbackupDims, posdvmatrixbackup, tempXORDVvalues, XOREVRows, tempPOSDVvalues, POSEVRows, &addressesInRound, &posRows, &posCols);
+        int posRows, posCols, posDims;
+        tempXOR_summary = propose_MCUs("xor", xordvmatrixbackup, xordvmatrixbackupRows, xordvmatrixbackupCols, xordvmatrixbackupDims, posdvmatrixbackup, tempXORDVvalues, XOREVRows, tempPOSDVvalues, POSEVRows, &addressesInRound, &xorRows, &xorCols, &xorDims);
+        tempPOS_summary = propose_MCUs("pos", xordvmatrixbackup, xordvmatrixbackupRows, xordvmatrixbackupCols, xordvmatrixbackupDims, posdvmatrixbackup, tempXORDVvalues, XOREVRows, tempPOSDVvalues, POSEVRows, &addressesInRound, &posRows, &posCols, &posDims);
+        tempCMB_summary = propose_MCUs("cmb", xordvmatrixbackup, xordvmatrixbackupRows, xordvmatrixbackupCols, xordvmatrixbackupDims, posdvmatrixbackup, tempXORDVvalues, XOREVRows, tempPOSDVvalues, POSEVRows, &addressesInRound, &cmbRows, &cmbCols, &cmbDims);
 
         printf(" Ended. Searching new Elements...");
         printf(" XOR...");
-        //CriticalXORValuesFromClusters(tempCMB_summary, cmbRows, cmbCols, <#int nRounds#>, content, <#int32_t **XORextracted_values#>, <#int32_t **xorDVtotalrepetitions#>, <#int32_t **DVHistogram#>, <#long LN#>)
+        int nProposedXORDV;
+        int32_t* proposedXORDV = criticalXORValuesFromClusters(tempCMB_summary, cmbRows, cmbCols, cmbDims, content, tempXORDVvalues, xorDVtotalrepetitions, totalDVhistogram, LN, &nProposedXORDV);
+        int nProposedPOSDV = 0;
+        printf(" POS. SUB...");
+        
+        printf(" Ended. ");
+        
+        if (nProposedXORDV != 0) {
+            printf("\n\t\tXOR operation:  %d new DV element", nProposedXORDV);
+            if (nProposedXORDV != 1) {
+                printf("s");
+            }
+            printf("found.");
+            int nDiscoveredXORDVs = 0;
+            discoveredXORDVs = unionVec(proposedXORDV, nProposedXORDV, discoveredXORDVs, 0, NULL, 0, &nDiscoveredXORDVs);
+            
+        }
+
     }
 }
 
@@ -1747,17 +1791,10 @@ discoveredPOSDVs =[];
 ProposedXORDV=CriticalXORValuesFromClusters(tempCMB_summary, AddressMatrix,
                                             tempXORDVvalues, xorDVtotalrepetitions,
                                             TotalDVhistogram, LN, RandomnessThreshold)
-NProposedXORDV = length(ProposedXORDV)
-print(" POS. SUB...")
 
 ProposedPOSDV = [];
-NProposedPOSDV = length(ProposedPOSDV)
-print(" Ended. ")
 
-if(NProposedXORDV!=0)
-print("\n\t\tXOR operation: ", NProposedXORDV, " new DV element")
-if(NProposedXORDV!=1) print("s") end
-print(" found.")
+
 discoveredXORDVs=union(ProposedXORDV, discoveredXORDVs)
 tempXORDVvalues=vcat(tempXORDVvalues, round(Int32, TotalDVhistogram[ProposedXORDV, 1:2]))
 
