@@ -13,13 +13,16 @@
 
 int main(){
     
-    int32_t* v1 = calloc(4, sizeof(int32_t));
+    bool** v1 = calloc(3, sizeof(bool*));
+    for (int i = 0; i < 3; i++) {
+        v1[i] = calloc(3, sizeof(bool));
+        v1[i][0] = true;
+        v1[i][1] = true;
+        v1[i][2] = false;
+    }
     int32_t* v2 = calloc(3, sizeof(int32_t));
     int32_t* v3 = calloc(3, sizeof(int32_t));
-    v1[0] = 1;
-    v1[1] = 0;
-    v1[2] = 0;
-    v1[3] = 1;
+
     
     v2[0] = 2;
     v2[1] = 1;
@@ -28,16 +31,15 @@ int main(){
     v3[0] = 0;
     v3[1] = 2;
     v3[2] = 1;
-
-    int tam = 0;
-    int32_t* newVectorUnion = unionVec(v1, 4, v2, 3, v3, 3, &tam);
     
-    for (int o = 0; o < tam; o++) {
-        printf("%d ", newVectorUnion[o]);
-    }
-    
-    
-    
+   /* int32_t** lol  = agrupate_mcus(v1, 3, 3, NULL, NULL);
+        
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            printf("%d", lol[i][j]);
+        }
+        printf("\n");
+    }*/
     
     
     
@@ -57,7 +59,7 @@ int main(){
     
     //ABRIR FICHERO
     FILE* file;
-    file = fopen("CY62167_090nm_TSS.csv", "r");
+    file = fopen("CY62167_090nm_TS.csv", "r");
     if (file == NULL) {
         printf("ERROR OPENING FILE.\n");
         return 0;
@@ -241,6 +243,7 @@ int main(){
         xordvvector = create_DVvector(xordvmatrix, elems);
         posdvmatrix = create_DVmatrix(addresses, elems, "pos", RWcyclesVector, nBits4Blocks, LN);
         posdvvector = create_DVvector(posdvmatrix, elems);
+
         free(addresses);
         free(RWcyclesVector);
         
@@ -393,7 +396,7 @@ int main(){
         // Se rellena la segunda columna con la aparición de esos valores en el histograma
         int32_t* posCounts = countsOfElems(totalDVHistogram, maxPOSValue, 1, LN);
         for (int i = 0; i < maxPOSValue; i++){
-            xorDVtotalrepetitions[i][1] = posCounts[i];
+            posDVtotalrepetitions[i][1] = posCounts[i];
         }
         free(posCounts);
         printf("Created statistics for combinations.\n");
@@ -414,7 +417,7 @@ int main(){
     printf("APPLYING THE TRACE RULE FOR XOR DV SET...\n");
     
     int traceRuleLong = 0;
-    int32_t* XORextracted_TraceRule = traceRule(xorDVtotalrepetitions, totalDVHistogram, XORextracted_values00, XORextracted_values00Lenght, LN, &traceRuleLong);
+    int32_t* XORextracted_TraceRule = traceRule(xorDVtotalrepetitions, (maxXORValue + 1), totalDVHistogram, XORextracted_values00, XORextracted_values00Lenght, LN, &traceRuleLong);
     
     //XORextracted_values01=vcat(XORextracted_values00, TotalDVhistogram[XORextracted_TraceRule, 1:2])
     //POSextracted_values01=POSextracted_values00

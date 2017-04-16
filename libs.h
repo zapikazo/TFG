@@ -36,6 +36,35 @@
  * Función de apertura de fichero
  */
 
+
+//libera memoria de una matriz**[][]
+void liberaInt(int32_t** matrix, int rows){
+    int i;
+    for (i = 0; i < rows; i++){
+        free(matrix[i]);
+    }
+    free(matrix);
+}
+void liberaUint(uint32_t** matrix, int rows){
+    int i;
+    for (i = 0; i < rows; i++){
+        free(matrix[i]);
+    }
+    free(matrix);
+}
+//libera memoria matriz***[][][]
+void libera3D(int32_t*** matrix, int row,int col){
+    int i, j;
+    for (int i = 0; i < row; i++) {
+        for (j = 0; j < col; j++) {
+            free(matrix[i][j]);
+        }
+        free(matrix[i]);
+    }
+    free(matrix);
+}
+
+
 /*
 * This function allows getting characters from the file, transforming them into fields
 */
@@ -130,9 +159,9 @@ int32_t* flipped_bits(int32_t word, int32_t pattern, int wordWidth){
 uint32_t** Transposed_matrix(uint32_t** A, int NumRow, int NumCol){
 	uint32_t** trans;
 	int a = 0;
-	trans = (int32_t **)malloc(NumRow*sizeof(int32_t *));
+	trans = malloc(NumRow*sizeof(uint32_t *));
 	for (a = 0; a < NumRow; a++)
-		trans[a] = (int32_t *)malloc(NumCol*sizeof(int32_t));
+		trans[a] = malloc(NumCol*sizeof(uint32_t));
 
 	for (int a = 0; a < NumRow; a++){
 		for (int b = 0; b < NumCol; b++){
@@ -156,79 +185,153 @@ uint32_t** Transposed_matrix(uint32_t** A, int NumRow, int NumCol){
 * Function to create the DV sets associated with the XOR and positive operations.
 * The idea is simple: The address vector is replicated to create a square matrix
 * traspose it, and operating. Every element in elements above the main
-* diagonal is an element of the DV. XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+* diagonal is an element of the DV.
 */
 uint32_t** create_DVmatrix(uint32_t* addresses, int elems, char* op, uint32_t* RWcycles, int nbits4blocks, long int ln){
-	int32_t** DVmatrix = (int32_t **)malloc((elems + 2)*sizeof(int32_t *));
-	int i, j, cont = 0, ntriu = 0;
-	for (i = 0; i < elems + 1; i++){
-		DVmatrix[i] = (int32_t*)malloc((elems + 2)*sizeof(int32_t));
-	}
-	/* Número de elementos que debería haber en la triangular superior */
-	for (i = 0; i < elems; i++){
-		ntriu += i;
-	}
-	//Rellenar fila superior y columna izquierda
-	for (j = 1; j < elems + 1; j++){
-		DVmatrix[0][j] = addresses[j - 1];
-	}
-	for (i = 1; i < elems + 1; i++){
-		DVmatrix[i][0] = addresses[i - 1];
-	}
+    uint32_t** DVmatrix = calloc((elems),sizeof(uint32_t *));
+    int i, j, ntriu = 0;
+    for (i = 0; i < elems; i++){
+        DVmatrix[i] = calloc((elems),sizeof(uint32_t));
+    }
+    uint32_t** DVmatrixOP = calloc((elems),sizeof(uint32_t *));
+    for (i = 0; i < elems; i++){
+        DVmatrixOP[i] = calloc((elems),sizeof(uint32_t));
+    }
+    /* Número de elementos que debería haber en la triangular superior */
+    for (i = 0; i < elems; i++){
+        ntriu += i;
+    }
+    //Creación de matriz para operar
+    for (i = 0; i < elems; i++) {
+        for (j = 0; j < elems; j++) {
+            DVmatrixOP[i][j] = addresses[i];
+        }
+    }
+    //Creación de matriz transpuesta para operar
+    uint32_t** DVmatrixTrans = Transposed_matrix(DVmatrixOP, elems, elems);
 
 	if (strcmp(op, "xor") == 0){
-		for (i = 1; i < elems + 1; i++){
-			for (j = 2 + cont; j < elems + 1; j++){
-				DVmatrix[i][j] = DVmatrix[0][j] ^ DVmatrix[i][0];
+		for (i = 0; i < elems; i++){
+            for (j = 0; j < elems; j++){
+				DVmatrix[i][j] = DVmatrixOP[i][j] ^ DVmatrixTrans[i][j];
 			}
-			cont++;
-		}
+        }
 	}
 	else if (strcmp(op, "pos") == 0){
 		/* Subtracting is a problem with unsigned integers. It is better to convert
 		* them into signed format and later return to the original format. */
-		for (i = 1; i < elems + 1; i++){
-			for (j = 2 + cont; j < elems + 1; j++){
-				DVmatrix[i][j] = abs(DVmatrix[0][j] - DVmatrix[i][0]);
+		for (i = 0; i < elems; i++){
+            for (j = 0; j < elems; j++){
+				DVmatrix[i][j] = abs(DVmatrixOP[i][j] - DVmatrixTrans[i][j]);
 			}
-			cont++;
 		}
 	}
 	else {
 		printf("\n A problem creating the DV set. Operation not recognized\n");
 		EXIT_FAILURE;
 	}
+    
+    //Eliminar elementos de la triangular inferior
+    for (i = 0; i < elems; i++) {
+        for (j = 0; j < elems; j++) {
+            if ((i == j) || (j < i)) {
+                DVmatrix[i][j] = 0;
+            }
+        }
+    }
 
 	/* Now, we will incorporate the information about the R-W cycles in the same
 	* way. We create a matrix with the vector, traspose it and look for coincidence
 	* element to element. Later, the matrix with True/False elements is converted
 	* into integer and multiplied element to element with the DVmatrix. */
-	//DVTMP1 = repmat(RWcycles, 1, N);
+    for (i = 0; i < elems; i++) {
+        for (j = 0; j < elems; j++) {
+            DVmatrixOP[i][j] = RWcycles[i];
+        }
+    }
+    DVmatrixTrans = Transposed_matrix(DVmatrixOP, elems, elems);
+    uint32_t** coincidence = calloc((elems),sizeof(uint32_t *));
+    for (i = 0; i < elems; i++){
+        coincidence[i] = calloc((elems),sizeof(uint32_t));
+    }
+    for (i = 0; i < elems; i++) {
+        for (j = 0; j < elems; j++) {
+            if (DVmatrixOP[i][j] == DVmatrixTrans[i][j]) {
+                coincidence[i][j] = 1;
+            } else {
+                coincidence[i][j] = 0;
+            }
+        }
+    }
+    //Eliminar elementos de la triangular inferior
+    for (i = 0; i < elems; i++) {
+        for (j = 0; j < elems; j++) {
+            if ((i == j) || (j < i)) {
+                coincidence[i][j] = 0;
+            }
+        }
+    }
 
-	//CoincidenceMatrix = round(Int32, triu(DVTMP1.==DVTMP1'))
-	//DVmatrix = DVmatrix.*CoincidenceMatrix
+
+    for (i = 0; i < elems; i++) {
+        for (j = 0; j < elems; j++) {
+            DVmatrix[i][j] = DVmatrix[i][j] * coincidence[i][j];
+        }
+    }
+    
+    for (i = 0; i < elems; i++) {
+        for (j = 0; j < elems; j++) {
+            printf("%d",DVmatrix[i][j]);
+        }
+        printf("\n");
+    }
 
 	/* The same for the block division. We multiply the address vector by 2^bits4blocks/LN
 	* and round to the floor integer. Traspose and multiply. */
-
-	int32_t lnn = pow(2, 24) - 1;
-	uint32_t* nuevo = malloc(sizeof(uint32_t)*elems);
+	uint32_t* addressblocks = calloc(sizeof(uint32_t), elems);
 	for (i = 0; i < elems; i++) {
-		nuevo[i] = floor(addresses[i] / lnn);
+		addressblocks[i] = floor(addresses[i] / ln);
 	}
+    for (i = 0; i < elems; i++) {
+        for (j = 0; j < elems; j++) {
+            DVmatrixOP[i][j] = addressblocks[i];
+        }
+    }
+    DVmatrixTrans = Transposed_matrix(DVmatrixOP, elems, elems);
+    for (i = 0; i < elems; i++) {
+        for (j = 0; j < elems; j++) {
+            if (DVmatrixOP[i][j] == DVmatrixTrans[i][j]) {
+                coincidence[i][j] = 1;
+            } else {
+                coincidence[i][j] = 0;
+            }
+        }
+    }
+    
+    //Eliminar elementos de la triangular inferior
+    for (i = 0; i < elems; i++) {
+        for (j = 0; j < elems; j++) {
+            if ((i == j) || (j < i)) {
+                DVmatrix[i][j] = 0;
+            }
+        }
+    }
 
-	//DVTMP1 = repmat(addressblocks, 1, N);
 
-	//CoincidenceMatrix = round(Int32, triu(DVTMP1.==DVTMP1'))
-
-	//DVmatrix = DVmatrix.*CoincidenceMatrix
-
+    for (i = 0; i < elems; i++) {
+        for (j = 0; j < elems; j++) {
+            DVmatrix[i][j] = DVmatrix[i][j] * coincidence[i][j];
+        }
+    }
 
 	/* both return. Let us change the format a bit... */
 	if (strcmp(op, "xor") == 0) {
 		// DVmatrix = round(UInt32, DVmatrix)
 	}
-	return (uint32_t**)DVmatrix;
+    liberaUint(coincidence, elems);
+    liberaUint(DVmatrixOP, elems);
+    liberaUint(DVmatrixTrans, elems);
+	return DVmatrix;
 }
 
 /*
@@ -244,8 +347,8 @@ uint32_t* create_DVvector(uint32_t** DVmatrix, int elems){
 	* column and going down. */
 	int index = 0, cont = 0;
 	int kcol, krow;
-	for (krow = 1; krow < elems + 1; krow++){
-		for (kcol = 2 + cont; kcol < elems + 1; kcol++){
+	for (krow = 0; krow < elems; krow++){
+		for (kcol = 1 + cont; kcol < elems; kcol++){
 			DVvector[index] = DVmatrix[krow][kcol];
 			index++;
 		}
@@ -304,7 +407,7 @@ int32_t* countsOfElems(int32_t** histogram, int maxValue, int col, int LN){
 int lookForElem(uint32_t* vector, int ndv, int position){
 	int sum = 0, i;
 	for (i = 0; i < ndv; i++) {
-		if (vector[position] == vector[i]) {
+		if (position == vector[i]) {
 			sum++;
 		}
 	}
@@ -322,18 +425,19 @@ int32_t* create_histogram(uint32_t* vector, int ndv, long int ln){
 	for (k = 0; k < ndv; k++) {
 		sum = lookForElem(vector, ndv, k);
 		histogram[k] = sum;
+        sum = 0;
 	}
 	return histogram;
 }
 
-long long binomial(int n, int p)
-{
+long long int calculaFatorial(long long int num){
+    return ((num <= 1) ? 1 : (num * calculaFatorial(num - 1)));
+}
+
+long long int binomial(long long int n, long long int p){
 	return (calculaFatorial(n) / (calculaFatorial(p)*calculaFatorial(n - p)));
 }
-int calculaFatorial(int num)
-{
-	return ((num <= 1) ? 1 : (num * calculaFatorial(num - 1)));
-}
+
 
 //concatena 2 matrices con mismo numero de columnas.
 int32_t** vcat(int32_t ** matrizA, int rowA, int colA, int32_t** matrizB, int rowB, int colB){
@@ -357,53 +461,33 @@ int32_t** vcat(int32_t ** matrizA, int rowA, int colA, int32_t** matrizB, int ro
 
 }
 
-//libera memoria de una matriz**[][]
-void libera(int32_t** matrix, int row){
-	int i;
-	for (i = 0; i < row; i++){
-		free(matrix[i]);
-	}
-	free(matrix);
-}
-//libera memoria matriz***[][][]
-void libera3D(int32_t*** matrix, int row,int col){
-	int i, j;
-	for (int i = 0; i < row; i++) {
-		for (j = 0; j < col; j++) {
-			free(matrix[i][j]);
-		}
-		free(matrix[i]);
-	}
-	free(matrix);
-}
 
 
 /* This function just implements the theoretical expresions to determine expected
 * repetitions.  Variable names are meaningful. */
-double ExpectedRepetitions(int m, int ndv, long int LN, char* operation){
+double expectedRepetitions(int m, int ndv, long int LN, char* operation){
 	double result = 0, logresulttmp = 0, i;
 
 	if (strcmp(operation, "pos") == 0){
 		//Difference of values
-		if (labs(ndv / LN) < 0.1){
-			logresulttmp = (float)((1 - m)*log(LN) + m*log(2) - log(m + 1) + log(binomial((int)ndv, m)));
+		if (fabs((double)ndv / (double)LN) < 0.1){
+			logresulttmp = (double)((1 - m)*log(LN) + m*log(2) - log(m + 1) + log(binomial((long long int)ndv, m)));
 			result = exp(logresulttmp);
 			result = result*(1 + (3 * (m)-2 * (int64_t)(ndv)) / (LN + 1))*(1 + 2 * (ndv - m) / (LN - 2) / (m + 2));
-		}
-		else{
+		} else{
 			//          OJOOOOOOOOOOOOOOOOOOOOOOOO  EL COLLECT...
 			/*pk=2/LN/(LN+1)*(LN+1-collect(1:1:LN));
 			result = sum(binomial(BigInt(ndv), m)*(pk.^m).*(1-pk).^(ndv-m));*/
 
 			for (i = 0; i < LN; i++){
 				double pk = 2 / LN / (LN + 1)*(LN + 1 - i);
-				result += (binomial((double)(ndv), m)*(pow(pk, m))*pow((1 - pk), (ndv - m)));
+				result += (binomial((long long int)(ndv), m)*(pow(pk, m))*pow((1 - pk), (ndv - m)));
 			}
 		}
 	}
 	else if (strcmp(operation, "xor") == 0){
 		// XOR
-		logresulttmp = (float)(log(binomial((double)(ndv), m)) + (ndv - m)*log(LN - 1) - (ndv - 1)*log(LN));
+		logresulttmp = (double)(log(binomial((long long int)(ndv), m)) + (ndv - m)*log(LN - 1) - (ndv - 1)*log(LN));
 		result = exp(logresulttmp);
 	}
 	else{
@@ -414,46 +498,42 @@ double ExpectedRepetitions(int m, int ndv, long int LN, char* operation){
 	return result;
 }
 
-//EXCESSIVEREPETITIONS
-int32_t ExcessiveRepetitions(int32_t** RepInHistVector, int RepInHistVectorCol, long int LN, char* operation, int threshold){
-
-	// This function allows calculating the lowest number of repetitions from which
+/*
+ // This function allows calculating the lowest number of repetitions from which
 	// the expected number is below threshold.
 	// RepInHistVector is a column vector containing the statistics.It is assumed
 	// that the first element correspond to 0 repetitions.
+ */
+int32_t excessiveRepetitions(int32_t** repInHistVector, int repInHistVectorLength, int repInHistVectorCol, long int LN, char* operation, double threshold){
+	int32_t nthreshold = 0, ndv = 0, k, i;
+	int32_t* occurrenceIndex = (int32_t*)calloc(repInHistVectorLength, sizeof(int32_t));
+	for (i = 0; i < repInHistVectorLength; i++)
+		occurrenceIndex[i] = i;
 
-	int32_t nthreshold = 0, ndv = 0;
-	int32_t nmax = sizeof(RepInHistVector) / sizeof(int32_t);       //si no le pasamos el tamaño
+	for (i = 0; i < repInHistVectorLength; i++)
+		ndv += ((int32_t)repInHistVector[i][repInHistVectorCol] * occurrenceIndex[i]);
 
-	int32_t* OccurrenceIndex = (int32_t*)calloc(sizeof(int32_t), (nmax - 1));
-	for (int i = 0; i < nmax; i++)
-		OccurrenceIndex[i] = i;
-
-	for (int i = 0; i < nmax; i++)
-		ndv += ((int32_t)RepInHistVector[i][RepInHistVectorCol] * (int32_t)OccurrenceIndex[i]);
-
-	//Inner product and later addition
-	//LN = sum(RepInHistVector);
-	//just a trick to reobtain the LN value from the data.
-	//REMOVED: LN included as an function argument since it is not easily deducible
-	// in the case of dividing the memory into blocks.
-	int k0 = 0;
+	k = 0;
 	if (strcmp(operation, "pos") == 0){
-		if ((ExcessiveRepetitions(RepInHistVector, RepInHistVectorCol, LN, "xor", threshold) - 1) > 0)
-			k0 = ExcessiveRepetitions(RepInHistVector, RepInHistVectorCol, LN, "xor", threshold) - 1;
-	}
+        if ((excessiveRepetitions(repInHistVector, repInHistVectorLength, repInHistVectorCol, LN, "xor", threshold) - 1) > 0){
+			k = excessiveRepetitions(repInHistVector, repInHistVectorLength, repInHistVectorCol, LN, "xor", threshold) - 1;
+        } else {
+            k = 0;
+        }
+    } else {
+        k = 0;
+    }
 	// This is a trick to speed up "pos" calculations. Instead of starting to
 	// iterate from 0, we calculate the threshold for XOR, which is always the
 	// lowest and it is really easy to determine.
 
-	//for(int k = k0; k < nmax; k++){   // mejor con un while, porque en cuanto encuentre el valor, se sale
-	int k = k0;
-	while ((nthreshold != k) && (k < nmax)){
-		if (ExpectedRepetitions(k, LN, ndv, operation) < (int)threshold){
-			nthreshold = k;
-		}
-		k++;
-	}
+    for (i = k; i < repInHistVectorLength; i++) {
+        if (expectedRepetitions(i, ndv, LN, operation) < threshold) {
+            nthreshold = i;
+            break;
+        }
+    }
+    free(occurrenceIndex);
 	return nthreshold;
 }
 
@@ -470,7 +550,7 @@ int32_t** find_anomalies_histogram(uint32_t** histogram, int32_t histogramLenght
 	*/
 	int i, index = 0, k, k2;
 	int32_t nAnomalies = 0;
-	for (i = nthreshold; i < occurrencesLenght; i++) { // nthreshold+1 o nthreshold??????
+	for (i = nthreshold + 1; i < occurrencesLenght; i++) {
 		nAnomalies += occurrences[i][occurrencesCol];
 	}
 	/*The number of repetitions of the most repeated element. Coincides roughly with the vector length. */
@@ -484,7 +564,7 @@ int32_t** find_anomalies_histogram(uint32_t** histogram, int32_t histogramLenght
 	* from 0, above nthreshold, in the occurrences vector. */
 	*n_anomalous_values = 0;
     *newLenght = nAnomalies;
-	for (k = highestAnomaly; k > nthreshold; k--) { // Los dos +1 o no????
+	for (k = highestAnomaly; k > nthreshold + 1; k--) { 
 		/* I've prefered to implement this solution instead of using the native function
 		* "find()" since I believe this solution is faster as it includes breaks once
 		* the number of anomalous occurrences are achieved. */
@@ -492,7 +572,7 @@ int32_t** find_anomalies_histogram(uint32_t** histogram, int32_t histogramLenght
 			int n_occurrence_value = 0;
 			int occurrence_value = k - 1;
 			*n_anomalous_values += 1;
-			for (k2 = 1; k2 < histogramLenght; k2++) {
+			for (k2 = 0; k2 < histogramLenght; k2++) {
 				if (histogram[k2][histogramCol] == occurrence_value){
 					anomalies[index][0] = k2;
 					anomalies[index][1] = occurrence_value;
@@ -543,6 +623,7 @@ int32_t** find_anomalies_histogram(uint32_t** histogram, int32_t histogramLenght
 # unchanged.
 */
 int32_t** extract_some_critical_values(int32_t** anomalous_repetitions, int32_t anomalous_repetitionsLenght, int* newLenght, int* n_anomalous_repetitions, int n){
+    // No sabemos si n = 1 forever
 	int observed_values = 1, nrow = 1, k;
 	if (*n_anomalous_repetitions <= n) {
 		/*int32_t** extracted_values = calloc(anomalous_repetitionsLenght, sizeof(int32_t*));
@@ -557,8 +638,7 @@ int32_t** extract_some_critical_values(int32_t** anomalous_repetitions, int32_t 
 		return extracted_values;*/
         newLenght = &anomalous_repetitionsLenght;
         return anomalous_repetitions;
-	}
-	else {
+	} else {
 		for (k = 1; k < anomalous_repetitionsLenght; k++){
 			if (anomalous_repetitions[k][1] != anomalous_repetitions[k - 1][1]) {
 				if (observed_values == n) {
@@ -571,7 +651,7 @@ int32_t** extract_some_critical_values(int32_t** anomalous_repetitions, int32_t 
 		for (k = 0; k < nrow; k++) {
 			extracted_values[k] = calloc(2, sizeof(int32_t));
 		}
-        newLenght = &nrow;
+        *newLenght = nrow;
 		//extracted_values = anomalous_repetitions[1:nrow,:];
 		for (k = 0; k < nrow; k++) {
 			extracted_values[k][0] = anomalous_repetitions[k][0];
@@ -648,7 +728,8 @@ int32_t* unionAgrupate_mcus(int32_t** thesummary, int32_t thesummaryCols, int32_
 				thesummarytemp[x + 1] = thesummary[addressRowMin][i]; // Se copia en su hueco correspondiente
 			}
 		}
-	}for (i = 0; i < thesummaryCols; i++) {
+	}
+    for (i = 0; i < thesummaryCols; i++) {
 		if (thesummary[addressRowMax][i] != 0) {
 			if (thesummarytemp[0] == 0) { // Esta vacío
 				thesummarytemp[j] = thesummary[addressRowMax][i];
@@ -686,31 +767,22 @@ int32_t* unionAgrupate_mcus(int32_t** thesummary, int32_t thesummaryCols, int32_
 int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatrixCols, int* nTotalEvents, int* largestMCU){
     //Let us locate the elements
     //Con FIND tenemos que encontrar los indices cuyos valores no sean cero
-    int count = 0, newCount = 0, i, j, k, x, xx;
-    int32_t* nonzerovectorelementstmp = calloc(davmatrixRows*davmatrixCols, sizeof(int32_t));
+    int count = 0, i, j, k, x, xx;
+    int32_t* nonzerovectorelements = calloc(davmatrixRows*davmatrixCols, sizeof(int32_t));
     for (i = 0; i < davmatrixRows; i++) {
         for (j = 0; j < davmatrixCols; j++) {
-            nonzerovectorelementstmp[i * davmatrixCols + j] = -1; //metemos -1 de entrada para ahorrar una vuelta
             if (davmatrix [i][j] != false) {
+                nonzerovectorelements[count] = i * davmatrixCols + j;
                 count++; //Sabemos cuantos elementos, pero alguno puede estar repetido
-                nonzerovectorelementstmp[i * davmatrixCols + j] = i * davmatrixCols + j;
             }
         }
     }
-    // Tenemos que volver a recorrer para encontrar los -1 que son vacíos
-    int32_t* nonzerovectorelements = calloc(count, sizeof(int32_t)); // Luego redimensionamos
-    for (i = 0; i < count; i++) {
-        if (nonzerovectorelementstmp[i] != -1) {
-            nonzerovectorelements[newCount] = nonzerovectorelementstmp[i];
-            newCount++; // número de elementos reales
-        }
-    }
-    nonzerovectorelementstmp = NULL;
-    free(nonzerovectorelementstmp);
-    nonzerovectorelements = realloc(nonzerovectorelements, newCount);
+    
+    nonzerovectorelements = realloc(nonzerovectorelements, count*sizeof(int32_t));
+    
     //Now, transform the elements in pairs creating a matrix with 2 columns.
-    int32_t** relatedpairs = calloc(newCount, sizeof(int32_t*));
-    for (i = 0; i < newCount; i++) {
+    int32_t** relatedpairs = calloc(count, sizeof(int32_t*));
+    for (i = 0; i < count; i++) {
         relatedpairs[i] = calloc(2, sizeof(int32_t));
     }
     
@@ -719,33 +791,34 @@ int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatr
      @inbounds relatedpairs[k1,:] = [rem(nonzerovectorelements[k1], NRows) div(nonzerovectorelements[k1],NRows)+1]
      # REM means "remainder of division", DIV integer division.
      end*/
-    for (i = 0; i < newCount; i++) {
+    for (i = 0; i < count; i++) {
         relatedpairs[i][0] = nonzerovectorelements[i] / davmatrixRows;
         relatedpairs[i][1] = (nonzerovectorelements[i] / davmatrixRows) + 1;
     }
+    free(nonzerovectorelements);
     /* Good, we have created a matrix containing the related pairs. Now, we must
      # group them in larger events.
      
      # First step: A matrix initilizing the events. Perhaps too large, but it is better
      # to have spare space.
      */
-    int32_t** thesummary = calloc(newCount, sizeof(int32_t*));
-    int32_t thesummaryRows = newCount, thesummaryCols;
-    if (newCount < NMaxAddressesInEvent) { // Mínimo es newCount
-        thesummaryCols = newCount;
-        for (i = 0; i < newCount; i++) {
-            thesummary[i] = calloc(newCount, sizeof(int32_t));
+    int32_t** thesummary = calloc(count, sizeof(int32_t*));
+    int32_t thesummaryRows = count, thesummaryCols;
+    if (count < NMaxAddressesInEvent) { // Mínimo es newCount
+        thesummaryCols = count;
+        for (i = 0; i < count; i++) {
+            thesummary[i] = calloc(count, sizeof(int32_t));
         }
     } else { // Mínimo es NMaxAddressesInEvent
         thesummaryCols = NMaxAddressesInEvent;
-        for (i = 0; i < newCount; i++) {
+        for (i = 0; i < NMaxAddressesInEvent; i++) {
             thesummary[i] = calloc(NMaxAddressesInEvent, sizeof(int32_t));
         }
     }
     //Now, we save the first pair in the first column:
     *nTotalEvents = 0;
     int32_t firstAddress, secondAddress, firstAddressRow = 0, secondAddressRow = 0;
-    for (k = 0; k < newCount; k++) {
+    for (k = 0; k < count; k++) {
         //There are several cases. Let us list them in order.
         //Positions are extrated from the pairs.
         firstAddress = relatedpairs[k][0];
@@ -754,11 +827,11 @@ int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatr
         bool firstAddressFound = false, secondAddressFound = false;
         for (i = 0; i < thesummaryRows; i++) {
             for (j = 0; j < thesummaryCols; j++) {
-                if (thesummary[i][j] == firstAddress) {
+                if ((thesummary[i][j] == firstAddress) && (firstAddressFound == false)) {
                     firstAddressFound = true;
                     firstAddressRow = i;
                 }
-                if (thesummary[i][j] == secondAddress) {
+                if ((thesummary[i][j] == secondAddress) && (secondAddressFound == false)) {
                     secondAddressFound = true;
                     secondAddressRow = i;
                 }
@@ -844,12 +917,14 @@ int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatr
                 //thesummarytemp[AddressRowMin,1:length(RawCombinedAddresses)]=RawCombinedAddresses;
                 for (i = 0; i < thesummaryCols; i++) {
                     thesummary[addressRowMin][i] = thesummarytemp[i]; // Se copia el vector de la unión en la matriz
+                    thesummary[addressRowMax][i] = 0;
                 }
                 //Also, as two events have been merged, the number of total events is lower:
                 *nTotalEvents--;
             }
         }
     }
+    liberaInt(relatedpairs, count);
     /*
      #Really good. Now, we will separate the cells with information from those with
      #zeros.
@@ -857,12 +932,13 @@ int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatr
      # element:
      */
     int sum = 0;
-    for (i = 3; i < thesummaryRows; i++) {
-        for (j = 0; j < thesummaryCols; j++) {
+    *largestMCU = 0;
+    for(j = 2; j < thesummaryCols; j++) {
+        for (i = 0; i < thesummaryRows; i++) {
             sum += thesummary[i][j];
         }
         if (sum == 0) {
-            *largestMCU = i - 1;
+            *largestMCU = j;
             break;
         }
     }
@@ -875,6 +951,7 @@ int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatr
             result[x][xx] = thesummary[x][xx];
         }
     }
+    liberaInt(thesummary, thesummaryRows);
     return result;
 }
 
@@ -1062,7 +1139,7 @@ int32_t*** cutZerosFromMCUsummary(int32_t*** MCUSummary, int* rows, int* cols, i
 		if (newCols > maxCols) {
 			maxCols = newCols;
 		}
-        libera(tmpMatrix,*rows);
+        liberaInt(tmpMatrix,*rows);
 	}
 	// Una vez guardadas en la matriz de valores todos los nuevos tamaños, se copia la matriz en una matriz nueva
 	int32_t*** simpleMCUSummary = calloc(maxRows, sizeof(int32_t**));
@@ -1082,7 +1159,7 @@ int32_t*** cutZerosFromMCUsummary(int32_t*** MCUSummary, int* rows, int* cols, i
 	}
     *rows = maxRows;
     *cols = maxCols;
-	libera(dimensionsMCU,2);
+	liberaInt(dimensionsMCU,2);
 	return simpleMCUSummary;
 }
 
@@ -1195,7 +1272,7 @@ int32_t* unionVec(int32_t* v1, int v1Elems, int32_t* v2, int v2Elems, int32_t* v
 ### Anomal XOR values is used to avoid the repetition of elements. It is just
 ### XORExtractedValues[1,:]
 */
-int32_t* traceRule(int32_t** xorDVtotalrepetitions, uint32_t** totalDVhistogram, int32_t** anomalXORvalues, int anomalXORvaluesRows, long int LN, int* traceRuleLong){
+int32_t* traceRule(int32_t** xorDVtotalrepetitions,int xorDVtotalrepetitionsLenght, uint32_t** totalDVhistogram, int32_t** anomalXORvalues, int anomalXORvaluesRows, long int LN, int* traceRuleLong){
 	// Anomal XOR values is used to avoid the repetition of elements. It is just
     int i, j, z, index;
     int32_t nBits = (log(LN + 1) / log(2)); // ejemplo nBits = 24
@@ -1208,7 +1285,7 @@ int32_t* traceRule(int32_t** xorDVtotalrepetitions, uint32_t** totalDVhistogram,
 		candidatesT1[i] = pow(2, i);
 	}
     
-	int32_t nT1Threshold = ExcessiveRepetitions(xorDVtotalrepetitions, 1, LN, "xor", randomnessThreshold);
+	int32_t nT1Threshold = excessiveRepetitions(xorDVtotalrepetitions, xorDVtotalrepetitionsLenght, 1, LN, "xor", randomnessThreshold);
 
     int32_t* selectedT1 = calloc(nBits, sizeof(int32_t)); //Luego se redimensiona al número de elemntos real
     int sT1Lenght = 0;
@@ -1240,7 +1317,7 @@ int32_t* traceRule(int32_t** xorDVtotalrepetitions, uint32_t** totalDVhistogram,
             index++;
         }
     }
-    int32_t nT2Threshold = ExcessiveRepetitions(xorDVtotalrepetitions, 1, LN, "xor", randomnessThreshold);
+    int32_t nT2Threshold = excessiveRepetitions(xorDVtotalrepetitions, xorDVtotalrepetitionsLenght, 1, LN, "xor", randomnessThreshold);
     int32_t* selectedT2 = calloc(nBits, sizeof(int32_t)); //Luego se redimensiona al número de elemntos real
     int sT2Lenght = 0;
     for (i = 0; i < nBits; i++) {
@@ -1502,7 +1579,7 @@ int32_t** condensate_summary(int32_t*** summary3D, int summary3DRows, int summar
 		}
 		// Apparently, the following solution is a bit faster.
         condensateSummary[0][i] = elems - findNotEqualMatrix(summary2D, summary3DRows, summary3DCols, 0);
-		libera(summary2D, summary3DRows);
+		liberaInt(summary2D, summary3DRows);
 	}
 	return condensateSummary;
 }
@@ -1557,11 +1634,11 @@ int32_t** extractAnomalDVSelfConsistency(char* op, int32_t** opDVtotalrepetition
 	int32_t** testOPa;
 	int32_t** oPExtracted_values = NULL;
 	bool oPSelfConsistence = true;
-	int n_anomalous_repetitions = 1, i, j, test, newLenght, propMCUSrows = 0, propMCUScols = 0;
+	int n_anomalous_repetitions = 1, i, j, test, newLenght, propMCUSrows = 0, propMCUScols = 0, aux = 1;
 	printf("\n\tDetermining the threshold for repetition excess:\n");
 	if (strcmp(op, "xor") == 0) {
 		printf("\n\t\tXOR operation...");
-		opNthreshold = ExcessiveRepetitions(opDVtotalrepetitions, 1, LN, "xor", randomnessThreshold);
+		opNthreshold = excessiveRepetitions(opDVtotalrepetitions, opDVtotalrepetitionsRows, 1, LN, "xor", randomnessThreshold);
 		testOPa = find_anomalies_histogram(totalDVhistogram, histogramLenght, 1, opDVtotalrepetitions, opDVtotalrepetitionsRows, 1, opNthreshold, testOPaLenght, n_anomalous_values);
 
 		printf("\n\tXOR operation:\n");
@@ -1569,21 +1646,23 @@ int32_t** extractAnomalDVSelfConsistency(char* op, int32_t** opDVtotalrepetition
 
 		while (oPSelfConsistence) {
 			printf("\t\tStep %d ", n_anomalous_repetitions);
-			oPExtracted_values = extract_some_critical_values(testOPa, newLenght, &newLenght, n_anomalous_values, n_anomalous_repetitions);
-			int nOPextrValues = newLenght;
+            int nOPextrValues;
+			oPExtracted_values = extract_some_critical_values(testOPa, newLenght, &nOPextrValues, n_anomalous_values, n_anomalous_repetitions);
 			int32_t** opPartRepsSelfCons = calloc(nOPextrValues, sizeof(int32_t*));
 			for (i = 0; i < nOPextrValues; i++) {
 				opPartRepsSelfCons[i] = calloc(nRoundsInPattern, sizeof(int32_t));
 			}
 			for (i = 0; i < nOPextrValues; i++) {
-                for (j = 0; j < nRoundsInPattern-1; j++) { // lo de nroundsinpattern-1 está mal, ARREGLAR
+                for (j = 0; j < nRoundsInPattern; j++) {
                     /*
                      for kval=1:NPOSextrValues
                      POSPartRepsSelfCons[kval,:]=posdvhistogram[POSextracted_values[kval,1], 2:end]
                      end
                      */
-					opPartRepsSelfCons[i][j] = opdvhistogram[oPExtracted_values[i][0]][j + 1];
+					opPartRepsSelfCons[i][j] = opdvhistogram[oPExtracted_values[i][0]][aux];
+                    aux++;
 				}
+                aux = 1;
 			}
             
 			for (test = 0; test < nRoundsInPattern; test++) {
@@ -1619,7 +1698,7 @@ int32_t** extractAnomalDVSelfConsistency(char* op, int32_t** opDVtotalrepetition
 
 	} else if (strcmp(op, "pos") == 0){
 		printf("\n\t\tPOS operation (It can take a long if there are too many addresses)...\n");
-		opNthreshold = ExcessiveRepetitions(opDVtotalrepetitions, 1, LN, "pos", randomnessThreshold);
+		opNthreshold = excessiveRepetitions(opDVtotalrepetitions, opDVtotalrepetitionsRows, 1, LN, "pos", randomnessThreshold);
         testOPa = find_anomalies_histogram(totalDVhistogram, histogramLenght, 2, opDVtotalrepetitions, opDVtotalrepetitionsRows, 1, opNthreshold, testOPaLenght, n_anomalous_values);
 
 		printf("\n\tPOS operation:\n");
@@ -1703,7 +1782,7 @@ int32_t*** index2address(int32_t*** indexMatrix, int indexMatrixRows, int indexM
 	return result;
 }
 
-int32_t* criticalXORValuesFromClusters(int32_t*** PrelMCUSummary,int numRows, int numCols, int nRounds, int32_t** AddressMatrix, int32_t** XORextracted_values, int32_t**xorDVtotalrepetitions, int32_t** DVHistogram, long int LN, int* rows){
+int32_t* criticalXORValuesFromClusters(int32_t*** PrelMCUSummary,int numRows, int numCols, int nRounds, int32_t** AddressMatrix, int32_t**XORextracted_values, int32_t** xorDVtotalrepetitions, int xorDvtotalrepetitionsLenght, int32_t** DVHistogram, long int LN, int* rows){
 
 	int32_t* newCandidates = NULL;
 	int ktest,kRow,kAddress1,kAddress2,i,j,z=0;
@@ -1740,9 +1819,9 @@ int32_t* criticalXORValuesFromClusters(int32_t*** PrelMCUSummary,int numRows, in
 				}		
 			}
 		}		
-	}
+    }
 
-	int32_t xorNthreshold = ExcessiveRepetitions(xorDVtotalrepetitions, 2, LN, "xor", randomnessThreshold);
+	int32_t xorNthreshold = excessiveRepetitions(xorDVtotalrepetitions, xorDvtotalrepetitionsLenght, 2, LN, "xor", randomnessThreshold);
 
 	//int32_t* purgedCandidatesXOR = NewCandidates[find(DVHistogram[NewCandidates, 2]. >= xorNthreshold)];
 	int32_t* purgedCandidatesXOR = malloc(sizeof(int32_t)*(LN));
@@ -1756,11 +1835,11 @@ int32_t* criticalXORValuesFromClusters(int32_t*** PrelMCUSummary,int numRows, in
 	}
 	*rows = posCandidatesXOR;
 	purgedCandidatesXOR = realloc(purgedCandidatesXOR, posCandidatesXOR);
-	libera(newCandidates, z);
+	//liberaInt(newCandidates, z);
 	return purgedCandidatesXOR;
 }
 
-void extractAnomalDVfromClusters(int32_t** content, int contentRows, int32_t** XORextracted_values, int XOREVRows, int XOREVCols, int32_t** POSextracted_values, int POSEVRows, int POSEVCols, int32_t** xorDVtotalrepetitions, int32_t** posDVtotalrepetitions, uint32_t** totalDVhistogram, int32_t** xordvmatrixbackup, int xordvmatrixbackupRows, int xordvmatrixbackupCols, int xordvmatrixbackupDims, int32_t** posdvmatrixbackup, int nAddressesInRound, long int LN, int32_t* discoveredXORDVs, int32_t* discoveredPOSDVs, int32_t** tempXORDVvalues, int32_t** tempPOSDVvalues){
+void extractAnomalDVfromClusters(int32_t** content, int contentRows, int32_t** XORextracted_values, int XOREVRows, int XOREVCols, int32_t** POSextracted_values, int POSEVRows, int POSEVCols, int32_t** xorDVtotalrepetitions, int xorDVtotalrepetitionsLenght, int32_t** posDVtotalrepetitions, uint32_t** totalDVhistogram, int32_t** xordvmatrixbackup, int xordvmatrixbackupRows, int xordvmatrixbackupCols, int xordvmatrixbackupDims, int32_t** posdvmatrixbackup, int nAddressesInRound, long int LN, int32_t* discoveredXORDVs, int32_t* discoveredPOSDVs, int32_t** tempXORDVvalues, int32_t** tempPOSDVvalues){
 
     // Cuatro últimos elementos de la función son las devoluciones, matrices por referecia?
     bool foundNewDVValues = true;
@@ -1809,7 +1888,7 @@ void extractAnomalDVfromClusters(int32_t** content, int contentRows, int32_t** X
         /*ProposedXORDV=CriticalXORValuesFromClusters(tempCMB_summary, AddressMatrix,
                                                     tempXORDVvalues, xorDVtotalrepetitions,
                                                     TotalDVhistogram, LN, RandomnessThreshold)*/
-        int32_t* proposedXORDV = criticalXORValuesFromClusters(tempCMB_summary, cmbRows, cmbCols, cmbDims, content, tempXORDVvalues, xorDVtotalrepetitions, totalDVhistogram, LN, &nProposedXORDV);																											 
+        int32_t* proposedXORDV = criticalXORValuesFromClusters(tempCMB_summary, cmbRows, cmbCols, cmbDims, content, tempXORDVvalues, xorDVtotalrepetitions, xorDVtotalrepetitionsLenght, totalDVhistogram, LN, &nProposedXORDV);
 		int32_t* proposedPOSDV = NULL;
         int nProposedPOSDV = 0;
         printf(" POS. SUB...");
@@ -1863,7 +1942,7 @@ void extractAnomalDVfromClusters(int32_t** content, int contentRows, int32_t** X
 
 
 //Ojo a DVhistogram, se lo pasa y luego usa totalDVhistogram.REVISAR!
-void criticalXORvaluesFromXORingRule(int32_t** XORextracted_values, int numRow, int oldXORValuesLength, int32_t** XORDVtotalrepetitions, uint32_t** totalDVhistogram, long int LN, int32_t** newXORDVvalues, int32_t* candidates){
+void criticalXORvaluesFromXORingRule(int32_t** XORextracted_values, int numRow, int oldXORValuesLength, int32_t** XORDVtotalrepetitions, int xorDvtotalrepetitionsLenght, uint32_t** totalDVhistogram, long int LN, int32_t** newXORDVvalues, int32_t* candidates){
 
 	int i, j;
 	bool candidateFind = false, prelCandidateFind = false;
@@ -1900,7 +1979,7 @@ void criticalXORvaluesFromXORingRule(int32_t** XORextracted_values, int numRow, 
 	}
 	sort(prelCandidates, prelCandidatesTam);
 
-	int nThresholdCase1 = ExcessiveRepetitions(XORDVtotalrepetitions, 1, LN, "xor", randomnessThreshold);
+	int nThresholdCase1 = excessiveRepetitions(XORDVtotalrepetitions, xorDvtotalrepetitionsLenght, 1, LN, "xor", randomnessThreshold);
 	int32_t* candidatesCase1 = (int32_t*)malloc(sizeof(int32_t)*(prelCandidatesTam));
 
 	for (i = 0; i < prelCandidatesTam; i++){
@@ -1971,7 +2050,7 @@ void criticalXORvaluesFromXORingRule(int32_t** XORextracted_values, int numRow, 
 // Get rid of possible ZEROS.
 			presencePrelCandidates = NULL;
 //releasing RAM.
-			int nThresholdCase2 = ExcessiveRepetitions(XORDVtotalrepetitions, 1, LN, "xor", randomnessThreshold);
+			int nThresholdCase2 = excessiveRepetitions(XORDVtotalrepetitions, xorDvtotalrepetitionsLenght, 1, LN, "xor", randomnessThreshold);
 			int selectedPrelCandidatesTam = cont;
 			int32_t* candidatesCase2 = (int32_t*)malloc(sizeof(int32_t)*(selectedPrelCandidatesTam));
 			int posCandidatesCase2 = 0;
@@ -2017,7 +2096,7 @@ void criticalXORvaluesFromXORingRule(int32_t** XORextracted_values, int numRow, 
 				}
 			}
 			newXORDVvalues = vcat(XORextracted_values, numRow, 2, totalHistogramCandidates, tamCandidates, 2);
-			libera(totalHistogramCandidates, tamCandidates);
+			liberaInt(totalHistogramCandidates, tamCandidates);
 			
 			//void -> & candidates y newXORDVvalues
 }
