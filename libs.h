@@ -395,6 +395,21 @@ int32_t countsOfElems(int32_t** histogram, int maxValue, int col, long int LN){
 	return repetitionstmp;
 }
 
+int32_t* counts(int32_t** matrix, int matrixLength, int col, int maxValue){
+    int i, j, count = 0;
+    int32_t* result = calloc(maxValue+1, sizeof(int32_t));
+    for (i = 0; i < maxValue+1; i++) {
+        for (j = 0; j < matrixLength; j++) {
+            if (matrix[j][col] == i) {
+                count++;
+            }
+        }
+        result[i] = count;
+        count = 0;
+    }
+    return result;
+}
+
 /*
 * This function looks for the number of appearances of an element
 * vector[position]. nvd is the vector's size.
@@ -434,12 +449,24 @@ int32_t* create_histogram(uint32_t* vector, int ndv, long int ln){
 	return histogram;
 }
 
-long long int calculaFatorial(long long int num){
-    return ((num <= 1) ? 1 : (num * calculaFatorial(num - 1)));
+long double calculaFatorial(long long int num){
+    int i;
+    long double mul = 1;
+    for (i = 1; i < num; i++) {
+        mul *= i;
+    }
+    //return ((num <= 1) ? 1 : (num * calculaFatorial(num - 1)));
+    return mul;
 }
 
-long long int binomial(long long int n, long long int p){
-	return (calculaFatorial(n) / (calculaFatorial(p)*calculaFatorial(n - p)));
+long double binomial(long long int n, long long int p){
+    long double binomial1 = calculaFatorial(n);
+    long double binomial2 = calculaFatorial(p);
+    long double binomial3 = calculaFatorial(n - p);
+    long double binomial = binomial1/(binomial2 * binomial3);
+    
+    return binomial;
+    //return (calculaFatorial(n) / (calculaFatorial(p)*calculaFatorial(n - p)));
 }
 
 
@@ -469,7 +496,7 @@ int32_t** vcat(int32_t ** matrizA, int rowA, int colA, int32_t** matrizB, int ro
 
 /* This function just implements the theoretical expresions to determine expected
 * repetitions.  Variable names are meaningful. */
-double expectedRepetitions(int m, int ndv, long int LN, char* operation){
+long double expectedRepetitions(int m, long int LN, int ndv, char* operation){
 	double result = 0, logresulttmp = 0, i;
 
 	if (strcmp(operation, "pos") == 0){
@@ -492,7 +519,8 @@ double expectedRepetitions(int m, int ndv, long int LN, char* operation){
 	else if (strcmp(operation, "xor") == 0){
 		// XOR
 		logresulttmp = (double)(log(binomial((long long int)(ndv), m)) + (ndv - m)*log(LN - 1) - (ndv - 1)*log(LN));
-		result = exp(logresulttmp);
+        result = (exp(logresulttmp));
+        
 	}
 	else{
 		//Badly specified function.
@@ -510,7 +538,7 @@ double expectedRepetitions(int m, int ndv, long int LN, char* operation){
  */
 int32_t excessiveRepetitions(int32_t** repInHistVector, int repInHistVectorLength, int repInHistVectorCol, long int LN, char* operation, double threshold){
 	int32_t nthreshold = 0, ndv = 0, k, i;
-	int32_t* occurrenceIndex = (int32_t*)calloc(repInHistVectorLength, sizeof(int32_t));
+	int32_t* occurrenceIndex = calloc(repInHistVectorLength, sizeof(int32_t));
 	for (i = 0; i < repInHistVectorLength; i++)
 		occurrenceIndex[i] = i;
 
@@ -532,7 +560,7 @@ int32_t excessiveRepetitions(int32_t** repInHistVector, int repInHistVectorLengt
 	// lowest and it is really easy to determine.
 
     for (i = k; i < repInHistVectorLength; i++) {
-        if (expectedRepetitions(i, ndv, LN, operation) < threshold) {
+        if (expectedRepetitions(i, LN, ndv, operation) < threshold) {
             nthreshold = i;
             break;
         }
