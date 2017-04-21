@@ -219,9 +219,7 @@ uint32_t** create_DVmatrix(uint32_t* addresses, int elems, char* op, uint32_t* R
 	else if (strcmp(op, "pos") == 0){
 		for (i = 0; i < elems; i++){
             for (j = 0; j < elems; j++){
-                // DVmatrix[i][j] = abs(DVmatrixOP[i][j] - DVmatrixTrans[i][j]);
-                // Eliminado el abs, con unsignedInts no existen valores negativos
-				DVmatrix[i][j] = (DVmatrixOP[i][j] - DVmatrixTrans[i][j]);
+                 DVmatrix[i][j] = abs(DVmatrixOP[i][j] - DVmatrixTrans[i][j]);
 			}
 		}
 	}
@@ -421,10 +419,11 @@ int lookForElem(uint32_t* vector, int ndv, int position){
 int32_t* create_histogram(uint32_t* vector, int ndv, long int ln){
 	int32_t* histogram = calloc(ln, sizeof(int32_t));
     
-    for (int i = 0; i < ndv; i++) {
-        printf("%#x ", vector[i]);
+   /* for (int i = 0; i < ndv; i++) {
+        printf("%d ", vector[i]);
     }
     printf("\n");
+    printf("\n");*/
     
 	int k = 0, sum = 0;
 	for (k = 0; k < ndv; k++) {
