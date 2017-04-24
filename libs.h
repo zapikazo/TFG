@@ -609,15 +609,10 @@ int32_t** find_anomalies_histogram(uint32_t** histogram, int32_t histogramLenght
 			*n_anomalous_values += 1;
 			for (k2 = 0; k2 < histogramLenght; k2++) {
 				if (histogram[k2][histogramCol] == occurrence_value){
-                    printf("%d\n", histogram[k2][histogramCol]);
-                    printf("%d\n", occurrence_value);
-                    printf("%d\n", occurrences[k][occurrencesCol]);
 					anomalies[index][0] = k2 + 1;
 					anomalies[index][1] = occurrence_value;
 					index++;
 					n_occurrence_value++;
-                    printf("%d\n", n_occurrence_value);
-
 					if (n_occurrence_value == occurrences[k][occurrencesCol]) {
 						break;
 					}
@@ -679,19 +674,15 @@ int32_t** extract_some_critical_values(int32_t** anomalous_repetitions, int32_t 
         *newLenght = anomalous_repetitionsLenght;
         return anomalous_repetitions;
 	} else {
-		for (k = 1; k < anomalous_repetitionsLenght-1; k++){
+		for (k = 1; k < anomalous_repetitionsLenght; k++){
 			if (anomalous_repetitions[k][1] != anomalous_repetitions[k - 1][1]) {
 				if (observed_values == n) {
-					nrow = k-1;
+					nrow = k;
 				}
 				observed_values++;
 			}
 		}
-        if(nrow == 0){
-            *newLenght = nrow+1;
-        } else {
-            *newLenght = nrow;
-        }
+        *newLenght = nrow;
 		int32_t** extracted_values = calloc(*newLenght, sizeof(int32_t*));
 		for (k = 0; k < *newLenght; k++) {
 			extracted_values[k] = calloc(2, sizeof(int32_t));
@@ -702,7 +693,6 @@ int32_t** extract_some_critical_values(int32_t** anomalous_repetitions, int32_t 
 			extracted_values[k][1] = anomalous_repetitions[k][1];
 		}
         
-        printf("\n");
 		return extracted_values;
 	}
 }
@@ -827,11 +817,6 @@ int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatr
     
     nonzerovectorelements = realloc(nonzerovectorelements, count*sizeof(int32_t));
     
-    for (i = 0; i < count ; i++) {
-        printf("%d ", nonzerovectorelements[i]);
-    }
-    printf("\n");
-    
     //Now, transform the elements in pairs creating a matrix with 2 columns.
     int32_t** relatedpairs = calloc(count, sizeof(int32_t*));
     for (i = 0; i < count; i++) {
@@ -853,12 +838,6 @@ int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatr
         
         relatedpairs[i][1] = (nonzerovectorelements[i] / davmatrixRows)+1;
     }
-    
-    for (i = 0; i < count ; i++) {
-        printf("%d ", relatedpairs[i][0]);
-        printf("%d ", relatedpairs[i][1]);
-    }
-    printf("\n");
     
     free(nonzerovectorelements);
     /* Good, we have created a matrix containing the related pairs. Now, we must
@@ -882,6 +861,7 @@ int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatr
     }
     //Now, we save the first pair in the first column:
     *nTotalEvents = 0;
+    int totalEvents = 0, thelargestMCU = 0;
     int32_t firstAddress, secondAddress, firstAddressRow = 0, secondAddressRow = 0;
     for (k = 0; k < count; k++) {
         //There are several cases. Let us list them in order.
@@ -908,9 +888,9 @@ int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatr
          # at NTotalEvents
          */
         if (!firstAddressFound && !secondAddressFound){
-            thesummary[*nTotalEvents][0] = relatedpairs[k][0];
-            thesummary[*nTotalEvents][1] = relatedpairs[k][1];
-            *nTotalEvents ++;
+            thesummary[totalEvents][0] = relatedpairs[k][0];
+            thesummary[totalEvents][1] = relatedpairs[k][1];
+            totalEvents++;
         }
         /*
          # Case 2:
@@ -985,10 +965,11 @@ int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatr
                     thesummary[addressRowMax][i] = 0;
                 }
                 //Also, as two events have been merged, the number of total events is lower:
-                *nTotalEvents--;
+                totalEvents--;
             }
         }
     }
+    
     liberaInt(relatedpairs, count);
     /*
      #Really good. Now, we will separate the cells with information from those with
@@ -996,26 +977,36 @@ int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatr
      # The number of rows is easy to calculate: NTotalEvents. Concerning the other
      # element:
      */
-    int sum = 0;
+    int ind = 0, sum = 0;
     *largestMCU = 0;
     for(j = 2; j < thesummaryCols; j++) {
         for (i = 0; i < thesummaryRows; i++) {
-            sum += thesummary[i][j];
+            if(thesummary[i][j] != 0){
+                if(j > ind){
+                    ind = j;
+                }
+                sum++;
+            }
         }
         if (sum == 0) {
-            *largestMCU = j;
+            thelargestMCU = j;
             break;
+        } else {
+            thelargestMCU = ind+1;
         }
     }
-    int32_t** result = calloc(*nTotalEvents, sizeof(int32_t*));
-    for (i = 0; i < *nTotalEvents; i++) {
-        result[i] = calloc(*largestMCU, sizeof(int32_t));
+    int32_t** result = calloc(totalEvents, sizeof(int32_t*));
+    for (i = 0; i < totalEvents; i++) {
+        result[i] = calloc(thelargestMCU, sizeof(int32_t));
     }
-    for (x = 0; x < *nTotalEvents; x++) {
-        for (xx = 0; xx < *largestMCU; xx++) {
+    for (x = 0; x < totalEvents; x++) {
+        for (xx = 0; xx < thelargestMCU; xx++) {
             result[x][xx] = thesummary[x][xx];
         }
     }
+    *nTotalEvents = totalEvents;
+    *largestMCU = thelargestMCU;
+
     liberaInt(thesummary, thesummaryRows);
     return result;
 }
@@ -1693,7 +1684,7 @@ uint32_t** locate_mbus(int32_t** content, int32_t contentRows, int32_t contentCo
 
 
 // Esta función depende de la operación
-int32_t** extractAnomalDVSelfConsistency(char* op, int32_t** opDVtotalrepetitions, int32_t opDVtotalrepetitionsRows, uint32_t** totalDVhistogram, int32_t histogramLenght, long int LN, int* nAddressesInRound, int nRoundsInPattern, int32_t** opdvhistogram, int32_t*** opdvmatrixbackup, int opdvmatrixbackupRows, int* lenght){
+int32_t** extractAnomalDVSelfConsistency(char* op, int32_t** opDVtotalrepetitions, int32_t opDVtotalrepetitionsRows, uint32_t** totalDVhistogram, int32_t histogramLenght, long int LN, int* nAddressesInRound, int nRoundsInPattern, int32_t** opdvhistogram, int32_t*** opdvmatrixbackup, int opdvmatrixbackupRows, int* XORANOMALS, int* lenght){
 	int32_t opNthreshold;
 	int* n_anomalous_values = malloc(sizeof(int));
     int testOPaLenght = 0;
@@ -1702,43 +1693,23 @@ int32_t** extractAnomalDVSelfConsistency(char* op, int32_t** opDVtotalrepetition
 	bool oPSelfConsistence = true;
 	int n_anomalous_repetitions = 1, i, j, test, newLenght, propMCUSrows = 0, propMCUScols = 0, aux = 1;
 	printf("\n\tDetermining the threshold for repetition excess:\n");
-	if (strcmp(op, "xor") == 0) {
+    
+    if (strcmp(op, "xor") == 0) {
 		printf("\n\t\tXOR operation...");
 		opNthreshold = excessiveRepetitions(opDVtotalrepetitions, opDVtotalrepetitionsRows, 1, LN, "xor", randomnessThreshold);
         // Redondeo hacia arriba posible solución?
         opNthreshold = (int)ceil(opNthreshold);
         opNthreshold = 2;
         testOPa = find_anomalies_histogram(totalDVhistogram, histogramLenght, 1, opDVtotalrepetitions, opDVtotalrepetitionsRows, 1, opNthreshold, &testOPaLenght, n_anomalous_values);
+        *XORANOMALS = *n_anomalous_values;
 
-       /* printf("testOPa\n");
-        printf("%d\n", testOPaLenght);
-        for (i = 0; i < testOPaLenght; i++) {
-            for (j = 0; j < 2; j++) {
-                printf("%d ", testOPa[i][j]);
-            }
-            printf("\n");
-        }
-        printf("\n");*/
-        
-        
 		printf("\n\tXOR operation:\n");
 		oPExtracted_values = extract_some_critical_values(testOPa, testOPaLenght, &newLenght, n_anomalous_values, 1);
-        
-        printf("%d\n", newLenght);
-        for (i = 0; i < newLenght; i++) {
-            for (j = 0; j < 2; j++) {
-                printf("%d ", oPExtracted_values[i][j]);
-            }
-            printf("\n");
-        }
-        printf("\n");
 
 		while (oPSelfConsistence) {
 			printf("\t\tStep %d ", n_anomalous_repetitions);
             int nOPextrValues;
-			oPExtracted_values = extract_some_critical_values(testOPa, newLenght, &nOPextrValues, n_anomalous_values, n_anomalous_repetitions);
-            
-            
+			oPExtracted_values = extract_some_critical_values(testOPa, testOPaLenght, &nOPextrValues, n_anomalous_values, n_anomalous_repetitions);
             
 			int32_t** opPartRepsSelfCons = calloc(nOPextrValues, sizeof(int32_t*));
 			for (i = 0; i < nOPextrValues; i++) {
@@ -1746,14 +1717,68 @@ int32_t** extractAnomalDVSelfConsistency(char* op, int32_t** opDVtotalrepetition
 			}
 			for (i = 0; i < nOPextrValues; i++) {
                 for (j = 0; j < nRoundsInPattern; j++) {
-                    /*
-                     for kval=1:NPOSextrValues
-                     POSPartRepsSelfCons[kval,:]=posdvhistogram[POSextracted_values[kval,1], 2:end]
-                     end
-                     */
 					opPartRepsSelfCons[i][j] = opdvhistogram[(oPExtracted_values[i][0])-1][j+1];
 				}
 			}
+            
+			for (test = 0; test < nRoundsInPattern; test++) {
+				printf("Test %d", test+1);
+				int32_t** opdvmatrix = calloc(nAddressesInRound[test], sizeof(int32_t*));
+				for (i = 0; i < nAddressesInRound[test]; i++) {
+					opdvmatrix[i] = calloc(nAddressesInRound[test], sizeof(int32_t));
+				}
+                copyOfMatrix3to2(opdvmatrixbackup, opdvmatrix, nAddressesInRound[test], nAddressesInRound[test], test);
+				bool** opMarkedPairs = marking_addresses(opdvmatrix, nAddressesInRound[test], nAddressesInRound[test], oPExtracted_values, nOPextrValues);
+                
+				int32_t** opProposedMcus = agrupate_mcus(opMarkedPairs, nAddressesInRound[test], nAddressesInRound[test], &propMCUSrows, &propMCUScols);
+                int largestMCUSize = propMCUScols;
+                
+                int continuation = findEqual(opPartRepsSelfCons, nOPextrValues, nRoundsInPattern, 0, test, largestMCUSize);
+                
+                if (continuation != 0) {
+                    oPSelfConsistence = false;
+                }
+                
+			}
+			if (oPSelfConsistence) {
+				n_anomalous_repetitions++;
+				printf("\n");
+				if (n_anomalous_repetitions > *n_anomalous_values) {
+					oPSelfConsistence = false;
+					printf("\n\t\tNo more anomalous elements to check. Exiting\n");
+				}
+            }
+            else {
+                printf("\n\t\tViolation of self-consistence. Returning to previous state and exiting.\n");
+                n_anomalous_repetitions--;
+                oPExtracted_values = extract_some_critical_values(testOPa, testOPaLenght, &newLenght, n_anomalous_values, n_anomalous_repetitions);
+                    
+            }
+        }
+
+	} else if (strcmp(op, "pos") == 0){
+		printf("\n\t\tPOS operation (It can take a long if there are too many addresses)...\n");
+		opNthreshold = excessiveRepetitions(opDVtotalrepetitions, opDVtotalrepetitionsRows, 1, LN, "pos", randomnessThreshold);
+        opNthreshold = 2;
+        testOPa = find_anomalies_histogram(totalDVhistogram, histogramLenght, 2, opDVtotalrepetitions, opDVtotalrepetitionsRows, 1, opNthreshold, &testOPaLenght, n_anomalous_values);
+
+		printf("\n\tPOS operation:\n");
+        oPExtracted_values = extract_some_critical_values(testOPa, testOPaLenght, &newLenght, n_anomalous_values, 1);
+    
+        while (oPSelfConsistence) {
+            int nOPextrValues;
+			printf("\t\tStep %d ", n_anomalous_repetitions);
+            oPExtracted_values = extract_some_critical_values(testOPa, testOPaLenght, &nOPextrValues, n_anomalous_values, n_anomalous_repetitions);
+            
+            int32_t** opPartRepsSelfCons = calloc(nOPextrValues, sizeof(int32_t*));
+            for (i = 0; i < nOPextrValues; i++) {
+                opPartRepsSelfCons[i] = calloc(nRoundsInPattern, sizeof(int32_t));
+            }
+            for (i = 0; i < nOPextrValues; i++) {
+                for (j = 0; j < nRoundsInPattern; j++) {
+                    opPartRepsSelfCons[i][j] = opdvhistogram[(oPExtracted_values[i][0])-1][j+1];
+                }
+            }
             
             for (i = 0; i < nOPextrValues; i++) {
                 for (j = 0; j < nRoundsInPattern; j++) {
@@ -1763,97 +1788,43 @@ int32_t** extractAnomalDVSelfConsistency(char* op, int32_t** opDVtotalrepetition
             }
             printf("\n");
             
-			for (test = 0; test < nRoundsInPattern; test++) {
-				printf("Test %d", test+1);
-				int32_t** opdvmatrix = calloc(nAddressesInRound[test], sizeof(int32_t*));
-				for (i = 0; i < nAddressesInRound[test]; i++) {
-					opdvmatrix[i] = calloc(nAddressesInRound[test], sizeof(int32_t));
-				}
-                copyOfMatrix3to2(opdvmatrixbackup, opdvmatrix, nAddressesInRound[test], nAddressesInRound[test], test);
-				bool** opMarkedPairs = marking_addresses(opdvmatrix, opdvmatrixbackupRows, opdvmatrixbackupRows, oPExtracted_values, nOPextrValues);
-                
-				int32_t** opProposedMcus = agrupate_mcus(opMarkedPairs, nAddressesInRound[test], nAddressesInRound[test], &propMCUSrows, &propMCUScols);
-                int largestMCUSize = propMCUScols;
-                
-                int continuation = findEqual(opPartRepsSelfCons, nOPextrValues, nRoundsInPattern, 0, test, largestMCUSize);
-				if (continuation == 0) {
-					oPSelfConsistence = false;
-				}
-			}
-			if (oPSelfConsistence) {
-				n_anomalous_repetitions++;
-				printf("\n");
-				if (n_anomalous_repetitions > *n_anomalous_values) {
-					oPSelfConsistence = false;
-					printf("\n\t\tNo more anomalous elements to check. Exiting\n");
-				}
-				else {
-					printf("\n\t\tViolation of self-consistence. Returning to previous state and exiting.\n");
-					n_anomalous_repetitions--;
-                    oPExtracted_values = extract_some_critical_values(testOPa, testOPaLenght, &newLenght, n_anomalous_values, n_anomalous_repetitions);
-				}
-			}
-        }
-
-	} else if (strcmp(op, "pos") == 0){
-		printf("\n\t\tPOS operation (It can take a long if there are too many addresses)...\n");
-		opNthreshold = excessiveRepetitions(opDVtotalrepetitions, opDVtotalrepetitionsRows, 1, LN, "pos", randomnessThreshold);
-        testOPa = find_anomalies_histogram(totalDVhistogram, histogramLenght, 2, opDVtotalrepetitions, opDVtotalrepetitionsRows, 1, opNthreshold, testOPaLenght, n_anomalous_values);
-
-		printf("\n\tPOS operation:\n");
-        oPExtracted_values = extract_some_critical_values(testOPa, testOPaLenght, &newLenght, n_anomalous_values, 1);
-    
-        while (oPSelfConsistence) {
-			printf("\t\tStep %d ", n_anomalous_repetitions);
-            oPExtracted_values = extract_some_critical_values(testOPa, newLenght, &newLenght, n_anomalous_values, n_anomalous_repetitions);
-            int nOPextrValues = newLenght;
-			int32_t** opPartRepsSelfCons = calloc(nOPextrValues, sizeof(int32_t*));
-			for (i = 0; i < nOPextrValues; i++) {
-				opPartRepsSelfCons[i] = calloc(nRoundsInPattern, sizeof(int32_t));
-			}
-            for (i = 0; i < nOPextrValues; i++) {
-                for (j = 0; j < nRoundsInPattern-1; j++) { // lo de nroundsinpattern-1 está mal, ARREGLAR
-                    /*
-                     for kval=1:NPOSextrValues
-                     POSPartRepsSelfCons[kval,:]=posdvhistogram[POSextracted_values[kval,1], 2:end]
-                     end
-                     */
-                    opPartRepsSelfCons[i][j] = opdvhistogram[oPExtracted_values[i][0]][j + 1];
-                }
-            }
+            
+            
 			for (test = 0; test < nRoundsInPattern; test++) {
 				printf("Test %d", test);
-				int32_t** opdvmatrix = calloc(opdvmatrixbackupRows, sizeof(int32_t*));
-				for (i = 0; i < opdvmatrixbackupRows; i++) {
-					opdvmatrix[i] = calloc(opdvmatrixbackupRows, sizeof(int32_t));
-				}
-                // copyOfMatrix3to2(opdvmatrixbackup, opdvmatrix, opdvmatrixbackupRows, opdvmatrixbackupRows, test);
+
+                int32_t** opdvmatrix = calloc(nAddressesInRound[test], sizeof(int32_t*));
+                for (i = 0; i < nAddressesInRound[test]; i++) {
+                    opdvmatrix[i] = calloc(nAddressesInRound[test], sizeof(int32_t));
+                }
+                copyOfMatrix3to2(opdvmatrixbackup, opdvmatrix, nAddressesInRound[test], nAddressesInRound[test], test);
+                bool** opMarkedPairs = marking_addresses(opdvmatrix, nAddressesInRound[test], nAddressesInRound[test], oPExtracted_values, nOPextrValues);
                 
-				bool** opMarkedPairs = marking_addresses(opdvmatrix, opdvmatrixbackupRows, opdvmatrixbackupRows, oPExtracted_values, nOPextrValues);
-                int32_t** opProposedMcus = agrupate_mcus(opMarkedPairs, opdvmatrixbackupRows, opdvmatrixbackupRows, &propMCUSrows, &propMCUScols);
+                int32_t** opProposedMcus = agrupate_mcus(opMarkedPairs, nAddressesInRound[test], nAddressesInRound[test], &propMCUSrows, &propMCUScols);
                 int largestMCUSize = propMCUScols;
+                
                 int continuation = findEqual(opPartRepsSelfCons, nOPextrValues, nRoundsInPattern, 0, test, largestMCUSize);
-				if (continuation == 0) {
-					oPSelfConsistence = false;
-				}
+                if (continuation != 0) {
+                    oPSelfConsistence = false;
+                }
+                
 			}
 			if (oPSelfConsistence) {
                 n_anomalous_repetitions++;
                 printf("\n");
-                if (n_anomalous_repetitions > *n_anomalous_values) {
+                if (n_anomalous_repetitions > *XORANOMALS) {
                     oPSelfConsistence = false;
                     printf("\n\t\tNo more anomalous elements to check. Exiting\n");
                 }
-                else {
-                    printf("\n\t\tViolation of self-consistence. Returning to previous state and exiting.\n");
-                    n_anomalous_repetitions--;
-                    oPExtracted_values = extract_some_critical_values(testOPa, testOPaLenght, &newLenght, n_anomalous_values, n_anomalous_repetitions);
-                }
+            }else {
+                printf("\n\t\tViolation of self-consistence. Returning to previous state and exiting.\n");
+                n_anomalous_repetitions--;
+                oPExtracted_values = extract_some_critical_values(testOPa, testOPaLenght, &newLenght, n_anomalous_values, n_anomalous_repetitions);
             }
         }
 
 	}
-    lenght = testOPaLenght;
+    *lenght = newLenght;
 	return oPExtracted_values;
 }
 

@@ -468,10 +468,24 @@ int main(){
     printf("STARTING TO LOOK UP ANOMALOUSLY REPEATED VALUES...\n");
     durationSteps[5][0] = time(NULL);
     int XORextracted_values00Lenght = 0, POSextracted_values00Lenght = 0;
+    int XORANOMALS = 0;
         
-    int32_t** XORextracted_values00 = extractAnomalDVSelfConsistency("xor", xorDVtotalrepetitions, (maxTotalXORValue + 1), totalDVHistogram, LN, LN, nAddressesInRound, nRoundsInPattern, xordvhistogram, xordvmatrixbackup, rawDataMatrixNRows, &XORextracted_values00Lenght);
-    //int32_t** POSextracted_values00 = extractAnomalDVSelfConsistency("pos", posDVtotalrepetitions, (maxTotalPOSValue + 1), totalDVHistogram, LN, LN, nRoundsInPattern, posdvhistogram, posdvmatrixbackup, rawDataMatrixNRows, &POSextracted_values00Lenght);
+    int32_t** XORextracted_values00 = extractAnomalDVSelfConsistency("xor", xorDVtotalrepetitions, (maxTotalXORValue + 1), totalDVHistogram, LN, LN, nAddressesInRound, nRoundsInPattern, xordvhistogram, xordvmatrixbackup, rawDataMatrixNRows, &XORANOMALS, &XORextracted_values00Lenght);
+    int32_t** POSextracted_values00 = extractAnomalDVSelfConsistency("pos", posDVtotalrepetitions, (maxTotalPOSValue + 1), totalDVHistogram, LN, LN, nAddressesInRound, nRoundsInPattern, posdvhistogram, posdvmatrixbackup, rawDataMatrixNRows, &XORANOMALS, &POSextracted_values00Lenght);
 
+    for (int i = 0; i < XORextracted_values00Lenght; i++) {
+        for (int j = 0; j < 2; j++) {
+            printf("%d ", XORextracted_values00[i][j]);
+        }
+    }
+    printf("\n");
+    
+    for (int i = 0; i < POSextracted_values00Lenght; i++) {
+        for (int j = 0; j < 2; j++) {
+            printf("%d ", POSextracted_values00[i][j]);
+        }
+    }
+    printf("\n");
     
     durationSteps[5][1] = time(NULL);
     
