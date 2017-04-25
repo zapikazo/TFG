@@ -472,20 +472,6 @@ int main(){
         
     int32_t** XORextracted_values00 = extractAnomalDVSelfConsistency("xor", xorDVtotalrepetitions, (maxTotalXORValue + 1), totalDVHistogram, LN, LN, nAddressesInRound, nRoundsInPattern, xordvhistogram, xordvmatrixbackup, rawDataMatrixNRows, &XORANOMALS, &XORextracted_values00Lenght);
     int32_t** POSextracted_values00 = extractAnomalDVSelfConsistency("pos", posDVtotalrepetitions, (maxTotalPOSValue + 1), totalDVHistogram, LN, LN, nAddressesInRound, nRoundsInPattern, posdvhistogram, posdvmatrixbackup, rawDataMatrixNRows, &XORANOMALS, &POSextracted_values00Lenght);
-
-    for (int i = 0; i < XORextracted_values00Lenght; i++) {
-        for (int j = 0; j < 2; j++) {
-            printf("%d ", XORextracted_values00[i][j]);
-        }
-    }
-    printf("\n");
-    
-    for (int i = 0; i < POSextracted_values00Lenght; i++) {
-        for (int j = 0; j < 2; j++) {
-            printf("%d ", POSextracted_values00[i][j]);
-        }
-    }
-    printf("\n");
     
     durationSteps[5][1] = time(NULL);
     
@@ -493,14 +479,53 @@ int main(){
     printf("APPLYING THE TRACE RULE FOR XOR DV SET...\n");
     
     int traceRuleLong = 0;
-    //int32_t* XORextracted_TraceRule = traceRule(xorDVtotalrepetitions, (maxXORValue + 1), totalDVHistogram, XORextracted_values00, XORextracted_values00Lenght, LN, &traceRuleLong);
-    
+    int32_t* XORextracted_TraceRule = traceRule(xorDVtotalrepetitions, (maxTotalXORValue + 1), totalDVHistogram, XORextracted_values00, XORextracted_values00Lenght, LN, &traceRuleLong);
+
+    //XORextracted_values00 y el pos, necesitamos guardarlos, no se borran
+    int32_t XORextracted_values01Lenght = XORextracted_values00Lenght + traceRuleLong;
+    int32_t** XORextracted_values01 = calloc(XORextracted_values01Lenght, sizeof(int32_t*));
+    for (a = 0; a < XORextracted_values01Lenght; a++) {
+        XORextracted_values01[a] = calloc(2, sizeof(int32_t));
+    }
     //XORextracted_values01=vcat(XORextracted_values00, TotalDVhistogram[XORextracted_TraceRule, 1:2])
-    //POSextracted_values01=POSextracted_values00
+    // Esto es el vcat, función?
+    int index = 0;
+    for (a = 0; a < XORextracted_values00Lenght; a++) {
+        for (b = 0; b < 2; b++) {
+            XORextracted_values01[a][b] = XORextracted_values00[a][b];
+        }
+        index++;
+    }
+    for (a = 0; a < traceRuleLong; a++) {
+        XORextracted_values01[index][0] = XORextracted_TraceRule[a];
+        XORextracted_values01[index][1] = totalDVHistogram[XORextracted_TraceRule[a]-1][1];
+        index++;
+    }
     
+    
+     /*for (a = 0; a < XORextracted_values01Lenght; a++) {
+         for (b = 0; b < 2; b++) {
+             printf("%d ",XORextracted_values01[a][b]);
+         }
+         printf("\n");
+     }
+     printf("\n");*/
+    
+    //POSextracted_values01=POSextracted_values00, copia simple de matrices, hacer función?
+    int32_t** POSextracted_values01 = calloc(POSextracted_values00Lenght, sizeof(int32_t*));
+    for (a = 0; a < POSextracted_values00Lenght; a++) {
+        POSextracted_values01[a] = calloc(2, sizeof(int32_t));
+    }
+    for (a = 0; a < POSextracted_values00Lenght; a++) {
+        for (b = 0; b < 2; b++) {
+            POSextracted_values01[a][b] = POSextracted_values00[a][b];
+        }
+    }
     
     
     /** USING DV VALUES INTRODUCED BY USER. **/
+    printf("\nRECYCLING PREVIOUSLY KNOWN DV ELEMENTS...");
+    
     
  /*   printf("\nRECYCLING PREVIOUSLY KNOWN DV ELEMENTS...");
     //UnknowXORValues = setdiff(PreviouslyKnownXOR, XORextracted_values01[:,1])

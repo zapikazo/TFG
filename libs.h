@@ -1332,7 +1332,7 @@ int32_t* traceRule(int32_t** xorDVtotalrepetitions,int xorDVtotalrepetitionsLeng
 	// Anomal XOR values is used to avoid the repetition of elements. It is just
     int i, j, z, index;
     int32_t nBits = (log(LN + 1) / log(2)); // ejemplo nBits = 24
-
+    
 	// Elements with 1-trace
 	printf("\n\tInvestigating Trace = 1: ");
 	//Crea un array de 24 elementos 0 -> 24-1 con valores potencia de 2
@@ -1340,23 +1340,27 @@ int32_t* traceRule(int32_t** xorDVtotalrepetitions,int xorDVtotalrepetitionsLeng
 	for (i = 0; i < nBits; i++){
 		candidatesT1[i] = pow(2, i);
 	}
-    
-	int32_t nT1Threshold = excessiveRepetitions(xorDVtotalrepetitions, xorDVtotalrepetitionsLenght, 1, LN, "xor", randomnessThreshold);
 
+	int32_t nT1Threshold = excessiveRepetitions(xorDVtotalrepetitions, xorDVtotalrepetitionsLenght, 1, LN, "xor", randomnessThreshold);
+    
+    //TRHESHOLD
+    nT1Threshold = 2;
+    
     int32_t* selectedT1 = calloc(nBits, sizeof(int32_t)); //Luego se redimensiona al número de elemntos real
     int sT1Lenght = 0;
-    for (i = 0; i < nBits; i++) {
-        if (totalDVhistogram[candidatesT1[i]][1] >= nT1Threshold) {
+    for (i = 0; i < nBits; i++) { // Se recorre el totalDVhistogram, en las posiciones de los candidatos - 1, pq nuestro histg empieza 0
+        if (totalDVhistogram[candidatesT1[i]-1][1] >= nT1Threshold) {
             selectedT1[sT1Lenght] = candidatesT1[i];
             sT1Lenght++;
         }
     }
-    selectedT1 = realloc(selectedT1, sT1Lenght);
+    selectedT1 = realloc(selectedT1, sT1Lenght*sizeof(int32_t));
     free(candidatesT1);
 
     // Devolver array con los elementos que estén en selectedt1, pero que no estén en anomalxorvalues
     int nWinnersT1 = 0;
     int32_t* winnersT1 = setdiffTraceRule(selectedT1, sT1Lenght, anomalXORvalues, anomalXORvaluesRows, 2, &nWinnersT1);
+    
     free(selectedT1);
     printf("%d candidate", nWinnersT1);
     if (nWinnersT1 != 1)
@@ -1365,28 +1369,35 @@ int32_t* traceRule(int32_t** xorDVtotalrepetitions,int xorDVtotalrepetitionsLeng
     
     /// Elements with 2-trace
     printf("\n\tInvestigating Trace = 2: ");
-    int32_t* candidatesT2 = calloc((0.5*nBits*(nBits-1)), sizeof(int32_t));
+    int32_t candidatesT2Length = 0.5*nBits*(nBits-1);
+    int32_t* candidatesT2 = calloc(candidatesT2Length, sizeof(int32_t));
     index = 0;
-    for (i = 0; i < (nBits-2); i++) {
-        for (j = i+1; j < (nBits-1); j++) {
+    for (i = 0; i < (nBits-1); i++) {
+        for (j = i+1; j < nBits; j++) {
             candidatesT2[index] = (pow(2, i))+(pow(2, j)); // CandidatesT2[index]=2^k1+2^k2
             index++;
         }
     }
+    
     int32_t nT2Threshold = excessiveRepetitions(xorDVtotalrepetitions, xorDVtotalrepetitionsLenght, 1, LN, "xor", randomnessThreshold);
-    int32_t* selectedT2 = calloc(nBits, sizeof(int32_t)); //Luego se redimensiona al número de elemntos real
+   
+    //THRESHOLD
+    nT2Threshold = 2;
+    
+    int32_t* selectedT2 = calloc(candidatesT2Length, sizeof(int32_t)); //Luego se redimensiona al número de elemntos real
     int sT2Lenght = 0;
-    for (i = 0; i < nBits; i++) {
-        if (totalDVhistogram[candidatesT2[i]][1] >= nT2Threshold) {
+    for (i = 0; i < candidatesT2Length; i++) {
+        if (totalDVhistogram[candidatesT2[i]-1][1] >= nT2Threshold) {
             selectedT2[sT2Lenght] = candidatesT2[i];
             sT2Lenght++;
         }
     }
-    selectedT2 = realloc(selectedT2, sT2Lenght);
+    selectedT2 = realloc(selectedT2, sT2Lenght*sizeof(int32_t));
     free(candidatesT2);
     
     int nWinnersT2 = 0;
     int32_t* winnersT2 = setdiffTraceRule(selectedT2, sT2Lenght, anomalXORvalues, anomalXORvaluesRows, 2, &nWinnersT2);
+    
     free(selectedT2);
     printf("%d candidate", nWinnersT2);
     if (nWinnersT2 != 1)
@@ -1395,24 +1406,27 @@ int32_t* traceRule(int32_t** xorDVtotalrepetitions,int xorDVtotalrepetitionsLeng
     
     /// Elements with 3-trace
     printf("\n\tInvestigating Trace = 3: ");
-    int32_t* candidatesT3 = calloc((nBits*(nBits-1)*(nBits-2)/6), sizeof(int32_t));
+    int32_t candidatesT3Length = nBits*(nBits-1)*(nBits-2)/6;
+    int32_t* candidatesT3 = calloc(candidatesT3Length, sizeof(int32_t));
     index = 0;
-    for (i = 0; i < (nBits-3); i++) {
-        for (j = i+1; j < (nBits-2); j++) {
-            for (z = j+1; z < (nBits-1); z++) {
-                candidatesT3[index] = (pow(2, 1))+(pow(2, j))+(pow(2, z)); // 2^k1+2^k2+2^k3
+    for (i = 0; i < (nBits-2); i++) {
+        for (j = i+1; j < (nBits-1); j++) {
+            for (z = j+1; z < nBits; z++) {
+                candidatesT3[index] = (pow(2, i))+(pow(2, j))+(pow(2, z)); // 2^k1+2^k2+2^k3
+                index++;
             }
         }
     }
-    int32_t* selectedT3 = calloc(nBits, sizeof(int32_t)); //Luego se redimensiona al número de elemntos real
+    int32_t* selectedT3 = calloc(candidatesT3Length, sizeof(int32_t)); //Luego se redimensiona al número de elemntos real
     int sT3Lenght = 0;
-    for (i = 0; i < nBits; i++) {
-        if (totalDVhistogram[candidatesT3[i]][1] >= nT2Threshold) {
+    for (i = 0; i < candidatesT3Length; i++) {
+        if (totalDVhistogram[candidatesT3[i]-1][1] >= nT2Threshold) {
             selectedT3[sT3Lenght] = candidatesT3[i];
             sT3Lenght++;
         }
     }
-    selectedT3 = realloc(selectedT3, sT3Lenght);
+    selectedT3 = realloc(selectedT3, sT3Lenght*sizeof(int32_t));
+    
     free(candidatesT3);
     
     int nWinnersT3 = 0;
@@ -1431,6 +1445,7 @@ int32_t* traceRule(int32_t** xorDVtotalrepetitions,int xorDVtotalrepetitionsLeng
     free(winnersT1);
     free(winnersT2);
     free(winnersT3);
+    
     return vectorUnion;
 }
 
@@ -1779,16 +1794,6 @@ int32_t** extractAnomalDVSelfConsistency(char* op, int32_t** opDVtotalrepetition
                     opPartRepsSelfCons[i][j] = opdvhistogram[(oPExtracted_values[i][0])-1][j+1];
                 }
             }
-            
-            for (i = 0; i < nOPextrValues; i++) {
-                for (j = 0; j < nRoundsInPattern; j++) {
-                    printf("%d ", opPartRepsSelfCons[i][j]);
-                }
-                printf("\n");
-            }
-            printf("\n");
-            
-            
             
 			for (test = 0; test < nRoundsInPattern; test++) {
 				printf("Test %d", test);
