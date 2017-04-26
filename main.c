@@ -512,11 +512,12 @@ int main(){
      printf("\n");*/
     
     //POSextracted_values01=POSextracted_values00, copia simple de matrices, hacer función?
-    int32_t** POSextracted_values01 = calloc(POSextracted_values00Lenght, sizeof(int32_t*));
-    for (a = 0; a < POSextracted_values00Lenght; a++) {
+    int32_t POSextracted_values01Lenght =  POSextracted_values00Lenght;
+    int32_t** POSextracted_values01 = calloc(POSextracted_values01Lenght, sizeof(int32_t*));
+    for (a = 0; a < POSextracted_values01Lenght; a++) {
         POSextracted_values01[a] = calloc(2, sizeof(int32_t));
     }
-    for (a = 0; a < POSextracted_values00Lenght; a++) {
+    for (a = 0; a < POSextracted_values01Lenght; a++) {
         for (b = 0; b < 2; b++) {
             POSextracted_values01[a][b] = POSextracted_values00[a][b];
         }
@@ -524,7 +525,7 @@ int main(){
     
     
     /** USING DV VALUES INTRODUCED BY USER. **/
-    printf("\nRECYCLING PREVIOUSLY KNOWN DV ELEMENTS...");
+   // printf("\nRECYCLING PREVIOUSLY KNOWN DV ELEMENTS...");
     
     
  /*   printf("\nRECYCLING PREVIOUSLY KNOWN DV ELEMENTS...");
@@ -571,6 +572,13 @@ int main(){
                                                       posdvmatrixbackup,
                                                       LN,
                                                       RandomnessThreshold)*/
+    int32_t** XORextracted_values03 = NULL;
+    int32_t** POSextracted_values03 = NULL;
+    int32_t* discoveredXORDvs = NULL;
+    int32_t* discoveredPOSDvs = NULL;
+    extractAnomalDVfromClusters(content, rawDataMatrixNRows, rawDataMatrixNCols, XORextracted_values01, XORextracted_values01Lenght, 2, POSextracted_values01, POSextracted_values01Lenght, 2, xorDVtotalrepetitions, (maxTotalXORValue + 1), posDVtotalrepetitions, totalDVHistogram, xordvmatrixbackup, rawDataMatrixNRows, rawDataMatrixNRows, nRoundsInPattern, posdvmatrixbackup, nAddressesInRound, LN, discoveredXORDvs, discoveredPOSDvs, XORextracted_values03, POSextracted_values03);
+
+    
     printf("\n\tWARNING: MCUs IN POSITIVE SUBTRACION IN QUARANTINE.\n");
     //POSDVsMCU1=[];
     //POSextracted_values03=POSextracted_values02;
