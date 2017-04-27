@@ -130,19 +130,20 @@ uint32_t* extract_addressvector(uint32_t* columnVector, int* elems){
 * This function returns a vector with variable lenght indicating the positions
 * of the bits where a known word differs from the pattern
 */
-int32_t* flipped_bits(int32_t word, int32_t pattern, int wordWidth){
+int32_t* flipped_bits(int32_t word, int32_t pattern, int wordWidth, int32_t* corruptedBitsLength){
 	int k, nFound = 0, count = 0;
 	int32_t* result = calloc(wordWidth, sizeof(int32_t));
 	for (k = 0; k < wordWidth; k++) {
 		result[k] = 1;
 		result[k] *= (wordWidth + 1);
 	}
+    
 	int32_t bitflips = word ^ pattern;
-	for (k = 0; k < wordWidth - 1; k++){
+	for (k = 0; k < wordWidth; k++){
 		if ((bitflips / 2) == 1) {
-			nFound++;
-			result[nFound] = k;
-		}
+            result[nFound] = k;
+            nFound++;
+        }
 		bitflips = bitflips >> 1;
 	}
 	//return result[1:findlast(result.!=(wordwidth+1))]
@@ -153,6 +154,7 @@ int32_t* flipped_bits(int32_t word, int32_t pattern, int wordWidth){
 		count++;
 	}
 	result = realloc(result, (wordWidth - count)*sizeof(int32_t));
+    *corruptedBitsLength = (wordWidth - count);
 	return result;
 }
 
@@ -1030,6 +1032,16 @@ int findEqualMatrix(int32_t** matrix, int matrixRows, int matrixCols, int search
     return count;
 }
 
+int findEqualVector(int32_t* vector, int length, int search){
+    int count = 0, i;
+    for (i = 0; i < length; i++) {
+        if (vector[i] == search) {
+            count++;
+        }
+    }
+    return count;
+}
+
 // Devuelve el número de elementos que son diferentes de el número a buscar, en una fila o una columna de una matriz
 int findNotEqual(int32_t** matrix, int matrixRows, int matrixCols, int selectedRow, int selectedCol, int search){
     int count = 0, i;
@@ -1623,7 +1635,7 @@ int32_t*** propose_MCUs(char* op, uint32_t*** XORDVmatrix3D, int numRows, int nu
 int32_t** condensate_summary(int32_t*** summary3D, int summary3DRows, int summary3DCols, int summary3DDims, int32_t** content, int contentRows){
 	int i, j, k = 0, sum = 0;
 	int32_t** condensateSummary = calloc(summary3DCols, sizeof(int32_t*));
-	for (i = 0; i < summary3DDims + 1; i++) {
+	for (i = 0; i < summary3DCols; i++) {
 		condensateSummary[i] = calloc(summary3DDims + 1, sizeof(int32_t));
         condensateSummary[i][0] = k;
         k++;
@@ -1668,36 +1680,33 @@ int32_t** condensate_summary(int32_t*** summary3D, int summary3DRows, int summar
 # Third Column: The exact address.
 # Fourth Column: The number of flipped bits.
 */
-uint32_t** locate_mbus(int32_t** content, int32_t contentRows, int32_t contentCols, int32_t** pattern, int datawidth){
-	int32_t nRounds = contentCols / 3;
+uint32_t** locate_mbus(int32_t** content, int32_t contentRows, int32_t contentCols, int32_t** pattern, int nRoundsInPattern, int datawidth, int* newRows, int* newCols){
 	int i, j, z, nDetected = 0;
-    int newRows;
-    int newCols;
-	uint32_t** summary = calloc(3 * contentRows, sizeof(uint32_t*));
-	for (i = 0; i < 3 * contentRows; i++) {
+	uint32_t** summary = calloc((3 * contentRows), sizeof(uint32_t*));
+	for (i = 0; i < (3 * contentRows); i++) {
 		summary[i] = calloc(4, sizeof(uint32_t));
 	}
-	for (i = 0; i < nRounds; i++) {
+	for (i = 0; i < nRoundsInPattern; i++) {
 		for (j = 0; j < contentRows; j++) {
 			if (content[j][3 * i] == 0xFFFFFFFF) {
 				break;
 			}
 			else {
-				int32_t* corruptedBits;
-				corruptedBits = flipped_bits(content[contentRows][3 * i + 1], pattern[i][1], datawidth);
-				if (datawidth > 1){
+                int32_t corruptedBitsLength = 0;
+				int32_t* corruptedBits = flipped_bits(content[j][3 * i + 1], pattern[i][1], datawidth, &corruptedBitsLength);
+				if (corruptedBitsLength > 1){
                     for (z = 0; z < 4; z++) {
 						summary[nDetected][z] = i;
 						summary[nDetected][z] = j;
 						summary[nDetected][z] = content[j][3*i];
-						summary[nDetected][z] = datawidth;
+						summary[nDetected][z] = corruptedBitsLength;
                     }
 				nDetected++;
 				}
 			}
 		}
 	}
-    return cutZerosFromArray(summary, (3*contentRows), 4, &newRows, &newCols, NULL, NULL);
+    return cutZerosFromArray(summary, (3*contentRows), 4, newRows, newCols, NULL, NULL);
 }
 
 
@@ -1906,21 +1915,31 @@ int32_t* criticalXORValuesFromClusters(int32_t*** PrelMCUSummary,int numRows, in
 	return purgedCandidatesXOR;
 }
 
-void extractAnomalDVfromClusters(int32_t** content, int contentRows, int contentCols, int32_t** XORextracted_values, int XOREVRows, int XOREVCols, int32_t** POSextracted_values, int POSEVRows, int POSEVCols, int32_t** xorDVtotalrepetitions, int xorDVtotalrepetitionsLenght, int32_t** posDVtotalrepetitions, uint32_t** totalDVhistogram, int32_t*** xordvmatrixbackup, int xordvmatrixbackupRows, int xordvmatrixbackupCols, int xordvmatrixbackupDims, int32_t*** posdvmatrixbackup, int* nAddressesInRound, long int LN, int32_t* discoveredXORDVs, int* discoveredXORDVsLength, int32_t* discoveredPOSDVs, int* discoveredPOSDVsLength, int32_t** tempXORDVvalues, int* tempXORDVvaluesLength, int32_t** tempPOSDVvalues, int* tempPOSDVvaluesLength){
+void extractAnomalDVfromClusters(int32_t** content, int contentRows, int contentCols, int32_t** XORextracted_values, int XOREVRows, int XOREVCols, int32_t** POSextracted_values, int POSEVRows, int POSEVCols, int32_t** xorDVtotalrepetitions, int xorDVtotalrepetitionsLenght, int32_t** posDVtotalrepetitions, uint32_t** totalDVhistogram, int32_t*** xordvmatrixbackup, int xordvmatrixbackupRows, int xordvmatrixbackupCols, int xordvmatrixbackupDims, int32_t*** posdvmatrixbackup, int* nAddressesInRound, long int LN, int32_t** discoveredXORDVs, int* discoveredXORDVsLength, int32_t** discoveredPOSDVs, int* discoveredPOSDVsLength, int32_t*** tempXORDVvalues, int* tempXORDVvaluesLength, int32_t*** tempPOSDVvalues, int* tempPOSDVvaluesLength){
 
     // Cuatro últimos elementos de la función son las devoluciones, matrices por referecia?
     bool foundNewDVValues = true;
     int step = 0, i, j;
+    
+    *tempXORDVvalues = calloc(XOREVRows, sizeof(int32_t*));
+     for (i = 0; i < XOREVRows; i++) {
+         (*tempXORDVvalues)[i] = calloc(XOREVCols, sizeof(int32_t));
+     }
+     
+     *tempPOSDVvalues = calloc(POSEVRows, sizeof(int32_t*));
+     for (i = 0; i < POSEVRows; i++) {
+         (*tempPOSDVvalues)[i] = calloc(POSEVCols, sizeof(int32_t));
+     }
 
     //COPIA OBLIGADA, Se podría hacer función de copia de matriz simple a otra matriz simple
     for (i = 0; i < XOREVRows; i++) {
         for (j = 0; j < XOREVCols; j++) {
-            tempXORDVvalues[i][j] = XORextracted_values[i][j];
+            (*tempXORDVvalues)[i][j] = XORextracted_values[i][j];
         }
     }
     for (i = 0; i < POSEVRows; i++) {
         for (j = 0; j < POSEVCols; j++) {
-            tempPOSDVvalues[i][j] = POSextracted_values[i][j];
+            (*tempPOSDVvalues)[i][j] = POSextracted_values[i][j];
         }
     }
     
@@ -1934,25 +1953,20 @@ void extractAnomalDVfromClusters(int32_t** content, int contentRows, int content
         int xorRows, xorCols, xorDims;
         int32_t*** tempPOS_summary;
         int posRows, posCols, posDims;
-        tempXOR_summary = propose_MCUs("xor", xordvmatrixbackup, xordvmatrixbackupRows, xordvmatrixbackupCols, xordvmatrixbackupDims, posdvmatrixbackup, tempXORDVvalues, XOREVRows, tempPOSDVvalues, POSEVRows, nAddressesInRound, &xorRows, &xorCols, &xorDims);
-        tempPOS_summary = propose_MCUs("pos", xordvmatrixbackup, xordvmatrixbackupRows, xordvmatrixbackupCols, xordvmatrixbackupDims, posdvmatrixbackup, tempXORDVvalues, XOREVRows, tempPOSDVvalues, POSEVRows, nAddressesInRound, &posRows, &posCols, &posDims);
-        tempCMB_summary = propose_MCUs("cmb", xordvmatrixbackup, xordvmatrixbackupRows, xordvmatrixbackupCols, xordvmatrixbackupDims, posdvmatrixbackup, tempXORDVvalues, XOREVRows, tempPOSDVvalues, POSEVRows, nAddressesInRound, &cmbRows, &cmbCols, &cmbDims);
+        tempXOR_summary = propose_MCUs("xor", xordvmatrixbackup, xordvmatrixbackupRows, xordvmatrixbackupCols, xordvmatrixbackupDims, posdvmatrixbackup, *tempXORDVvalues, XOREVRows, *tempPOSDVvalues, POSEVRows, nAddressesInRound, &xorRows, &xorCols, &xorDims);
+        tempPOS_summary = propose_MCUs("pos", xordvmatrixbackup, xordvmatrixbackupRows, xordvmatrixbackupCols, xordvmatrixbackupDims, posdvmatrixbackup, *tempXORDVvalues, XOREVRows, *tempPOSDVvalues, POSEVRows, nAddressesInRound, &posRows, &posCols, &posDims);
+        tempCMB_summary = propose_MCUs("cmb", xordvmatrixbackup, xordvmatrixbackupRows, xordvmatrixbackupCols, xordvmatrixbackupDims, posdvmatrixbackup, *tempXORDVvalues, XOREVRows, *tempPOSDVvalues, POSEVRows, nAddressesInRound, &cmbRows, &cmbCols, &cmbDims);
 
         printf(" Ended. Searching new Elements...");
         
         printf(" XOR...");
         
         int nProposedXORDV = 0;
-        int32_t* proposedXORDV = criticalXORValuesFromClusters(tempCMB_summary, cmbRows, cmbCols, cmbDims, content, tempXORDVvalues, XOREVRows, XOREVCols, xorDVtotalrepetitions, xorDVtotalrepetitionsLenght, totalDVhistogram, LN, &nProposedXORDV);
+        int32_t* proposedXORDV = criticalXORValuesFromClusters(tempCMB_summary, cmbRows, cmbCols, cmbDims, content, *tempXORDVvalues, XOREVRows, XOREVCols, xorDVtotalrepetitions, xorDVtotalrepetitionsLenght, totalDVhistogram, LN, &nProposedXORDV);
 		int32_t* proposedPOSDV = NULL;
         int nProposedPOSDV = 0;
         printf(" POS. SUB...");
-        
-        for (i = 0; i < nProposedXORDV; i++) {
-            printf("%d ", proposedXORDV[i]);
-        }
-        
-        
+    
         printf(" Ended. ");
         
         if (nProposedXORDV != 0) {
@@ -1962,16 +1976,17 @@ void extractAnomalDVfromClusters(int32_t** content, int contentRows, int content
             }
             printf("found.");
             int nDiscoveredXORDVs = 0;
-            discoveredXORDVs = unionVec(proposedXORDV, nProposedXORDV, discoveredXORDVs, 0, NULL, 0, &nDiscoveredXORDVs);
+            (*discoveredXORDVs) = unionVec(proposedXORDV, nProposedXORDV, *discoveredXORDVs, 0, NULL, 0, &nDiscoveredXORDVs);
             *discoveredXORDVsLength = nDiscoveredXORDVs;
             
             int32_t** auxXORDV = calloc(XOREVRows + nProposedXORDV, sizeof(int32_t*));
+            
             for (i = 0; i < XOREVRows + nProposedXORDV; i++) {
                 auxXORDV[i] = calloc(XOREVCols, sizeof(int32_t));
             }
             for (i = 0; i < XOREVRows; i++) {
                 for (j = 0; j < XOREVCols; j++) {
-                    auxXORDV[i][j] = tempXORDVvalues[i][j];
+                    auxXORDV[i][j] = (*tempXORDVvalues)[i][j];
                 }
             }
             int index = XOREVRows;
@@ -1980,7 +1995,8 @@ void extractAnomalDVfromClusters(int32_t** content, int contentRows, int content
                 auxXORDV[index][1] = totalDVhistogram[proposedXORDV[a]-1][1];
                 index++;
             }
-            tempXORDVvalues = auxXORDV;
+            
+            *tempXORDVvalues = auxXORDV;
 
             *tempXORDVvaluesLength = XOREVRows + nProposedXORDV;
             XOREVRows = XOREVRows + nProposedXORDV;
@@ -1993,16 +2009,17 @@ void extractAnomalDVfromClusters(int32_t** content, int contentRows, int content
             }
             printf("found.");
             int nDiscoveredPOSDVs = 0;
-            discoveredPOSDVs = unionVec(proposedPOSDV, nProposedPOSDV, discoveredPOSDVs, 0, NULL, 0, &nDiscoveredPOSDVs);
+            (*discoveredPOSDVs) = unionVec(proposedPOSDV, nProposedPOSDV, (*discoveredPOSDVs), 0, NULL, 0, &nDiscoveredPOSDVs);
             *discoveredPOSDVsLength = nDiscoveredPOSDVs;
             
             int32_t** auxPOSDV = calloc(POSEVRows + nProposedPOSDV, sizeof(int32_t*));
+            
             for (i = 0; i < POSEVRows + nProposedPOSDV; i++) {
                 auxPOSDV[i] = calloc(POSEVCols, sizeof(int32_t));
             }
             for (i = 0; i < POSEVRows; i++) {
                 for (j = 0; j < POSEVCols; j++) {
-                    auxPOSDV[i][j] = tempPOSDVvalues[i][j];
+                    auxPOSDV[i][j] = (*tempPOSDVvalues)[i][j];
                 }
             }
             int index = POSEVRows;
@@ -2011,7 +2028,7 @@ void extractAnomalDVfromClusters(int32_t** content, int contentRows, int content
                 auxPOSDV[index][1] = totalDVhistogram[proposedPOSDV[a]-1][2];
                 index++;
             }            
-            tempPOSDVvalues = auxPOSDV;
+            (*tempPOSDVvalues) = auxPOSDV;
             *tempPOSDVvaluesLength = POSEVRows + nProposedPOSDV;
             POSEVRows = POSEVRows + nProposedPOSDV;
             
@@ -2025,57 +2042,51 @@ void extractAnomalDVfromClusters(int32_t** content, int contentRows, int content
 }
 
 
-//Ojo a DVhistogram, se lo pasa y luego usa totalDVhistogram.REVISAR!
-void criticalXORvaluesFromXORingRule(int32_t** XORextracted_values, int numRow, int oldXORValuesLength, int32_t** XORDVtotalrepetitions, int xorDvtotalrepetitionsLenght, uint32_t** totalDVhistogram, long int LN, int32_t** newXORDVvalues, int32_t* candidates){
-
+void criticalXORvaluesFromXORingRule(int32_t** XORextracted_values, int XORextracted_valuesRows, int32_t** XORDVtotalrepetitions, int xorDvtotalrepetitionsLength, uint32_t** totalDVhistogram, long int LN, int32_t*** newXORDVvalues, int* newXORDVvaluesLength, int32_t** candidates, int** candidatesLength){
 	int i, j;
 	bool candidateFind = false, prelCandidateFind = false;
 	printf("\n\tCase 1: XORing known values... ");
-	int32_t* prelCandidates = (int32_t*)calloc(sizeof(int32_t), 1);
-	int32_t* oldXORValues = (int32_t*)calloc(sizeof(int32_t), numRow);
-	copyOfVector(oldXORValues, XORextracted_values, LN, 1);
-	sort(oldXORValues, numRow);
+	int32_t* prelCandidates = calloc(1, sizeof(int32_t));
+    
+	int32_t* oldXORValues = calloc(XORextracted_valuesRows, sizeof(int32_t));
+    for (i = 0; i < XORextracted_valuesRows; i++) {
+        oldXORValues[i] = XORextracted_values[i][0];
+    }
+
+    sort(oldXORValues, XORextracted_valuesRows);
 
 	int k1, k2, prelCandidatesTam = 0,pos = 0,posCandidatesCase1 = 0;
-	for (k1 = 0; k1 < oldXORValuesLength; k1++){
+	for (k1 = 0; k1 < XORextracted_valuesRows; k1++){
 		int old1 = oldXORValues[k1];
-		for (k2 = k1 + 1; k2< oldXORValuesLength; k2++){
+		for (k2 = k1 + 1; k2 < XORextracted_valuesRows; k2++){
 			candidateFind = false, prelCandidateFind = false;
 			int old2 = oldXORValues[k2];
 			int candidate = old1^old2;
-			for (i = 0; i < oldXORValuesLength; i++){
-				if (candidate == oldXORValues[i])
-					candidateFind = true;	
-			}
-			for (j = 0; j < prelCandidatesTam; j++){
-				if (candidate == prelCandidates[j]){
-					prelCandidateFind = true;
-				}
-			}
-			if (!candidateFind && !prelCandidateFind){
-				prelCandidates[prelCandidatesTam] = candidate;
-				prelCandidatesTam++;
-			}
-			prelCandidates = (int32_t*)realloc(prelCandidates, prelCandidatesTam);
-
+            if ((findEqualVector(oldXORValues, XORextracted_valuesRows, candidate) == 0) && (findEqualVector(prelCandidates, prelCandidatesTam, candidate) == 0)) {
+                int32_t* vCandidate = calloc(1, sizeof(int32_t));
+                vCandidate[0] = candidate;
+                prelCandidates = unionVec(prelCandidates, prelCandidatesTam, vCandidate, 1, NULL, 0, &prelCandidatesTam);
+            }
 		}
 
 	}
 	sort(prelCandidates, prelCandidatesTam);
 
-	int nThresholdCase1 = excessiveRepetitions(XORDVtotalrepetitions, xorDvtotalrepetitionsLenght, 1, LN, "xor", randomnessThreshold);
-	int32_t* candidatesCase1 = (int32_t*)malloc(sizeof(int32_t)*(prelCandidatesTam));
-
-	for (i = 0; i < prelCandidatesTam; i++){
-		if (totalDVhistogram[prelCandidates[i]][1] >= nThresholdCase1){
-			candidatesCase1[posCandidatesCase1] = i;
-			posCandidatesCase1++;
-		}
-	}
-	candidatesCase1 = realloc(candidatesCase1, posCandidatesCase1);
-	if (posCandidatesCase1 > 0){
-		printf("%d new value", posCandidatesCase1);
-		if (posCandidatesCase1 != 1)
+	int nThresholdCase1 = excessiveRepetitions(XORDVtotalrepetitions, xorDvtotalrepetitionsLength, 1, LN, "xor", randomnessThreshold);
+    
+    int32_t* candidatesCase1 = calloc(prelCandidatesTam, sizeof(int32_t)); //Luego se redimensiona al número de elemntos real
+    int candidatesCase1Length = 0;
+    for (i = 0; i < prelCandidatesTam; i++) {
+        if (totalDVhistogram[prelCandidates[i]-1][1] >= nThresholdCase1) {
+            candidatesCase1[candidatesCase1Length] = prelCandidates[i];
+            candidatesCase1Length++;
+        }
+    }
+    candidatesCase1 = realloc(candidatesCase1, candidatesCase1Length*sizeof(int32_t));
+    
+	if (candidatesCase1Length > 0){
+		printf("%d new value", candidatesCase1Length);
+		if (candidatesCase1Length != 1)
 			printf("s");
 		printf(" obtained. \n");
 	}
@@ -2083,13 +2094,18 @@ void criticalXORvaluesFromXORingRule(int32_t** XORextracted_values, int numRow, 
 		printf("No new values. Going on.\n");
 		}
 	int newTamOldXORValues = 0;
-	oldXORValues = unionVec(oldXORValues, oldXORValuesLength, candidatesCase1, posCandidatesCase1, NULL, 0, &newTamOldXORValues);
+	oldXORValues = unionVec(oldXORValues, XORextracted_valuesRows, candidatesCase1, candidatesCase1Length, NULL, 0, &newTamOldXORValues);
 	sort(oldXORValues, newTamOldXORValues);
+    
+   /* for (int a = 0; a < newTamOldXORValues; a++) {
+        printf("%d ", oldXORValues[a]);
+    }
+    printf("\n");*/
 
-// Case 2: XORingDV elements with confirmed XORs to obtain another one.
+/* Case 2: XORingDV elements with confirmed XORs to obtain another one.*/
 
 		printf("\tCASE 2: XORing DV elements with confirmed values... ");
-		int32_t* DVElements = (int32_t*)malloc(sizeof(int32_t)*(LN));
+		int32_t* DVElements = calloc(LN, sizeof(int32_t));
 		int index = 0;
 		for (i = 0; i < LN; i++){
 			if (totalDVhistogram[i][1] != 0){
@@ -2097,92 +2113,76 @@ void criticalXORvaluesFromXORingRule(int32_t** XORextracted_values, int numRow, 
 				index++;
 			}
 		}
-// This allows reobtaining the elements in the DV set.
-		bool* presencePrelCandidates = calloc(LN+1, sizeof(bool));
+    // This allows reobtaining the elements in the DV set.
+		//bool* presencePrelCandidates = calloc(LN+1, sizeof(bool));
 
-// This +1 is placed since, sometimes, XORED can be 0.
-		int32_t* selectedPrelCandidates = (int32_t*)malloc(sizeof(int32_t)*(index));
+    // This +1 is placed since, sometimes, XORED can be 0.
+		int32_t* selectedPrelCandidates = calloc(1, sizeof(int32_t));
+        int selectedPrelCandidatesLength = 0;
 		printf(" Searching... ");
 		int kdv, kxor, cont = 0;
 		bool xoredFind = false, kdvFind = false;
 		for (kdv = 0; kdv < index; kdv++){
-			for (kxor = 0; kxor < oldXORValuesLength; kxor++){
-				xoredFind = false, kdvFind = false;
+			for (kxor = 0; kxor < newTamOldXORValues; kxor++){
 				int xored = DVElements[kdv] ^ oldXORValues[kxor];
-				presencePrelCandidates[xored + 1] = true;
-
-				for (i = 0; i < oldXORValuesLength; i++){
-					if (xored == oldXORValues[i])
-						xoredFind = true;
-				}
-				for (j = 0; j < oldXORValuesLength; j++){
-					if (kdv == oldXORValues[j]){
-						kdvFind = true;
-					}
-				}
-				if (xoredFind && !kdvFind){
-					selectedPrelCandidates[cont] = DVElements[kdv];
-					cont++;
-				}
+				//presencePrelCandidates[xored + 1] = true;
+                if ((findEqualVector(oldXORValues, newTamOldXORValues, xored) != 0) && (findEqualVector(oldXORValues, newTamOldXORValues, kdv) == 0)) {
+                    int32_t* vKdv = calloc(1, sizeof(int32_t));
+                    vKdv[0] = kdv;
+                    selectedPrelCandidates = unionVec(selectedPrelCandidates, selectedPrelCandidatesLength, vKdv, 1, NULL, 0, &selectedPrelCandidatesLength);
+                }
 			}
 		}
-		bool* presenceCandidate = calloc(LN, sizeof(bool));
-		for (i = 1; i < LN; i++){
-			presenceCandidate[i] = presencePrelCandidates[i];
-		}
 
-// Get rid of possible ZEROS.
-			presencePrelCandidates = NULL;
-//releasing RAM.
-			int nThresholdCase2 = excessiveRepetitions(XORDVtotalrepetitions, xorDvtotalrepetitionsLenght, 1, LN, "xor", randomnessThreshold);
-			int selectedPrelCandidatesTam = cont;
-			int32_t* candidatesCase2 = (int32_t*)malloc(sizeof(int32_t)*(selectedPrelCandidatesTam));
-			int posCandidatesCase2 = 0;
-
-			for (i = 0; i < selectedPrelCandidatesTam; i++){
-				if (totalDVhistogram[selectedPrelCandidates[i]][1] >= nThresholdCase2){
-					candidatesCase2[posCandidatesCase2] = i;
-					posCandidatesCase2++;
-				}
-			}
-			candidatesCase2 = realloc(candidatesCase2, posCandidatesCase2);
-			if (posCandidatesCase2 > 0){
-				printf("%d new value", posCandidatesCase2);
-				if (posCandidatesCase2 != 1)
-					printf("s");
-				printf(" obtained. \n");
-			}
-			else{
-				printf("No new values. Going on.\n");
-			}
-
-			if (posCandidatesCase2 > 0){
-				printf("%d new value", posCandidatesCase2);
-                if (posCandidatesCase2 != 1)
-                    printf("s");
-                printf(" obtained. \n");
-			}
-			else{
-                printf("No new values. Going on.\n");
-			}
-			candidates = (int32_t*)malloc(sizeof(int32_t)*(selectedPrelCandidatesTam));
-			int tamCandidates = 0;
-			candidates = unionVec(candidatesCase1, posCandidatesCase1, candidatesCase2, posCandidatesCase2, NULL, 0, &tamCandidates);
-
-			int32_t** totalHistogramCandidates = calloc(tamCandidates, sizeof(int32_t*));
-			for (i = 0; i < tamCandidates; i++) {
-				totalHistogramCandidates[i] = calloc(2, sizeof(int32_t));
-			}
-			for (i = 0; i < tamCandidates; i++){
-				for (j = 0; j < 2; j++){
-					totalHistogramCandidates[i][j] = round(totalDVhistogram[candidates[i]][j]);
-					
-				}
-			}
-			newXORDVvalues = vcat(XORextracted_values, numRow, 2, totalHistogramCandidates, tamCandidates, 2);
-			liberaInt(totalHistogramCandidates, tamCandidates);
+        // Get rid of possible ZEROS.
+			//free(presencePrelCandidates);
+        //releasing RAM.
+        int nThresholdCase2 = excessiveRepetitions(XORDVtotalrepetitions, xorDvtotalrepetitionsLength, 1, LN, "xor", randomnessThreshold);
 			
-			//void -> & candidates y newXORDVvalues
+    int32_t* candidatesCase2 = calloc(selectedPrelCandidatesLength, sizeof(int32_t)); //Luego se redimensiona al número de elemntos real
+    int candidatesCase2Length = 0;
+    for (i = 0; i < selectedPrelCandidatesLength; i++) {
+        if (totalDVhistogram[prelCandidates[i]-1][1] >= nThresholdCase2) {
+            candidatesCase2[candidatesCase2Length] = selectedPrelCandidates[i];
+            candidatesCase2Length++;
+        }
+    }
+    candidatesCase2 = realloc(candidatesCase2, candidatesCase2Length*sizeof(int32_t));
+
+    
+    /* for (int a = 0; a < candidatesCase2Length; a++) {
+     printf("%d ", candidatesCase2[a]);
+     }
+     printf("\n");*/
+    
+    if (candidatesCase2Length > 0){
+        printf("%d new value", candidatesCase2Length);
+        if (candidatesCase2Length != 1)
+            printf("s");
+            printf(" obtained. \n");
+    }else{
+        printf("No new values. Going on.\n");
+    }
+
+    int tamCandidates = 0;
+    candidates = unionVec(candidatesCase1, candidatesCase1Length, candidatesCase2, candidatesCase2Length, NULL, 0, &tamCandidates);
+    *newXORDVvaluesLength = XORextracted_valuesRows+tamCandidates;
+    (*newXORDVvalues) = calloc((XORextracted_valuesRows+tamCandidates), sizeof(int32_t*));
+    for (i = 0; i < *newXORDVvaluesLength; i++) {
+        (*newXORDVvalues)[i] = calloc(2, sizeof(int32_t));
+    }
+    index = 0;
+    for (i = 0; i < XORextracted_valuesRows; i++) {
+        for (j = 0; j < 2; j++) {
+            (*newXORDVvalues)[i][j] = XORextracted_values[i][j];
+        }
+        index++;
+    }
+    for (i = 0; i < tamCandidates; i++) {
+        (*newXORDVvalues)[index][0] = (*candidates)[i];
+        (*newXORDVvalues)[index][1] = totalDVhistogram[(*candidates)[i]-1][1];
+        index++;
+    }
 }
 
 

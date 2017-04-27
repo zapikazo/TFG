@@ -74,6 +74,13 @@ int main(){
         printf("ERROR OPENING FILE.\n");
         return 0;
     }
+    
+   /* const Pattern = [
+                     1 0x00
+                     2 0x55
+                     3 0xFF
+                     ];*/
+    
     //OBTENER EL TAMANIO DE LOS DATOS, ARCHIVO JL
     int nBitsAddress = 0;
     int nBits4Blocks = 0;
@@ -99,7 +106,16 @@ int main(){
     //SEGUN EL JL SON 21, necesitamos la apertura de dos ficheros
     nBitsAddress = 21;
     nBits4Blocks = 1;
-
+    // Leer jl para obtener patterns
+    int32_t** pattern = calloc(nRoundsInPattern, sizeof(int32_t*));
+    for (int i = 0; i < nRoundsInPattern; i++) {
+        pattern[i] = calloc(2, sizeof(int32_t));
+        pattern[i][0] = i+1;
+    }
+    pattern[0][1] = 0x00;
+    pattern[1][1] = 0x55;
+    pattern[2][3] = 0xFF;
+    
     /* When we found a "\n" the rows can be incremented */
     while ((c=fgetc(file)) != EOF) {
         if(c == '\n'){
@@ -566,7 +582,7 @@ int main(){
     int XORextracted_values03Length = 0;
     int32_t** POSextracted_values03 = NULL;
     int POSextracted_values03Length = 0;
-    XORextracted_values03 = calloc(XORextracted_values01Lenght, sizeof(int32_t*));
+    /*XORextracted_values03 = calloc(XORextracted_values01Lenght, sizeof(int32_t*));
     for (a = 0; a < XORextracted_values01Lenght; a++) {
         XORextracted_values03[a] = calloc(2, sizeof(int32_t));
     }
@@ -574,24 +590,24 @@ int main(){
     POSextracted_values03 = calloc(POSextracted_values01Lenght, sizeof(int32_t*));
     for (a = 0; a < POSextracted_values01Lenght; a++) {
         POSextracted_values03[a] = calloc(2, sizeof(int32_t));
-    }
-    int32_t* discoveredXORDvs = calloc(rawDataMatrixNRows, sizeof(int32_t));
+    }*/
+    int32_t* discoveredXORDvs = NULL;
+    //int32_t* discoveredXORDvs = calloc(rawDataMatrixNRows, sizeof(int32_t));
     int discoveredXORDVsLength = 0;
-    int32_t* discoveredPOSDvs = calloc(rawDataMatrixNRows, sizeof(int32_t));
+    int32_t* discoveredPOSDvs = NULL;
+    //int32_t* discoveredPOSDvs = calloc(rawDataMatrixNRows, sizeof(int32_t));
     int discoveredPOSDVsLength = 0;
 
-    extractAnomalDVfromClusters(content, rawDataMatrixNRows, rawDataMatrixNCols, XORextracted_values01, XORextracted_values01Lenght, 2, POSextracted_values01, POSextracted_values01Lenght, 2, xorDVtotalrepetitions, (maxTotalXORValue + 1), posDVtotalrepetitions, totalDVHistogram, xordvmatrixbackup, rawDataMatrixNRows, rawDataMatrixNRows, nRoundsInPattern, posdvmatrixbackup, nAddressesInRound, LN, discoveredXORDvs, &discoveredXORDVsLength, discoveredPOSDvs, &discoveredPOSDVsLength, XORextracted_values03, &XORextracted_values03Length, POSextracted_values03, &POSextracted_values03Length);
+    extractAnomalDVfromClusters(content, rawDataMatrixNRows, rawDataMatrixNCols, XORextracted_values01, XORextracted_values01Lenght, 2, POSextracted_values01, POSextracted_values01Lenght, 2, xorDVtotalrepetitions, (maxTotalXORValue + 1), posDVtotalrepetitions, totalDVHistogram, xordvmatrixbackup, rawDataMatrixNRows, rawDataMatrixNRows, nRoundsInPattern, posdvmatrixbackup, nAddressesInRound, LN, &discoveredXORDvs, &discoveredXORDVsLength, &discoveredPOSDvs, &discoveredPOSDVsLength, &XORextracted_values03, &XORextracted_values03Length, &POSextracted_values03, &POSextracted_values03Length);
     
-    discoveredXORDvs = realloc(discoveredXORDvs, discoveredXORDVsLength*sizeof(int32_t));
-    discoveredPOSDvs = realloc(discoveredPOSDvs, discoveredPOSDVsLength*sizeof(int32_t));
-
+   /* printf("\n");
     printf("\n Discoveredxordvs");
     for (a = 0; a < discoveredXORDVsLength; a++) {
         printf("%d ", discoveredXORDvs[a]);
     }
     printf("\n");
     
-    printf("\n Discoveredposdvs");
+  /*  printf("\n Discoveredposdvs");
     for (a = 0; a < discoveredPOSDVsLength; a++) {
         printf("%d ", discoveredPOSDvs[a]);
     }
@@ -613,7 +629,7 @@ int main(){
         }
         printf("\n");
     }
-    printf("\n");
+    printf("\n");*/
     
     
     printf("\n\tWARNING: MCUs IN POSITIVE SUBTRACION IN QUARANTINE.\n");
@@ -624,9 +640,15 @@ int main(){
     /*XORDVfromXORing,  XORextracted_values04=CriticalXORvaluesFromXORingRule( XORextracted_values03,
                                                                             xorDVtotalrepetitions,
                                                                             TotalDVhistogram, LN,RandomnessThreshold)*/
+    int32_t** XORextracted_values04 =  NULL;
+    int XORextracted_values04Length = 0;
+    int32_t* XORDVfromXORing = NULL;
+    int XORDVfromXORingLength = 0;
+    
+    criticalXORvaluesFromXORingRule(XORextracted_values03, XORextracted_values03Length, xorDVtotalrepetitions, (maxTotalXORValue + 1), totalDVHistogram, LN, XORextracted_values04, &XORextracted_values04Length, XORDVfromXORing, &XORDVfromXORingLength);
     //POSextracted_values04=POSextracted_values03
 
-// Time for Exploring MCUs
+/** Time for Exploring MCUs **/
     printf("\nSEARCHING INSIDE MCUs (SECOND PASS)...");
     /*XORDVsMCU2, POSDVsMCU2, XORextracted_values05,
     POSextracted_values05=ExtractAnomalDVfromClusters(  Content[:,1:3:end],
@@ -639,6 +661,18 @@ int main(){
                                                       posdvmatrixbackup,
                                                       LN,
                                                       RandomnessThreshold)*/
+    
+    int32_t** XORextracted_values05 = NULL;
+    int XORextracted_values05Length = 0;
+    int32_t** POSextracted_values05 = NULL;
+    int POSextracted_values05Length = 0;
+    int32_t* discoveredXORDvs2 = NULL;
+    int discoveredXORDVs2Length = 0;
+    int32_t* discoveredPOSDvs2 = NULL;
+    int discoveredPOSDVs2Length = 0;
+    /*extractAnomalDVfromClusters(content, rawDataMatrixNRows, rawDataMatrixNCols, XORextracted_values04, <#int XOREVRows#>, <#int XOREVCols#>, XORextracted_values04, <#int POSEVRows#>, <#int POSEVCols#>, xorDVtotalrepetitions, (maxTotalXORValue + 1), posDVtotalrepetitions, totalDVHistogram, xordvmatrixbackup, rawDataMatrixNRows, rawDataMatrixNRows, nRoundsInPattern, posdvmatrixbackup, nAddressesInRound, LN, discoveredXORDvs2, &discoveredXORDVs2Length, discoveredPOSDvs2, &discoveredPOSDVs2Length, XORextracted_values05, &XORextracted_values05Length, POSextracted_values05, &POSextracted_values05Length);*/
+    
+    
     printf("\n\tWARNING: MCUs IN POSITIVE SUBTRACION IN QUARANTINE.\n");
     //POSDVsMCU2=[];
     //POSextracted_values05=POSextracted_values04;
@@ -653,6 +687,8 @@ int main(){
                                        POSextracted_values05[:,1],
                                        NAddressesInRound,
                                        UnrealMCUsize)*/
+   /* propose_MCUs(<#char *op#>, <#uint32_t ***XORDVmatrix3D#>, <#int numRows#>, <#int numCols#>, <#int dim#>, <#uint32_t ***POSDVmatrix3D#>, <#int32_t **anomalXOR#>, <#int32_t anomalXORlength#>, <#int32_t **anomalPOS#>, <#int32_t anomalPOSlength#>, <#int *nAddressesInRound#>, <#int *rowss#>, <#int *colss#>, <#int *dimss#>)*/
+    
     //FinalResult = condensate_summary(CMBRES, Content)
     printf("\tEnded.");
     
@@ -660,37 +696,34 @@ int main(){
     printf("*******************************************************************");
 
 
-
-
-
-
-
-
-/*Para matrices bidimensionales
- *
- *   for(x=0; x<5; x++)
- *   	for(y=0; y<5; y++)
-    	free(matrix[x][y]);
-     for(z=0; z<5; z++)
-    	free(matrix[z]);
-  	 free(matrix)
- *
- * Para matrices tridimensionales
- *
- *   for(x=0; x<5; x++)
-    	free(matrix[x]);
-  	 free(matrix)
- *
- *
- *
- *
- *
- *
- *
- *
- */
+    printf("\nPRESENTING RESULTS:\n");
+    printf("\nWARNING: This program is not prepared to deal with Experiments with MBUs!!!!!!!!");
     
-    //00:30
+   /* MBUSummary = locate_mbus(Content, Pattern, NWordWidth)
     
+    if (length(MBUSummary)>0)
+        println("\n\tThe following MBUs have been observed...\n")
+        
+        for kmbu=1:length(MBUSummary[:,1])
+            print("\t\t Address ",  MBUSummary[kmbu, 2], " in Test ", MBUSummary[kmbu, 1],
+                  " (0x", hex(MBUSummary[kmbu, 3],6)"): ", MBUSummary[kmbu, 4], " bitflips in the word.\n")
+            end
+            println("\nTHE PRESENCE OF MBUs MAKES THE FOLLOWING RESULTS INACCURATE.\n")
+            println("\tFor you information, the expected average numbers of several SBUs in a cell is ")
+            print("\t\t")
+            for k=1:NRoundsInPattern
+                print("Test ", k, ": ", 7*NAddressesInRound[k]*(NAddressesInRound[k]-1)/16,"\t")
+                end
+                println("\n")
+                
+                else
+                    
+                    println("\t---> Fortunately, your data lacks MBUs and following results are not commited.\n")
+                    
+                    end*/
+
+
+
+
     return 0;
 }
