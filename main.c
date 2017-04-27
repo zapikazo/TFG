@@ -561,23 +561,60 @@ int main(){
 
 // Time for Exploring MCUs
     printf("\nSEARCHING INSIDE MCUs (FIRST PASS)...");
-  /*  XORDVsMCU1, POSDVsMCU1, XORextracted_values03,
-    POSextracted_values03=ExtractAnomalDVfromClusters(  Content[:,1:3:end],
-                                                      XORextracted_values02,
-                                                      POSextracted_values02,
-                                                      xorDVtotalrepetitions,
-                                                      posDVtotalrepetitions,
-                                                      TotalDVhistogram,
-                                                      xordvmatrixbackup,
-                                                      posdvmatrixbackup,
-                                                      LN,
-                                                      RandomnessThreshold)*/
-    int32_t** XORextracted_values03 = NULL;
-    int32_t** POSextracted_values03 = NULL;
-    int32_t* discoveredXORDvs = NULL;
-    int32_t* discoveredPOSDvs = NULL;
-    extractAnomalDVfromClusters(content, rawDataMatrixNRows, rawDataMatrixNCols, XORextracted_values01, XORextracted_values01Lenght, 2, POSextracted_values01, POSextracted_values01Lenght, 2, xorDVtotalrepetitions, (maxTotalXORValue + 1), posDVtotalrepetitions, totalDVHistogram, xordvmatrixbackup, rawDataMatrixNRows, rawDataMatrixNRows, nRoundsInPattern, posdvmatrixbackup, nAddressesInRound, LN, discoveredXORDvs, discoveredPOSDvs, XORextracted_values03, POSextracted_values03);
 
+    int32_t** XORextracted_values03 = NULL;
+    int XORextracted_values03Length = 0;
+    int32_t** POSextracted_values03 = NULL;
+    int POSextracted_values03Length = 0;
+    XORextracted_values03 = calloc(XORextracted_values01Lenght, sizeof(int32_t*));
+    for (a = 0; a < XORextracted_values01Lenght; a++) {
+        XORextracted_values03[a] = calloc(2, sizeof(int32_t));
+    }
+    
+    POSextracted_values03 = calloc(POSextracted_values01Lenght, sizeof(int32_t*));
+    for (a = 0; a < POSextracted_values01Lenght; a++) {
+        POSextracted_values03[a] = calloc(2, sizeof(int32_t));
+    }
+    int32_t* discoveredXORDvs = calloc(rawDataMatrixNRows, sizeof(int32_t));
+    int discoveredXORDVsLength = 0;
+    int32_t* discoveredPOSDvs = calloc(rawDataMatrixNRows, sizeof(int32_t));
+    int discoveredPOSDVsLength = 0;
+
+    extractAnomalDVfromClusters(content, rawDataMatrixNRows, rawDataMatrixNCols, XORextracted_values01, XORextracted_values01Lenght, 2, POSextracted_values01, POSextracted_values01Lenght, 2, xorDVtotalrepetitions, (maxTotalXORValue + 1), posDVtotalrepetitions, totalDVHistogram, xordvmatrixbackup, rawDataMatrixNRows, rawDataMatrixNRows, nRoundsInPattern, posdvmatrixbackup, nAddressesInRound, LN, discoveredXORDvs, &discoveredXORDVsLength, discoveredPOSDvs, &discoveredPOSDVsLength, XORextracted_values03, &XORextracted_values03Length, POSextracted_values03, &POSextracted_values03Length);
+    
+    discoveredXORDvs = realloc(discoveredXORDvs, discoveredXORDVsLength*sizeof(int32_t));
+    discoveredPOSDvs = realloc(discoveredPOSDvs, discoveredPOSDVsLength*sizeof(int32_t));
+
+    printf("\n Discoveredxordvs");
+    for (a = 0; a < discoveredXORDVsLength; a++) {
+        printf("%d ", discoveredXORDvs[a]);
+    }
+    printf("\n");
+    
+    printf("\n Discoveredposdvs");
+    for (a = 0; a < discoveredPOSDVsLength; a++) {
+        printf("%d ", discoveredPOSDvs[a]);
+    }
+    printf("\n");
+    
+    printf("\n xorextractedvalues03");
+    for (a = 0; a < XORextracted_values03Length; a++) {
+        for (b = 0; b < 2; b++) {
+            printf("%d ", XORextracted_values03[a][b]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+    
+    printf("\n posextractedvalues03");
+    for (a = 0; a < POSextracted_values03Length; a++) {
+        for (b = 0; b < 2; b++) {
+            printf("%d ", POSextracted_values03[a][b]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+    
     
     printf("\n\tWARNING: MCUs IN POSITIVE SUBTRACION IN QUARANTINE.\n");
     //POSDVsMCU1=[];
