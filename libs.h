@@ -137,7 +137,9 @@ int32_t* flipped_bits(int32_t word, int32_t pattern, int wordWidth, int32_t* cor
 		result[k] = 1;
 		result[k] *= (wordWidth + 1);
 	}
-    
+
+
+
 	int32_t bitflips = word ^ pattern;
 	for (k = 0; k < wordWidth; k++){
 		if ((bitflips % 2) == 1) {
@@ -149,15 +151,21 @@ int32_t* flipped_bits(int32_t word, int32_t pattern, int wordWidth, int32_t* cor
 	//return result[1:findlast(result.!=(wordwidth+1))]
 	// Recorremos el vector desde la última posición para encontrar el primero desde el final,
 	// que cumple result != wordWith+1, realloc de result, para devolver vector con nuevo tamaño
-	k = nFound-1;
-	while ((result[k] == wordWidth + 1) && k > -1) {
+
+	//como la matriz esta rellena inicialmente de wordwidth+1 = 9 y y los elementos encontrados
+	//se introducen desde la posicion[0] hasta nFounds, no hace falta recorrer el vector.
+	//se devuelven los nFound primeros del vector
+	//si nFound = 7-> se devuelve result[0] hasta result[8]
+
+	/*k = nFound-1;
+	while ((k > -1) || (result[k] == wordWidth + 1)) {
 		count++;
         k--;
-	}
-    if (count > 0) {
-        result = realloc(result, (nFound - count)*sizeof(int32_t));
+	}*/
+    if (nFound > 0) {
+        result = realloc(result, nFound*sizeof(int32_t));
     }
-    *corruptedBitsLength = (nFound - count);
+    *corruptedBitsLength = nFound;
 	return result;
 }
 
@@ -827,7 +835,7 @@ int32_t** agrupate_mcus(bool** davmatrix, int32_t davmatrixRows, int32_t davmatr
      # REM means "remainder of division", DIV integer division.
      end*/
     for (i = 0; i < count; i++) {
-        int reminder = 0;
+
         if((nonzerovectorelements[i] % davmatrixRows != 0)){
         relatedpairs[i][0] = nonzerovectorelements[i] % davmatrixRows+1;
         }else{
@@ -1094,7 +1102,7 @@ int32_t** cutZerosFromArray(int32_t** matrix, int32_t matrixRows, int32_t matrix
     isVector = false;
 	*newRows = 0;
 	*newCols = 0;
-    
+
  /*   for (i = 0; i < matrixRows; i++) {
      for (j = 0; j < matrixCols; j++) {
      printf("%d ", matrix[i][j]);
@@ -1102,7 +1110,7 @@ int32_t** cutZerosFromArray(int32_t** matrix, int32_t matrixRows, int32_t matrix
         printf("\n");
      }
      printf("\n");*/
-    
+
 	if (matrixRows > 1 && matrixCols > 1) {
         isMatrix = true;
 		// this is a classical matrix.
@@ -1207,7 +1215,7 @@ int32_t*** cutZerosFromMCUsummary(int32_t*** MCUSummary, int* rows, int* cols, i
     int tmpMatrixRows = *rows, tmpMatrixCols = *cols;
     bool isMatrix;
     bool isVector;
-    
+
 	int32_t** dimensionsMCU = calloc(dims, sizeof(int32_t*));
 	for (i = 0; i < dims; i++) {
 		dimensionsMCU[i] = calloc(2, sizeof(int32_t));
@@ -1501,14 +1509,14 @@ int32_t*** propose_MCUs(char* op, uint32_t*** XORDVmatrix3D, int numRows, int nu
 				xordvmatrix[i] = calloc(nAddressesInRound[ktest], sizeof(int32_t));
 			}
             copyOfMatrix3to2(XORDVmatrix3D, xordvmatrix, nAddressesInRound[ktest], nAddressesInRound[ktest], ktest);
-            
+
 			bool** XORmarked_pairs = marking_addresses(xordvmatrix, nAddressesInRound[ktest], nAddressesInRound[ktest], anomalXOR, anomalXORlength);
         
 			//The following results only concern an operation.Just present for illustrative
 			//operations.In practical use, only CMB should be used.
 			int nTotalEvents = 0, largestMCUs = 0;
 			int32_t** XORproposed_MCUs = agrupate_mcus(XORmarked_pairs, nAddressesInRound[ktest], nAddressesInRound[ktest], &nTotalEvents, &largestMCUs);
-            
+
 			//Let us save everything.
 			for (i = 0; i < nTotalEvents; i++) {
 				for (j = 0; j < largestMCUs; j++) {
@@ -1519,7 +1527,7 @@ int32_t*** propose_MCUs(char* op, uint32_t*** XORDVmatrix3D, int numRows, int nu
         // However, as there are too many zeros, it is interesting to reshape the matrix.
         // Thus, some memory is saved.But we must be careful with the different dimensions
         // of every partial XY matrix in XYZ arrays.A simple but unelegant way is :
-        
+
         int xorSummaryRows = rows;
         int xorSummaryCols = UnrealMCUsize;
         int32_t*** finalXOR_summary = cutZerosFromMCUsummary(XOR_summary, &xorSummaryRows, &xorSummaryCols, dim);
@@ -1545,7 +1553,7 @@ int32_t*** propose_MCUs(char* op, uint32_t*** XORDVmatrix3D, int numRows, int nu
             copyOfMatrix3to2(POSDVmatrix3D, posdvmatrix, nAddressesInRound[ktest], nAddressesInRound[ktest], ktest);
 
 			bool** POSmarked_pairs = marking_addresses(posdvmatrix, nAddressesInRound[ktest], nAddressesInRound[ktest], anomalPOS, anomalPOSlength);
-            
+
 			//The following results only concern an operation.Just present for illustrative
 			//operations.In practical use, only CMB should be used.
 			int nTotalEvents = 0, largestMCUs = 0;
@@ -1607,7 +1615,7 @@ int32_t*** propose_MCUs(char* op, uint32_t*** XORDVmatrix3D, int numRows, int nu
 					XOR_POS_marked_pairs[i][j] = XORmarked_pairs[i][j] | POSmarked_pairs[i][j];
 				}
 			}
-            
+
 			int nTotalEvents = 0, largestMCUs = 0;
 			int32_t** CMBproposed_MCUs = agrupate_mcus(XOR_POS_marked_pairs, nAddressesInRound[ktest], nAddressesInRound[ktest], &nTotalEvents, &largestMCUs);
 
@@ -1621,7 +1629,7 @@ int32_t*** propose_MCUs(char* op, uint32_t*** XORDVmatrix3D, int numRows, int nu
         // However, as there are too many zeros, it is interesting to reshape the matrix.
         // Thus, some memory is saved.But we must be careful with the different dimensions
         // of every partial XY matrix in XYZ arrays.A simple but unelegant way is :
-        
+
         int cmbSummaryRows = rows;
         int cmbSummaryCols = UnrealMCUsize;
         int32_t*** finalCMB_summary = cutZerosFromMCUsummary(CMB_summary, &cmbSummaryRows, &cmbSummaryCols, dim);
@@ -1629,7 +1637,7 @@ int32_t*** propose_MCUs(char* op, uint32_t*** XORDVmatrix3D, int numRows, int nu
         *colss = cmbSummaryCols;
         //libera3D(CMB_summary, rows, UnrealMCUsize);
         return finalCMB_summary;
-        
+
 	}
     int32_t*** aux = NULL;
     return aux;
@@ -1659,7 +1667,7 @@ int32_t** condensate_summary(int32_t*** summary3D, int summary3DRows, int summar
             summary2D[k] = calloc(summary3DCols, sizeof(int32_t*));
         }
         copyOfMatrix3to2(summary3D, summary2D, summary3DRows, summary3DCols, (i-1));
-        
+
 		for (k = summary3DCols-1; k > 0; k--) {
             nEvents = findNotEqual(summary2D, summary3DRows, summary3DCols, -1, k, 0);
             for (j = k; j < summary3DCols; j++) {
@@ -1688,9 +1696,20 @@ int32_t** condensate_summary(int32_t*** summary3D, int summary3DRows, int summar
 uint32_t** locate_mbus(int32_t** content, int32_t contentRows, int32_t contentCols, int32_t** pattern, int nRoundsInPattern, int datawidth, int* newRows, int* newCols){
 	int i, j, z, nDetected = 0;
 	uint32_t** summary = calloc((3 * contentRows), sizeof(uint32_t*));
+
 	for (i = 0; i < (3 * contentRows); i++) {
 		summary[i] = calloc(4, sizeof(uint32_t));
 	}
+
+   /* for (i = 0; i < contentRows; i++) {
+        for (j = 0; j< 3; j++) {
+            printf("%d ", content[i][j]);
+        }
+        printf("\n");
+    }
+    printf("\n");*/
+
+
 	for (i = 0; i < nRoundsInPattern; i++) {
 		for (j = 0; j < contentRows; j++) {
 			if (content[j][3 * i] == 0xFFFFFFFF) {
@@ -1698,6 +1717,8 @@ uint32_t** locate_mbus(int32_t** content, int32_t contentRows, int32_t contentCo
 			}
 			else {
                 int32_t corruptedBitsLength = 0;
+
+                //Entra,cuando no deberia, para los indices content[0][7], pattern[2][1]
 				int32_t* corruptedBits = flipped_bits(content[j][3 * i + 1], pattern[i][1], datawidth, &corruptedBitsLength);
 				if (corruptedBitsLength > 1){
                     summary[nDetected][0] = i;
@@ -1709,6 +1730,12 @@ uint32_t** locate_mbus(int32_t** content, int32_t contentRows, int32_t contentCo
 			}
 		}
 	}
+	/*int a,b;
+    for (a = 0; a < 3 * contentRows; a++) {
+        for (b = 0; b < 4; b++) {
+            printf("%d ", summary[a][b]);
+        }
+    }*/
     return cutZerosFromArray(summary, (3*contentRows), 4, newRows, newCols, NULL, NULL);
 }
 
@@ -1888,7 +1915,7 @@ int32_t* criticalXORValuesFromClusters(int32_t*** PrelMCUSummary,int numRows, in
 					for (kAddress2 = 0; kAddress2 < kAddress1; kAddress2++){
 						index2 = PrelMCUSummary[kRow][kAddress2][ktest];
 						address2 = AddressMatrix[index2-1][ktest*3];
-						candidate = address1 ^ address2;                        
+						candidate = address1 ^ address2;
 						if (findEqualMatrix(XORextracted_values, XORextractedRows, XORextractedCols, candidate) == 0){
                             int32_t* vCandidate = calloc(1, sizeof(int32_t));
                             vCandidate[0] = candidate;
@@ -1928,7 +1955,7 @@ void extractAnomalDVfromClusters(int32_t** content, int contentRows, int content
      for (i = 0; i < XOREVRows; i++) {
          (*tempXORDVvalues)[i] = calloc(XOREVCols, sizeof(int32_t));
      }
-     
+
      *tempPOSDVvalues = calloc(POSEVRows, sizeof(int32_t*));
      for (i = 0; i < POSEVRows; i++) {
          (*tempPOSDVvalues)[i] = calloc(POSEVCols, sizeof(int32_t));
@@ -1963,15 +1990,15 @@ void extractAnomalDVfromClusters(int32_t** content, int contentRows, int content
         tempCMB_summary = propose_MCUs("cmb", xordvmatrixbackup, xordvmatrixbackupRows, xordvmatrixbackupCols, xordvmatrixbackupDims, posdvmatrixbackup, *tempXORDVvalues, XOREVRows, *tempPOSDVvalues, POSEVRows, nAddressesInRound, &cmbRows, &cmbCols, &cmbDims);
 
         printf(" Ended. Searching new Elements...");
-        
+
         printf(" XOR...");
-        
+
         int nProposedXORDV = 0;
         int32_t* proposedXORDV = criticalXORValuesFromClusters(tempCMB_summary, cmbRows, cmbCols, cmbDims, content, *tempXORDVvalues, XOREVRows, XOREVCols, xorDVtotalrepetitions, xorDVtotalrepetitionsLenght, totalDVhistogram, LN, &nProposedXORDV);
 		int32_t* proposedPOSDV = NULL;
         int nProposedPOSDV = 0;
         printf(" POS. SUB...");
-    
+
         printf(" Ended. ");
         
         if (nProposedXORDV != 0) {
@@ -1983,9 +2010,9 @@ void extractAnomalDVfromClusters(int32_t** content, int contentRows, int content
             int nDiscoveredXORDVs = 0;
             (*discoveredXORDVs) = unionVec(proposedXORDV, nProposedXORDV, *discoveredXORDVs, 0, NULL, 0, &nDiscoveredXORDVs);
             *discoveredXORDVsLength = nDiscoveredXORDVs;
-            
+
             int32_t** auxXORDV = calloc(XOREVRows + nProposedXORDV, sizeof(int32_t*));
-            
+
             for (i = 0; i < XOREVRows + nProposedXORDV; i++) {
                 auxXORDV[i] = calloc(XOREVCols, sizeof(int32_t));
             }
@@ -2000,7 +2027,7 @@ void extractAnomalDVfromClusters(int32_t** content, int contentRows, int content
                 auxXORDV[index][1] = totalDVhistogram[proposedXORDV[a]-1][1];
                 index++;
             }
-            
+
             *tempXORDVvalues = auxXORDV;
 
             *tempXORDVvaluesLength = XOREVRows + nProposedXORDV;
@@ -2016,9 +2043,9 @@ void extractAnomalDVfromClusters(int32_t** content, int contentRows, int content
             int nDiscoveredPOSDVs = 0;
             (*discoveredPOSDVs) = unionVec(proposedPOSDV, nProposedPOSDV, (*discoveredPOSDVs), 0, NULL, 0, &nDiscoveredPOSDVs);
             *discoveredPOSDVsLength = nDiscoveredPOSDVs;
-            
+
             int32_t** auxPOSDV = calloc(POSEVRows + nProposedPOSDV, sizeof(int32_t*));
-            
+
             for (i = 0; i < POSEVRows + nProposedPOSDV; i++) {
                 auxPOSDV[i] = calloc(POSEVCols, sizeof(int32_t));
             }
@@ -2032,7 +2059,7 @@ void extractAnomalDVfromClusters(int32_t** content, int contentRows, int content
                 auxPOSDV[index][0] = proposedPOSDV[a];
                 auxPOSDV[index][1] = totalDVhistogram[proposedPOSDV[a]-1][2];
                 index++;
-            }            
+            }
             (*tempPOSDVvalues) = auxPOSDV;
             *tempPOSDVvaluesLength = POSEVRows + nProposedPOSDV;
             POSEVRows = POSEVRows + nProposedPOSDV;
@@ -2052,7 +2079,7 @@ void criticalXORvaluesFromXORingRule(int32_t** XORextracted_values, int XORextra
 	bool candidateFind = false, prelCandidateFind = false;
 	printf("\n\tCase 1: XORing known values... ");
 	int32_t* prelCandidates = calloc(1, sizeof(int32_t));
-    
+
 	int32_t* oldXORValues = calloc(XORextracted_valuesRows, sizeof(int32_t));
     for (i = 0; i < XORextracted_valuesRows; i++) {
         oldXORValues[i] = XORextracted_values[i][0];
@@ -2078,7 +2105,7 @@ void criticalXORvaluesFromXORingRule(int32_t** XORextracted_values, int XORextra
 	sort(prelCandidates, prelCandidatesTam);
 
 	int nThresholdCase1 = excessiveRepetitions(XORDVtotalrepetitions, xorDvtotalrepetitionsLength, 1, LN, "xor", randomnessThreshold);
-    
+
     int32_t* candidatesCase1 = calloc(prelCandidatesTam, sizeof(int32_t)); //Luego se redimensiona al número de elemntos real
     int candidatesCase1Length = 0;
     for (i = 0; i < prelCandidatesTam; i++) {
@@ -2088,7 +2115,7 @@ void criticalXORvaluesFromXORingRule(int32_t** XORextracted_values, int XORextra
         }
     }
     candidatesCase1 = realloc(candidatesCase1, candidatesCase1Length*sizeof(int32_t));
-    
+
 	if (candidatesCase1Length > 0){
 		printf("%d new value", candidatesCase1Length);
 		if (candidatesCase1Length != 1)
@@ -2138,7 +2165,7 @@ void criticalXORvaluesFromXORingRule(int32_t** XORextracted_values, int XORextra
 			//free(presencePrelCandidates);
         //releasing RAM.
         int nThresholdCase2 = excessiveRepetitions(XORDVtotalrepetitions, xorDvtotalrepetitionsLength, 1, LN, "xor", randomnessThreshold);
-			
+
     int32_t* candidatesCase2 = calloc(selectedPrelCandidatesLength, sizeof(int32_t)); //Luego se redimensiona al número de elemntos real
     int candidatesCase2Length = 0;
     for (i = 0; i < selectedPrelCandidatesLength; i++) {
@@ -2177,7 +2204,7 @@ void criticalXORvaluesFromXORingRule(int32_t** XORextracted_values, int XORextra
         (*newXORDVvalues)[index][1] = totalDVhistogram[(*candidates)[i]-1][1];
         index++;
     }
-    
+
 }
 
 
