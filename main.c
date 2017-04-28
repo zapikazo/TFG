@@ -24,24 +24,6 @@ int main(){
     int32_t* v3 = calloc(3, sizeof(int32_t));
 
     
-    v2[0] = 2;
-    v2[1] = 1;
-    v2[2] = 2;
-    v2[3] = 3;
-    v2[4] = 2;
-    
-    v3[0] = 0;
-    v3[1] = 2;
-    v3[2] = 1;
-    
-    int result = 0;
-
-    printf("%d", lookForElem(v2, 5, 0));
-    printf("%d", lookForElem(v2, 5, 1));
-    printf("%d", lookForElem(v2, 5, 2));
-    printf("%d", lookForElem(v2, 5, 3));
-    printf("%d", lookForElem(v2, 5, 4));
-    printf("\n");
     
     
    // int32_t* lol  = create_histogram(v2, 5, 10);
@@ -84,6 +66,7 @@ int main(){
     //OBTENER EL TAMANIO DE LOS DATOS, ARCHIVO JL
     int nBitsAddress = 0;
     int nBits4Blocks = 0;
+    int NWordWidth = 0;
     int nRoundsInPattern;
     int commas = 0, c;
     
@@ -106,6 +89,7 @@ int main(){
     //SEGUN EL JL SON 21, necesitamos la apertura de dos ficheros
     nBitsAddress = 21;
     nBits4Blocks = 1;
+    NWordWidth = 8;
     // Leer jl para obtener patterns
     int32_t** pattern = calloc(nRoundsInPattern, sizeof(int32_t*));
     for (int i = 0; i < nRoundsInPattern; i++) {
@@ -637,17 +621,30 @@ int main(){
     //POSextracted_values03=POSextracted_values02;
 // XORing RULE
     printf("\n\nAPPLYING XORING RULE...");
-    /*XORDVfromXORing,  XORextracted_values04=CriticalXORvaluesFromXORingRule( XORextracted_values03,
-                                                                            xorDVtotalrepetitions,
-                                                                            TotalDVhistogram, LN,RandomnessThreshold)*/
     int32_t** XORextracted_values04 =  NULL;
     int XORextracted_values04Length = 0;
     int32_t* XORDVfromXORing = NULL;
     int XORDVfromXORingLength = 0;
     
-    criticalXORvaluesFromXORingRule(XORextracted_values03, XORextracted_values03Length, xorDVtotalrepetitions, (maxTotalXORValue + 1), totalDVHistogram, LN, XORextracted_values04, &XORextracted_values04Length, XORDVfromXORing, &XORDVfromXORingLength);
+    criticalXORvaluesFromXORingRule(XORextracted_values03, XORextracted_values03Length, xorDVtotalrepetitions, (maxTotalXORValue + 1), totalDVHistogram, LN, &XORextracted_values04, &XORextracted_values04Length, &XORDVfromXORing, &XORDVfromXORingLength);
     //POSextracted_values04=POSextracted_values03
 
+   /* printf("\n");
+    for (int i = 0; i < XORextracted_values04Length; i++) {
+        for (int j = 0; j < 2; j++) {
+            printf("%d ", XORextracted_values04[i][j]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+    
+    for (int i = 0; i < XORDVfromXORingLength; i++) {
+        printf("%d ", XORDVfromXORing[i]);
+    }
+    
+    printf("\n");*/
+    
+    
 /** Time for Exploring MCUs **/
     printf("\nSEARCHING INSIDE MCUs (SECOND PASS)...");
     /*XORDVsMCU2, POSDVsMCU2, XORextracted_values05,
@@ -670,7 +667,40 @@ int main(){
     int discoveredXORDVs2Length = 0;
     int32_t* discoveredPOSDvs2 = NULL;
     int discoveredPOSDVs2Length = 0;
-    /*extractAnomalDVfromClusters(content, rawDataMatrixNRows, rawDataMatrixNCols, XORextracted_values04, <#int XOREVRows#>, <#int XOREVCols#>, XORextracted_values04, <#int POSEVRows#>, <#int POSEVCols#>, xorDVtotalrepetitions, (maxTotalXORValue + 1), posDVtotalrepetitions, totalDVHistogram, xordvmatrixbackup, rawDataMatrixNRows, rawDataMatrixNRows, nRoundsInPattern, posdvmatrixbackup, nAddressesInRound, LN, discoveredXORDvs2, &discoveredXORDVs2Length, discoveredPOSDvs2, &discoveredPOSDVs2Length, XORextracted_values05, &XORextracted_values05Length, POSextracted_values05, &POSextracted_values05Length);*/
+    extractAnomalDVfromClusters(content, rawDataMatrixNRows, rawDataMatrixNCols, XORextracted_values04, XORextracted_values04Length, 2, POSextracted_values03, POSextracted_values03Length, 2, xorDVtotalrepetitions, (maxTotalXORValue + 1), posDVtotalrepetitions, totalDVHistogram, xordvmatrixbackup, rawDataMatrixNRows, rawDataMatrixNRows, nRoundsInPattern, posdvmatrixbackup, nAddressesInRound, LN, &discoveredXORDvs2, &discoveredXORDVs2Length, &discoveredPOSDvs2, &discoveredPOSDVs2Length, &XORextracted_values05, &XORextracted_values05Length, &POSextracted_values05, &POSextracted_values05Length);
+    
+    
+   /*  printf("\n");
+     printf("\n Discoveredxordvs");
+     for (a = 0; a < discoveredXORDVs2Length; a++) {
+     printf("%d ", discoveredXORDvs2[a]);
+     }
+     printf("\n");
+     
+       printf("\n Discoveredposdvs");
+     for (a = 0; a < discoveredPOSDVs2Length; a++) {
+     printf("%d ", discoveredPOSDvs[a]);
+     }
+     printf("\n");
+     
+     printf("\n xorextractedvalues03");
+     for (a = 0; a < XORextracted_values05Length; a++) {
+     for (b = 0; b < 2; b++) {
+     printf("%d ", XORextracted_values05[a][b]);
+     }
+     printf("\n");
+     }
+     printf("\n");
+     
+     printf("\n posextractedvalues03");
+     for (a = 0; a < POSextracted_values05Length; a++) {
+     for (b = 0; b < 2; b++) {
+     printf("%d ", POSextracted_values05[a][b]);
+     }
+     printf("\n");
+     }
+     printf("\n");*/
+    
     
     
     printf("\n\tWARNING: MCUs IN POSITIVE SUBTRACION IN QUARANTINE.\n");
@@ -681,15 +711,45 @@ int main(){
     printf(" ");
     
     printf("\nMAKING THE FINAL ORGANIZATION OF ADDRESSES FOR PRESENTATION...");
-   /* CMBRES,XORRES, POSRES=propose_MCUs(xordvmatrixbackup,
-                                       posdvmatrixbackup,
-                                       XORextracted_values05[:,1],
-                                       POSextracted_values05[:,1],
-                                       NAddressesInRound,
-                                       UnrealMCUsize)*/
-   /* propose_MCUs(<#char *op#>, <#uint32_t ***XORDVmatrix3D#>, <#int numRows#>, <#int numCols#>, <#int dim#>, <#uint32_t ***POSDVmatrix3D#>, <#int32_t **anomalXOR#>, <#int32_t anomalXORlength#>, <#int32_t **anomalPOS#>, <#int32_t anomalPOSlength#>, <#int *nAddressesInRound#>, <#int *rowss#>, <#int *colss#>, <#int *dimss#>)*/
+    int cmbResRows, cmbResCols, cmbResDims;
+    int32_t*** cmbRes = propose_MCUs("cmb", xordvmatrixbackup, rawDataMatrixNRows, rawDataMatrixNRows, nRoundsInPattern, posdvmatrixbackup, XORextracted_values05, XORextracted_values05Length, POSextracted_values03, POSextracted_values03Length, nAddressesInRound, &cmbResRows, &cmbResCols, &cmbResDims);
     
-    //FinalResult = condensate_summary(CMBRES, Content)
+    int finalResultRows = 0, finalResultCols = 0;
+    int32_t** finalResult = condensate_summary(cmbRes, cmbResRows, cmbResCols, cmbResDims, nAddressesInRound, &finalResultRows, &finalResultCols);
+
+  /*  for (a = 0; a < cmbResRows; a++) {
+        for (b = 0; b < cmbResCols; b++) {
+            printf("%d ", cmbRes[a][b][0]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+    
+    for (a = 0; a < cmbResRows; a++) {
+        for (b = 0; b < cmbResCols; b++) {
+            printf("%d ", cmbRes[a][b][1]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+    
+    for (a = 0; a < cmbResRows; a++) {
+        for (b = 0; b < cmbResCols; b++) {
+            printf("%d ", cmbRes[a][b][2]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+    
+    for (a = 0; a < finalResultRows; a++) {
+        for (b = 0; b < finalResultCols; b++) {
+            printf("%d ", finalResult[a][b]);
+        }
+        printf("\n");
+    }
+    printf("\n");*/
+    
+    
     printf("\tEnded.");
     
     printf("*******************************************************************");
@@ -699,7 +759,20 @@ int main(){
     printf("\nPRESENTING RESULTS:\n");
     printf("\nWARNING: This program is not prepared to deal with Experiments with MBUs!!!!!!!!");
     
+    int mbuSummaryRows = 0, mbuSummaryCols = 0;
+    int32_t** mbuSummary = locate_mbus(content, rawDataMatrixNRows, rawDataMatrixNCols, pattern, nRoundsInPattern, NWordWidth, &mbuSummaryRows, &mbuSummaryCols);
+    
+    
+    for (a = 0; a < mbuSummaryRows; a++) {
+        for (b = 0; b < mbuSummaryCols; b++) {
+            printf("%d ", mbuSummary[a][b]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+    
    /* MBUSummary = locate_mbus(Content, Pattern, NWordWidth)
+    
     
     if (length(MBUSummary)>0)
         println("\n\tThe following MBUs have been observed...\n")
