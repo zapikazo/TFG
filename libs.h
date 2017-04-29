@@ -139,7 +139,6 @@ int32_t* flipped_bits(int32_t word, int32_t pattern, int wordWidth, int32_t* cor
 	}
 
 
-
 	int32_t bitflips = word ^ pattern;
 	for (k = 0; k < wordWidth; k++){
 		if ((bitflips % 2) == 1) {
@@ -1701,15 +1700,6 @@ uint32_t** locate_mbus(int32_t** content, int32_t contentRows, int32_t contentCo
 		summary[i] = calloc(4, sizeof(uint32_t));
 	}
 
-   /* for (i = 0; i < contentRows; i++) {
-        for (j = 0; j< 3; j++) {
-            printf("%d ", content[i][j]);
-        }
-        printf("\n");
-    }
-    printf("\n");*/
-
-
 	for (i = 0; i < nRoundsInPattern; i++) {
 		for (j = 0; j < contentRows; j++) {
 			if (content[j][3 * i] == 0xFFFFFFFF) {
@@ -1718,7 +1708,6 @@ uint32_t** locate_mbus(int32_t** content, int32_t contentRows, int32_t contentCo
 			else {
                 int32_t corruptedBitsLength = 0;
 
-                //Entra,cuando no deberia, para los indices content[0][7], pattern[2][1]
 				int32_t* corruptedBits = flipped_bits(content[j][3 * i + 1], pattern[i][1], datawidth, &corruptedBitsLength);
 				if (corruptedBitsLength > 1){
                     summary[nDetected][0] = i;

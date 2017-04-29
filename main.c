@@ -98,7 +98,7 @@ int main(){
     }
     pattern[0][1] = 0x00;
     pattern[1][1] = 0x55;
-    pattern[2][3] = 0xFF;
+    pattern[2][1] = 0xFF;
 
     /* When we found a "\n" the rows can be incremented */
     while ((c=fgetc(file)) != EOF) {
@@ -502,14 +502,6 @@ int main(){
         index++;
     }
     
-
-     /*for (a = 0; a < XORextracted_values01Lenght; a++) {
-         for (b = 0; b < 2; b++) {
-             printf("%d ",XORextracted_values01[a][b]);
-         }
-         printf("\n");
-     }
-     printf("\n");*/
     
     //POSextracted_values01=POSextracted_values00, copia simple de matrices, hacer función?
     int32_t POSextracted_values01Lenght =  POSextracted_values00Lenght;
@@ -628,6 +620,7 @@ int main(){
 
     criticalXORvaluesFromXORingRule(XORextracted_values03, XORextracted_values03Length, xorDVtotalrepetitions, (maxTotalXORValue + 1), totalDVHistogram, LN, &XORextracted_values04, &XORextracted_values04Length, &XORDVfromXORing, &XORDVfromXORingLength);
     //POSextracted_values04=POSextracted_values03
+
 
    /* printf("\n");
     for (int i = 0; i < XORextracted_values04Length; i++) {
@@ -763,40 +756,189 @@ int main(){
     int32_t** mbuSummary = locate_mbus(content, rawDataMatrixNRows, rawDataMatrixNCols, pattern, nRoundsInPattern, NWordWidth, &mbuSummaryRows, &mbuSummaryCols);
 
 
-    for (a = 0; a < mbuSummaryRows; a++) {
+    /*for (a = 0; a < mbuSummaryRows; a++) {
         for (b = 0; b < mbuSummaryCols; b++) {
             printf("%d ", mbuSummary[a][b]);
         }
         printf("\n");
     }
-    printf("\n");
+    printf("\n");*/
 
-    printf("\n EXIT!");
-
-    if((mbuSummaryRows*mbuSummaryCols)>0)
+    if((mbuSummaryRows*mbuSummaryCols)>0){
         printf("\n\tThe following MBUs have been observed...\n");
 
-	/*for (a = 0; a < mbuSummaryRows; a++) {
-		printf("\t\t Address %d in Test %d (%#): bitflips in the word.\n",mbuSummary[a,1],mbuSummary[a,0],mbuSummary[a,2],mbuSummary[a,3]);
-	}*/
-        /*for kmbu=1:length(MBUSummary[:,1])
-            print("\t\t Address ",  MBUSummary[kmbu, 2], " in Test ", MBUSummary[kmbu, 1],
-                  " (0x", hex(MBUSummary[kmbu, 3],6)"): ", MBUSummary[kmbu, 4], " bitflips in the word.\n")
+		/*for kmbu=1:length(MBUSummary[:,1])
+			print("\t\t Address ",  MBUSummary[kmbu, 2], " in Test ", MBUSummary[kmbu, 1],
+				  " (0x", hex(MBUSummary[kmbu, 3],6)"): ", MBUSummary[kmbu, 4], " bitflips in the word.\n")
+			end*/
+		int i;
+		for (i = 0; i < mbuSummaryRows; i++) {
+			printf("\n Address %d in Test %d (%x): %d bitflips in the word.\n",mbuSummary[i,1],mbuSummary[i,0],mbuSummary[i,2],mbuSummary[i,3]);
+		}
+		/*   println("\nTHE PRESENCE OF MBUs MAKES THE FOLLOWING RESULTS INACCURATE.\n")
+		   println("\tFor you information, the expected average numbers of several SBUs in a cell is ")
+		   print("\t\t")*/
+		 printf("\n THE PRESENCE OF MBUs MAKES THE FOLLOWING RESULTS INACCURATE.");
+		 printf("\n\tFor you information, the expected average numbers of several SBUs in a cell is ");
+		 printf("\t\t");
+
+		 /* for k=1:NRoundsInPattern
+			  print("Test ", k, ": ", 7*NAddressesInRound[k]*(NAddressesInRound[k]-1)/16,"\t")
+			  end
+			  println("\n")*/
+		 for(i = 0; i < nRoundsInPattern;i++){
+			 printf("Test %d: %d \t", i,7*nAddressesInRound[i]*(nAddressesInRound[i]-1)/16);
+		 }
+		 printf("\n");
+
+    }else{
+
+    	printf("\n\t---> Fortunately, your data lacks MBUs and following results are not commited.\n");
+    }
+
+    printf("\nKINDS OF EVENTS");
+    int i,j,z;
+    for(i = 0; i< nRoundsInPattern;i++){
+    	printf("\nTest %d: %d SBUs", i,finalResult[0][i+1]);
+
+    	for(j = 1;j < finalResultRows;j++){
+    		if(finalResult[j][i+1] !=0){
+    			printf("\n \t%d %d-bit MCU", finalResult[j][i+1],j);
+    			if(finalResult[j][i+1]!=1){
+    				printf("s");
+    			}
+
+    		}else{
+    			printf("			");
+    		}
+
+    	}
+    	int32_t sum = 0;
+    	for(z= 0 ;z < finalResultRows;z++){
+    		sum+= (finalResult[z][0]*finalResult[z][i+1]);
+    	}
+
+    	printf("\n Affected Addresses: %d",sum);
+
+    }
+    printf("\n\n*******************************************************************");
+    printf("\nSUMMARY OF THE PROPOSED ANOMALOUS DV VALUES:");
+    printf("\nSelf-consistence after XORing: ");
+
+    for(i = 0;i< XORextracted_values00Lenght;i++){
+    	printf("\n 0x%x",XORextracted_values00[i][0]);
+    }
+    printf("\n---------------------------");
+
+    printf("\n Self-consistence after Positive Subtraction: ");
+    for(i = 0;i< POSextracted_values00Lenght;i++){
+    	printf("\n%d",POSextracted_values00[i][0]);
+    	printf(" (0x%x )\n",POSextracted_values00[i][0]);
+    }
+    printf("\n---------------------------");
+
+    printf("\n Trace Rule: ");
+    for(i = 0;i< traceRuleLong;i++){
+    	printf("\n 0x%x",XORextracted_TraceRule[i]);
+    }
+    printf("\n---------------------------");
+    printf("\nAdded anomalous DV values: ");
+    printf("\n\tXOR operation:");
+
+    /*
+     * FALTA por setdiff
+     *   for k in UnknowXORValues
+    	print("0x",hex(k,5), "\n")
+  	  	  end
+     */
+    printf("\n ");
+    printf("\n\tPOS. SUB. operation:");
+/*FALTA por setdiff
+    for k in UnknowPOSValues
+       print(k, " (0x",hex(k,5), ")\n")
+     end
+*/
+    printf("\n--------------------------");
+    printf("\nMCU for XORing (First Pass): ");
+
+    for(i = 0; i< discoveredXORDVsLength;i++){
+    	k = discoveredXORDvs[i];
+    	printf("\n0x%x",k);
+    }
+
+    printf("\n--------------------------");
+    printf("\nMCU for Pos. Sub. (First Pass):");
+    for(i = 0; i< discoveredPOSDVsLength;i++){
+    	k = discoveredPOSDvs[i];
+    	printf("\n %d (0x%x)",discoveredPOSDvs[i],k);
+    }
+
+    printf("\n--------------------------");
+    printf("\nXORING RULE: ");
+    for(i = 0; i< XORDVfromXORingLength;i++){
+    	k = XORDVfromXORing[i];
+    	printf("\n0x%x",XORDVfromXORing[i],k);
+    }
+
+    printf("\n--------------------------");
+    printf("\nMCU for XORing (Second Pass): ");
+    for(i = 0; i< discoveredXORDVs2Length;i++){
+    	k = discoveredXORDvs2[i];
+    	printf("\n0x%x",k);
+    }
+
+    printf("\n--------------------------");
+    printf("\nMCU for Pos. Sub. (Second Pass): ");
+    for(i = 0; i< discoveredPOSDVs2Length;i++){
+    	k = discoveredPOSDvs2[i];
+    	printf("\n %d (0x%x)",discoveredPOSDvs2[i],k);
+    }
+
+    printf("\n--------------------------");
+    printf("\n-------------------------");
+
+    printf("\nElapsed Time: %d", (durationSteps[0,1]-durationSteps[0,0]));
+    /*
+    int32_t*** hexCMBRES = NULL;
+    hexCMBRES = index2address(cmbRes,cmbResRows,cmbResCols, cmbResDims, content){
+*/
+    /*println("\nElapsed Time: ", DurationSteps[1,2]-DurationSteps[1,1])
+
+  HexCMBRES=Index2Address(CMBRES, Content[:,1:3:end])
+
+  rows, cols, dummyvalue = size(HexCMBRES)
+
+  FileForAddresses=string("AffectedAddresses-",string(now()))
+
+  open(FileForAddresses, "w") do f
+
+    print(f, "ADDRESSES INVOLVED IN MCUs\n")
+
+    for ktest=1:NRoundsInPattern
+      print(f, "\n\tTest Number: ", ktest)
+      print(f, "\n\t------------------\n")
+
+      for krow = 1:rows
+        if (HexCMBRES[krow,1, ktest]!=0)
+          for kcol = 1:cols
+            ToBePrinted = HexCMBRES[krow, kcol, ktest]
+
+            if (ToBePrinted!=0)
+              StoredWord = Content[CMBRES[krow, kcol, ktest], 3*ktest-1]
+              print(f, "\t0x", hex(ToBePrinted,6))
+              print(f, " (0x", hex(StoredWord,2),") ")
+            else
+              print(f, "\t, ")
             end
-            println("\nTHE PRESENCE OF MBUs MAKES THE FOLLOWING RESULTS INACCURATE.\n")
-            println("\tFor you information, the expected average numbers of several SBUs in a cell is ")
-            print("\t\t")
-            for k=1:NRoundsInPattern
-                print("Test ", k, ": ", 7*NAddressesInRound[k]*(NAddressesInRound[k]-1)/16,"\t")
-                end
-                println("\n")
-
-                else
-
-                    println("\t---> Fortunately, your data lacks MBUs and following results are not commited.\n")
-
-                    end*/
-
+          end
+          print(f,"\n")
+        else
+          break;
+        end
+      end
+      print(f, "\n------------------\n")
+    end
+  end*/
 
 
 
