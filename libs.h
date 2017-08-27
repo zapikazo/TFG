@@ -82,26 +82,134 @@ FILE* openFile(char* name){
     return file;
 }
 
-bool readJLFile(FILE *infoFile, programInfo *programInfo){
-    char *line;
+/*
+ * Function to read .jl files. 
+ * Gets all the necessary values to run the program.
+ * Returns the name of the content file to read.
+ */
+char* readJLFile(FILE *infoFile, programInfo *programInfo, previouslyKnownValues *prevKnoVals){
+    char *csvFileToOpen = NULL;
+    char *line = NULL;
     size_t len = 0;
     ssize_t read;
+    int i, n, cont = 0;
+    char c;
+    
+    programInfo->pattern = calloc(1, sizeof(int32_t*));
+    programInfo->pattern[0] = calloc(2, sizeof(int32_t));
+    programInfo->patternLength = 0;
+    
+    prevKnoVals->XORextracted_values.data = calloc(1, sizeof(int32_t*));
+    prevKnoVals->XORextracted_values.length = 0;
+    
+    prevKnoVals->POSextracted_values.data = calloc(1, sizeof(int32_t*));
+    prevKnoVals->POSextracted_values.length = 0;
+
+    
     while((read = getline(&line, &len, infoFile)) != -1){
-       // printf("%s", line);
-        if (line[0] != '#' && line[0] != '\n') { /* Not a comment or blank space */
-            if (strcmp(&line[0-4], "const")) { /* Const value */
-                if (strcmp(&line[6-14], "NbitsAddre")) {
-                    programInfo->nBitsAddress = (int)&line[19-20]; //MAL
+        if (line[0] != '#' && line[0] != '\n' && line[0] != 'p') { /* Not a comment, blank space or a comment */
+            for (i = 0; i < 23; i++) {
+                if (strncmp(&line[i], "NbitsAd", 7) == 0) {
+                    programInfo->nBitsAddress = atoi(&line[19]); //mal
                 }
-                if (strcmp(&line[6-14], "NWordWidth")) {
-                    programInfo->nBitsAddress = (int)&line[17]; //MAL
+                if (strncmp(&line[i], "NWordWi", 7) == 0) {
+                    programInfo->nWordWidth = atoi(&line[17]);
+                }
+                if (strncmp(&line[i], "Nbits4b", 7) == 0) {
+                    programInfo->nBits4Blocks = atoi(&line[21]);
+                }
+                if (strncmp(&line[i], "Pattern", 7) == 0) {
+                    c = getc(infoFile);
+                    while(c != ']' && c != '\n'){
+                        n = atoi(&c);
+                        programInfo->pattern[programInfo->patternLength][0] = n;
+                        c = getc(infoFile); /* Blank space */
+                        c = getc(infoFile);
+                        char *word = calloc(5, sizeof(char));
+                        while (c != '\n') {
+                            word[cont] = c;
+                            cont++;
+                            c = getc(infoFile);
+                        }
+                        programInfo->pattern[programInfo->patternLength][1] = (int)strtol(word, NULL, 16);
+                        free(word);
+                        cont = 0;
+                        programInfo->patternLength++;
+                        programInfo->pattern = realloc(programInfo->pattern, programInfo->patternLength+1);
+                        programInfo->pattern[programInfo->patternLength] = calloc(2, sizeof(int32_t));
+                        c = getc(infoFile);
+                    }
+                }
+                if (strncmp(&line[i], "KnownXO", 7) == 0) {
+                    c = getc(infoFile);
+                    int n = 0;
+                    while(c != ']' && c != '\n' && c != '#'){
+                        c = getc(infoFile); /* x */
+                        c = getc(infoFile);
+                        char *address = calloc(5, sizeof(char));
+                        while (c != '\n') {
+                            address[cont] = c;
+                            cont++;
+                            c = getc(infoFile);
+                        }
+                        prevKnoVals->XORextracted_values.data[n] = (int)strtol(address, NULL, 16);
+                        n++;
+                        free(address);
+                        cont = 0;
+                        prevKnoVals->XORextracted_values.length++;
+                        prevKnoVals->XORextracted_values.data = realloc(prevKnoVals->XORextracted_values.data, prevKnoVals->XORextracted_values.length+1);
+                        c = getc(infoFile);
+                    }
+                }
+                if (strncmp(&line[i], "KnownPO", 7) == 0) {
+                    c = getc(infoFile);
+                    int n = 0;
+                    while(c != ']' && c != '\n' && c != '#'){
+                        c = getc(infoFile); /* x */
+                        c = getc(infoFile);
+                        char *address = calloc(5, sizeof(char));
+                        while (c != '\n') {
+                            address[cont] = c;
+                            cont++;
+                            c = getc(infoFile);
+                        }
+                        prevKnoVals->POSextracted_values.data[n] = (int)strtol(address, NULL, 16);
+                        n++;
+                        free(address);
+                        cont = 0;
+                        prevKnoVals->POSextracted_values.length++;
+                        prevKnoVals->POSextracted_values.data = realloc(prevKnoVals->POSextracted_values.data, prevKnoVals->POSextracted_values.length+1);
+                        c = getc(infoFile);
+                    }
+                }
+                if (strncmp(&line[i], "Content", 7) == 0) {
+                    int ini, fin;
+                    while (line[i] != '/') { /* On the next position starts the file name */
+                        i++;
+                    }
+                    i++;
+                    ini = i;
+                    if (i == read) {
+                        printf("Incapable to get the .csv file name. \n Exiting... \n");
+                        return EXIT_FAILURE;
+                    }
+                    while (line[i] != '"') {
+                        cont++;
+                        i++;
+                    }
+                    fin = i;
+                    csvFileToOpen = calloc(cont, sizeof(char));
+                    int pos = 0;
+                    for (i = ini; i < fin; i++) {
+                        csvFileToOpen[pos] = line[i];
+                        pos++;
+                    }
                 }
             }
         }
     }
-    
     fclose(infoFile);
-    return true;
+    return csvFileToOpen;
 }
 
 
@@ -1391,6 +1499,37 @@ vectorInt32Struct setdiffTraceRule(vectorInt32Struct *vector, matrixInt322DStruc
 }
 
 /*
+ * This function receives a vector, a matrix and a col.
+ * Returns a vector with the elements which are in the vector but not in the selected col of the matrix.
+ * If they're not elements satisfying the condition, an empty vector is returned.
+ */
+vectorInt32Struct setdiff(vectorInt32Struct *vector, matrixInt322DStruct *matrix, int col){
+    int i, x, cont = 0;
+    bool find = false;
+    vectorInt32Struct newVector;
+    newVector.length = vector->length;
+    newVector.data = calloc(newVector.length, sizeof(int32_t));
+    for (i = 0; i < newVector.length; i++) {
+        for (x = 0; x < matrix->rows; x++) {
+            if (vector->data[i] == matrix->data[x][col]) {
+                find = true;
+            }
+
+        }
+        if (find == false) {
+            newVector.data[cont] = vector->data[i];
+            cont++;
+        }
+        find = false;
+    }
+    
+    newVector.data = realloc(newVector.data, cont*sizeof(int32_t));
+    newVector.length = cont;
+    return newVector;
+}
+
+
+/*
  * This function joins two or three vectors without ordering their elements.
  */
 vectorInt32Struct unionVec(vectorInt32Struct *v1, vectorInt32Struct *v2, vectorInt32Struct *v3){
@@ -1830,7 +1969,6 @@ matrixInt322DStruct locate_mbus(matrixInt322DStruct* content, int** pattern, int
 			}
 		}
 	}
-
     matrixInt322DStruct result = cutZerosFromArray(&summary, NULL, NULL);
     return result;
 }

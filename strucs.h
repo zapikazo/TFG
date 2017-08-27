@@ -10,6 +10,7 @@
 
 typedef struct {
     int32_t** pattern;
+    int patternLength;
     int nBitsAddress;
     int nWordWidth;
     int nBits4Blocks;
@@ -62,5 +63,10 @@ typedef struct {
     int rows;
     int cols;
 } matrixBool2DStruct;
+
+typedef struct {
+    vectorInt32Struct XORextracted_values;
+    vectorInt32Struct POSextracted_values;
+} previouslyKnownValues;
 
 #endif /* strucs_h */

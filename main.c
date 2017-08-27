@@ -11,14 +11,27 @@
 #include "strucs.h"
 
 int main(int argc, char* argv[]){
+    FILE* infoFile = NULL;
     FILE* contentFile = NULL;
+    programInfo programInfo;
+    char* contentFileName;
+    previouslyKnownValues prevKnoVals;
 
-    //Esto para cuando este todo acabado
-   /* if (argc == 2) {
-        contentFile = openFile(argv[1]);
-    }*/
-    contentFile = openFile("CY62167_090nm_TS.csv");
-
+    //Cambiar esto a == y cambiar por lo comentado funct para cuando este todo acabado
+    if (argc != 2) {
+        //infoFile = openFile(argv[1]);
+        infoFile = openFile("CY62167_090nm_TS.jl");
+        if (infoFile != NULL) {
+            contentFileName = readJLFile(infoFile, &programInfo, &prevKnoVals);
+            contentFile = openFile(contentFileName);
+        } else {
+            printf("File name not found. \n");
+            return EXIT_FAILURE;
+        }
+    } else {
+        return EXIT_FAILURE;
+    }
+    
     /* Matrix which save times involved in the different stages to detect bottlenecks */
     float durationSteps[11][2] = {0};
     
@@ -32,25 +45,7 @@ int main(int argc, char* argv[]){
     /* Row 2 of durationSteps devoted to loading data */
     printf("Loading data\n");
     durationSteps[2][0] = time(NULL);
-    
-    // Con la interfaz gráfica, seleccionar el archivo sobre el que se quiere interactuar --> JL y que este redirija al .csv
-    /* File openings */
-    //" primeros nBits4Blocks = 1, tercero = 0
-    
-    FILE *infoFile = openFile("CY62167_090nm_TS.jl");
-    if (contentFile == NULL || infoFile == NULL) {
-        return EXIT_FAILURE;
-    }
-    
-    programInfo programInfo;
-    readJLFile(infoFile, &programInfo);
 
-   /* const Pattern = [
-                     1 0x00
-                     2 0x55
-                     3 0xFF
-                     ];*/
-    
     /* Now, the matrix with data and that showing the patterns must be consistent: */
     /* Content matrix dimensions */
     matrixInt322DStruct content;
@@ -65,23 +60,6 @@ int main(int argc, char* argv[]){
     programInfo.nRoundsInPattern = (commas+1)/3;
     content.cols = programInfo.nRoundsInPattern * 3;
     rewind(contentFile);
-    
-    //nBitsAddress = (nBitsAddress-2)*4;
-    //SEGUN EL JL SON 21, necesitamos la apertura de dos ficheros
-    //programInfo programInfo;
-    programInfo.nBitsAddress = 21;
-    programInfo.nBits4Blocks = 1;
-    programInfo.nWordWidth = 8;
-    
-    // Leer jl para obtener patterns
-    programInfo.pattern = calloc(3, sizeof(int32_t*));
-    for (int i = 0; i < 3; i++) {
-        programInfo.pattern[i] = calloc(2, sizeof(int32_t));
-        programInfo.pattern[i][0] = i+1;
-    }
-    programInfo.pattern[0][1] = 0x00;
-    programInfo.pattern[1][1] = 0x55;
-    programInfo.pattern[2][1] = 0xFF;
 
     /* When we found a "\n" the rows can be incremented */
     while ((c=fgetc(contentFile)) != EOF) {
@@ -486,18 +464,37 @@ int main(int argc, char* argv[]){
     }
     
     /** USING DV VALUES INTRODUCED BY USER. **/
-    /* 
-     
-     FALTA AÑADIR ESTO EN EL CASO DE QUE EN EL JL EXISTAN VALORES PUESTOS A PINCHO
-
     printf("\nRECYCLING PREVIOUSLY KNOWN DV ELEMENTS...");
-    //UnknowXORValues = setdiff(PreviouslyKnownXOR, XORextracted_values01[:,1])
-    //XORextracted_values02=vcat(XORextracted_values01, TotalDVhistogram[UnknowXORValues, 1:2])
-    //UnknowPOSValues = setdiff(PreviouslyKnownPOS, POSextracted_values01[:,1])
-    //POSextracted_values02=vcat(POSextracted_values01, TotalDVhistogram[UnknowPOSValues, [1,3]])
-    int nUnknownXORValues, nUnknownPOSValues;
-    //NUnknownXORValues = length(UnknowXORValues)
-    //NUnknownPOSValues = length(UnknowPOSValues)
+    
+    vectorInt32Struct UnknowXORValues = setdiff(&prevKnoVals.XORextracted_values, &XORextracted_values01, 0);
+    matrixInt322DStruct opXOR;
+    opXOR.rows = UnknowXORValues.length;
+    opXOR.cols = 2;
+    opXOR.data = calloc(opXOR.rows, sizeof(int32_t*));
+    for (int i = 0; i < opXOR.rows; i++) {
+        opXOR.data[i] = calloc(opXOR.cols, sizeof(int32_t));
+    }
+    for (int i = 0; i < UnknowXORValues.length; i++) {
+        opXOR.data[i][0] = totalDVHistogram.data[UnknowXORValues.data[i]][0];
+        opXOR.data[i][1] = totalDVHistogram.data[UnknowXORValues.data[i]][1];
+    }
+    matrixInt322DStruct XORextracted_values02 = vcat(&XORextracted_values01, &opXOR);
+    
+    vectorInt32Struct UnknowPOSValues = setdiff(&prevKnoVals.POSextracted_values, &POSextracted_values01, 0);
+    matrixInt322DStruct opPOS;
+    opPOS.rows = UnknowPOSValues.length;
+    opPOS.cols = 2;
+    opPOS.data = calloc(opPOS.rows, sizeof(int32_t*));
+    for (int i = 0; i < opPOS.rows; i++) {
+        opPOS.data[i] = calloc(opPOS.cols, sizeof(int32_t));
+    }
+    for (int i = 0; i < UnknowPOSValues.length; i++) {
+        opPOS.data[i][0] = totalDVHistogram.data[UnknowPOSValues.data[i]][0];
+        opPOS.data[i][1] = totalDVHistogram.data[UnknowPOSValues.data[i]][2];
+    }
+    matrixInt322DStruct POSextracted_values02 = vcat(&POSextracted_values01, &opPOS);
+
+    int nUnknownXORValues = UnknowXORValues.length, nUnknownPOSValues = UnknowPOSValues.length;
     
     printf("\n\tXOR: ");
     if (nUnknownXORValues > 0){
@@ -519,7 +516,7 @@ int main(int argc, char* argv[]){
     } else {
         printf("Nothing to include.\n");
     }
-    printf(" ");*/
+    printf(" ");
 
     /* Time for Exploring MCUs */
     printf("\nSEARCHING INSIDE MCUs (FIRST PASS)...");
@@ -530,7 +527,7 @@ int main(int argc, char* argv[]){
     vectorInt32Struct discoveredXORDvs;
     vectorInt32Struct discoveredPOSDvs;
 
-    extractAnomalDVfromClusters(&content, &XORextracted_values01, &POSextracted_values01, &xorDVtotalrepetitions, &posDVtotalrepetitions, &totalDVHistogram, &xordvmatrixbackup, &posdvmatrixbackup, &nAddressesInRound, LN, &discoveredXORDvs, &discoveredPOSDvs, &XORextracted_values03, &POSextracted_values03);
+    extractAnomalDVfromClusters(&content, &XORextracted_values02, &POSextracted_values02, &xorDVtotalrepetitions, &posDVtotalrepetitions, &totalDVHistogram, &xordvmatrixbackup, &posdvmatrixbackup, &nAddressesInRound, LN, &discoveredXORDvs, &discoveredPOSDvs, &XORextracted_values03, &POSextracted_values03);
 
     printf("\n\tWARNING: MCUs IN POSITIVE SUBTRACION IN QUARANTINE.\n");
 
