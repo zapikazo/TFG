@@ -71,7 +71,7 @@ void libera3D(int32_t*** matrix, int row, int col){
 /*
  * Function to open a file to a concrete pointer.
  * Gets the pointer which points the file.
- * Returns false if the file is missing.
+ * Returns the pointer file.
  */
 FILE* openFile(char* name){
     FILE* file;
@@ -507,7 +507,7 @@ vectorUint32Struct create_DVvector(matrixUint322DStruct* DVmatrix){
 }
 
 /* 
- * Function to copy determinate 3D matrix dim to a 2D square matrix selecting copy elems number
+ * Function to copy determinate 3D matrix dim to a 2D square matrix selecting the number of elements to copy
  */
 uint32_t*** copyOfMatrix(uint32_t** matrix, uint32_t*** matrixbackup, int elems, int ktest){
 	int i, j;
@@ -572,7 +572,7 @@ int32_t countsOfElems(matrixInt322DStruct histogram, int maxValue, int col){
 
 /*
  * This function allows to count the appearances of each matrix's elem in a selected column.
- * Returns a vector with the number of appearances in each index. xxx
+ * Returns a vector with the number of appearances in each index.
  */
 vectorInt32Struct countsInt(matrixInt322DStruct* matrix, int col, int maxValue){
     int i, j, count = 0;
@@ -593,7 +593,7 @@ vectorInt32Struct countsInt(matrixInt322DStruct* matrix, int col, int maxValue){
 
 /*
  * This function allows to count the appearances of each matrix's elem in a selected column.
- * Returns a vector with the number of appearances in each index. xxx
+ * Returns a vector with the number of appearances in each index.
  */
 vectorInt32Struct countsUint(matrixUint322DStruct* matrix, int col, int maxValue){
     int i, j, count = 0;
@@ -647,7 +647,8 @@ vectorInt32Struct create_histogram(vectorUint32Struct* vector, long int ln){
 }
 
 /*
- *
+ * Function to get the binomial of a number.
+ * Returns the result.
  */
 long long binomial(int n, int k){
     long long ans = 1;
@@ -702,16 +703,12 @@ long double expectedRepetitions(int m, long int LN, int ndv, char* operation){
 	double result = 0, logresulttmp = 0, i;
 
 	if (strcmp(operation, "pos") == 0){
-		//Difference of values
+		/* Difference of values */
 		if (fabs((double)ndv / (double)LN) < 0.1){
 			logresulttmp = (double)((1 - m)*log(LN) + m*log(2) - log(m + 1) + log(binomial((long long int)ndv, m)));
 			result = exp(logresulttmp);
 			result = result*(1 + (3 * (m)-2 * (int64_t)(ndv)) / (LN + 1))*(1 + 2 * (ndv - m) / (LN - 2) / (m + 2));
 		} else{
-			//          OJOOOOOOOOOOOOOOOOOOOOOOOO  EL COLLECT...
-			/*pk=2/LN/(LN+1)*(LN+1-collect(1:1:LN));
-			result = sum(binomial(BigInt(ndv), m)*(pk.^m).*(1-pk).^(ndv-m));*/
-
 			for (i = 0; i < LN; i++){
 				double pk = 2 / LN / (LN + 1)*(LN + 1 - i);
 				result += (binomial((long long int)(ndv), m)*(pow(pk, m))*pow((1 - pk), (ndv - m)));
@@ -719,14 +716,13 @@ long double expectedRepetitions(int m, long int LN, int ndv, char* operation){
 		}
 	}
 	else if (strcmp(operation, "xor") == 0){
-		// XOR
 		logresulttmp = (double)(log(binomial((long long int)(ndv), m)) + (ndv - m)*log(LN - 1) - (ndv - 1)*log(LN));
         result = (exp(logresulttmp));
         
 	}
 	else{
-		//Badly specified function.
-		printf("\n\tAn unknown operation to calculate expected repetitions. Returning a strange value\n");
+		/* Badly specified function. */
+		printf("\n\tAn unknown operation to calculate expected repetitions. Returning a strange value. \n");
 		result = -1;
 	}
 	return result;
@@ -970,7 +966,7 @@ vectorInt32Struct unionAgrupate_mcus(matrixInt322DStruct* thesummary, int32_t ad
 }
 
 /*
- * keep in mind that davmatrix is a boolean matrix containing FALSE if two elements
+ * Keep in mind that davmatrix is a boolean matrix containing FALSE if two elements
  * are not involved in the same MCU and TRUE if so.
  * First of all, let us detect the elements different from FALSE. It is easy
  * with the function FIND. The problem is that Julia considers matrix as vectors
@@ -979,7 +975,6 @@ vectorInt32Struct unionAgrupate_mcus(matrixInt322DStruct* thesummary, int32_t ad
  * the element [row, col] in a matrix is the element (col-1)*NROws+row in the
  * equivalent vector, with NROws the total number of columns.
  */
-
 matrixInt322DStruct agrupate_mcus(matrixBool2DStruct* davmatrix){
     /* Let us locate the elements */
     /* Find the indexes with nonzero values */
@@ -1020,7 +1015,7 @@ matrixInt322DStruct agrupate_mcus(matrixBool2DStruct* davmatrix){
     }
     
     free(nonzerovectorelements.data);
-    /* Good, we have created a matrix containing the related pairs. Now, we must
+    /* We have created a matrix containing the related pairs. Now, we must
      * group them in larger events.
      * First step: A matrix initilizing the events. Perhaps too large, but it is better
      * to have spare space.
@@ -1408,14 +1403,6 @@ matrixInt323DStruct cutZerosFromMCUsummary(matrixInt323DStruct* MCUSummary){
     bool isMatrix;
     bool isVector;
 
-   /* matrixInt322DStruct dimensionsMCU;
-    dimensionsMCU.rows = 2;
-    dimensionsMCU.cols = MCUSummary->dims;
-	dimensionsMCU.data = calloc(dimensionsMCU.rows, sizeof(int32_t*));
-	for (i = 0; i < dimensionsMCU.rows; i++) {
-		dimensionsMCU.data[i] = calloc(dimensionsMCU.cols, sizeof(int32_t));
-	}*/
-	//for (i = 0; i < dimensionsMCU.cols; i++) {
     for (i = 0; i < MCUSummary->dims; i++) {
         /* We need to separate each matrix on the test */
         matrixInt322DStruct tmpMatrix;
@@ -1431,8 +1418,7 @@ matrixInt323DStruct cutZerosFromMCUsummary(matrixInt323DStruct* MCUSummary){
             }
         }
 		cutZerosFromArray(&tmpMatrix, &isMatrix, &isVector);
-		/*dimensionsMCU.data[0][i] = tmpMatrix.rows;
-		dimensionsMCU.data[1][i] = tmpMatrix.cols; */
+        
         /* Its necessary to know the maximun values to adapt the total matrix */
 		if (tmpMatrix.rows > maxRows) {
 			maxRows = tmpMatrix.rows;
@@ -1514,7 +1500,6 @@ vectorInt32Struct setdiff(vectorInt32Struct *vector, matrixInt322DStruct *matrix
             if (vector->data[i] == matrix->data[x][col]) {
                 find = true;
             }
-
         }
         if (find == false) {
             newVector.data[cont] = vector->data[i];
@@ -1611,8 +1596,7 @@ vectorInt32Struct unionVec(vectorInt32Struct *v1, vectorInt32Struct *v2, vectorI
 
 /*
  * An alternative implementation of the trace rule.
- * Anomal XOR values is used to avoid the repetition of elements. It is just
- * XORExtractedValues[1,:]
+ * Anomal XOR values is used to avoid the repetition of elements.
  */
 vectorInt32Struct traceRule(matrixInt322DStruct *xorDVtotalrepetitions, matrixUint322DStruct *totalDVhistogram, matrixInt322DStruct *anomalXORvalues, long int LN){
     int i, j, z, index;
@@ -1620,8 +1604,7 @@ vectorInt32Struct traceRule(matrixInt322DStruct *xorDVtotalrepetitions, matrixUi
     
 	/* Elements with 1-trace */
 	printf("\n\tInvestigating Trace = 1: ");
-	//Crea un array de 24 elementos 0 -> 24-1 con valores potencia de 2
-    /* An array with nBits is created with  */
+    /* An array with nBits is created with 2^x values */
     vectorInt32Struct candidatesT1;
     candidatesT1.length = nBits;
 	candidatesT1.data = calloc(candidatesT1.length, sizeof(int32_t));
@@ -1662,7 +1645,7 @@ vectorInt32Struct traceRule(matrixInt322DStruct *xorDVtotalrepetitions, matrixUi
     index = 0;
     for (i = 0; i < (nBits-1); i++) {
         for (j = i+1; j < nBits; j++) {
-            candidatesT2.data[index] = (pow(2, i))+(pow(2, j)); /* CandidatesT2[index] = 2^k1 + 2^k2 */
+            candidatesT2.data[index] = (pow(2, i))+(pow(2, j)); /* 2^k1 + 2^k2 */
             index++;
         }
     }
@@ -1738,7 +1721,7 @@ vectorInt32Struct traceRule(matrixInt322DStruct *xorDVtotalrepetitions, matrixUi
 }
 
 /*
- *
+ * Function to diferentiate where the MCUs values are.
  */
 matrixInt323DStruct propose_MCUs(char* op, matrixUint323DStruct *XORDVmatrix3D, matrixUint323DStruct *POSDVmatrix3D, matrixInt322DStruct *anomalXOR, matrixInt322DStruct *anomalPOS, vectorIntStruct* nAddressesInRound){
 	int i, j, ktest;
@@ -1973,9 +1956,6 @@ matrixInt322DStruct locate_mbus(matrixInt322DStruct* content, int** pattern, int
     return result;
 }
 
-/*
- *
- */
 matrixInt322DStruct extractAnomalDVSelfConsistency(char* op, matrixInt322DStruct* opDVtotalrepetitions, matrixUint322DStruct* totalDVhistogram, vectorIntStruct* nAddressesInRound, matrixInt322DStruct* opdvhistogram, matrixInt323DStruct* opdvmatrixbackup, int* XORANOMALS){
 	int32_t opNthreshold;
 	int* n_anomalous_values = malloc(sizeof(int));
@@ -2117,9 +2097,7 @@ matrixInt322DStruct extractAnomalDVSelfConsistency(char* op, matrixInt322DStruct
 	return oPExtracted_values;
 }
 
-/*
- *
- */
+
 matrixInt323DStruct index2address(matrixInt323DStruct *indexMatrix, matrixInt322DStruct *addressMatrix){
 	int i, j, z;
     matrixInt323DStruct result;
@@ -2140,7 +2118,7 @@ matrixInt323DStruct index2address(matrixInt323DStruct *indexMatrix, matrixInt322
 					break;
 				}
 				else {
-					result.data[i][j][z] = addressMatrix->data[indexMatrix->data[i][j][z]][z];
+					result.data[i][j][z] = addressMatrix->data[indexMatrix->data[i][j][z]][z*3];
 				}
 			}
 		}
@@ -2148,9 +2126,6 @@ matrixInt323DStruct index2address(matrixInt323DStruct *indexMatrix, matrixInt322
 	return result;
 }
 
-/*
- *
- */
 vectorInt32Struct criticalXORValuesFromClusters(matrixInt323DStruct* PrelMCUSummary, matrixInt322DStruct* AddressMatrix, matrixInt322DStruct* XORextracted_values, matrixInt322DStruct* xorDVtotalrepetitions, matrixInt322DStruct* DVHistogram){
     vectorInt32Struct newCandidates;
     newCandidates.length = 0;
@@ -2204,7 +2179,7 @@ vectorInt32Struct criticalXORValuesFromClusters(matrixInt323DStruct* PrelMCUSumm
 }
 
 /*
- *
+ * This function allows the get all the anomal values from the summaries.
  */
 void extractAnomalDVfromClusters(matrixInt322DStruct* content, matrixInt322DStruct* XORextracted_values, matrixInt322DStruct* POSextracted_values, matrixInt322DStruct* xorDVtotalrepetitions, matrixInt322DStruct* posDVtotalrepetitions, matrixUint322DStruct* totalDVhistogram, matrixInt323DStruct* xordvmatrixbackup, matrixInt323DStruct* posdvmatrixbackup, vectorIntStruct* nAddressesInRound, long int LN, vectorInt32Struct* discoveredXORDVs, vectorInt32Struct* discoveredPOSDVs, matrixInt322DStruct* tempXORDVvalues, matrixInt322DStruct* tempPOSDVvalues){
 
@@ -2337,7 +2312,8 @@ void extractAnomalDVfromClusters(matrixInt322DStruct* content, matrixInt322DStru
 }
 
 /*
- *
+ * This function gets the critical values from the XOR operation
+ * Returns a matrix with these values.
  */
 matrixInt322DStruct criticalXORvaluesFromXORingRule(matrixInt322DStruct* XORextracted_values, matrixInt322DStruct* XORDVtotalrepetitions, matrixUint322DStruct* totalDVhistogram, vectorInt32Struct* candidates){
 	int i, j;
@@ -2400,7 +2376,7 @@ matrixInt322DStruct criticalXORvaluesFromXORingRule(matrixInt322DStruct* XORextr
     oldXORValues = unionVec(&oldXORValues, &candidatesCase1, NULL);
 	sort(oldXORValues);
 
-    /* Case 2: XORingDV elements with confirmed XORs to obtain another one.*/
+    /* Case 2: XORingDV elements with confirmed XORs to obtain another one. */
     printf("\tCASE 2: XORing DV elements with confirmed values... ");
     vectorInt32Struct DVElements;
     DVElements.length = totalDVhistogram->rows;
@@ -2412,9 +2388,7 @@ matrixInt322DStruct criticalXORvaluesFromXORingRule(matrixInt322DStruct* XORextr
 				index++;
 			}
 		}
-    // This allows reobtaining the elements in the DV set.
 
-    // This +1 is placed since, sometimes, XORED can be 0.
     vectorInt32Struct selectedPrelCandidates;
     selectedPrelCandidates.length = 0;
     selectedPrelCandidates.data = calloc(1, sizeof(int32_t));

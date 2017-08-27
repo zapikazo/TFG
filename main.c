@@ -16,8 +16,15 @@ int main(int argc, char* argv[]){
     programInfo programInfo;
     char* contentFileName;
     previouslyKnownValues prevKnoVals;
+    
+    /* Matrix which save times involved in the different stages to detect bottlenecks */
+    float durationSteps[11][2] = {0};
+    
+    /* Row 0 of durationSteps devoted to the total program time */
+    durationSteps[0][0] = time(NULL);
+    /* Row 1 of durationSteps devoted to loading libraries */
+    durationSteps[1][0] = time(NULL);
 
-    //Cambiar esto a == y cambiar por lo comentado funct para cuando este todo acabado
     if (argc != 2) {
         //infoFile = openFile(argv[1]);
         infoFile = openFile("CY62167_090nm_TS.jl");
@@ -32,13 +39,6 @@ int main(int argc, char* argv[]){
         return EXIT_FAILURE;
     }
     
-    /* Matrix which save times involved in the different stages to detect bottlenecks */
-    float durationSteps[11][2] = {0};
-    
-    /* Row 0 of durationSteps devoted to the total program time */
-    durationSteps[0][0] = time(NULL);
-    /* Row 1 of durationSteps devoted to loading libraries */
-    durationSteps[1][0] = time(NULL);
     /* Loading a library with specific function */
     printf("Loading library with specific functions\n");
     durationSteps[1][1] = time(NULL);
@@ -87,6 +87,8 @@ int main(int argc, char* argv[]){
         }
     }
     
+    fclose(contentFile);
+    
     durationSteps[2][1] = time(NULL);
     printf("Finished the DATA load.\n");
 
@@ -96,7 +98,7 @@ int main(int argc, char* argv[]){
     if ((isalnum(programInfo.nBitsAddress) == 0) && (programInfo.nBitsAddress > 0) && (programInfo.nBitsAddress < 32)) {
         isAddressSizeGood = true;
     } else {
-        printf("Upsss: The variable nBitsAddress badly defined in the datafile. Skipping analysis.\n");
+        printf("The variable nBitsAddress badly defined in the datafile. Skipping analysis. \n");
         EXIT_FAILURE;
     }
 
@@ -155,7 +157,7 @@ int main(int argc, char* argv[]){
     /* Check if the dimensions of the data are correct */
     bool isConsistentPatternRawData = false;
     if (content.cols != (3*programInfo.nRoundsInPattern)){
-        printf("Mmmmmm: The number of rounds differs from pattern matrix to raw data matrix. Fix it. Bye.\n");
+        printf("The number of rounds differs from pattern matrix to raw data matrix. Fix it. \n");
         EXIT_FAILURE;
     } else {
         isConsistentPatternRawData = true;
@@ -550,7 +552,7 @@ int main(int argc, char* argv[]){
     extractAnomalDVfromClusters(&content, &XORextracted_values04, &POSextracted_values03, &xorDVtotalrepetitions, &posDVtotalrepetitions, &totalDVHistogram, &xordvmatrixbackup, &posdvmatrixbackup, &nAddressesInRound, LN, &discoveredXORDvs2, &discoveredPOSDvs2, &XORextracted_values05, &POSextracted_values05);
 
     printf("\n\tWARNING: MCUs IN POSITIVE SUBTRACION IN QUARANTINE.\n");
-    durationSteps[0][1]=time(NULL);
+    durationSteps[0][1] = time(NULL);
     
     printf(" ");
     
@@ -561,7 +563,6 @@ int main(int argc, char* argv[]){
 
     printf("\tEnded.");
     
-    printf("*******************************************************************");
     printf("*******************************************************************");
 
 
@@ -631,19 +632,17 @@ int main(int argc, char* argv[]){
     printf("\nAdded anomalous DV values: ");
     printf("\n\tXOR operation:");
 
-    /*
-     * FALTA por setdiff
-     *   for k in UnknowXORValues
-    	print("0x",hex(k,5), "\n")
-  	  	  end
-     */
+    for (i = 0; i < UnknowXORValues.length; i++) {
+        printf("\n0x%x", UnknowXORValues.data[i]);
+    }
+    
     printf("\n ");
     printf("\n\tPOS. SUB. operation:");
-/*FALTA por setdiff
-    for k in UnknowPOSValues
-       print(k, " (0x",hex(k,5), ")\n")
-     end
-*/
+
+    for (i = 0; i < UnknowPOSValues.length; i++) {
+        printf("\n0x%x", UnknowPOSValues.data[i]);
+    }
+    
     printf("\n--------------------------");
     printf("\nMCU for XORing (First Pass): ");
 
@@ -679,68 +678,65 @@ int main(int argc, char* argv[]){
     	printf("\n %d (0x%x)", discoveredPOSDvs2.data[i], k);
     }
 
-    printf("\n--------------------------");
+    printf("\n-------------------------");
     printf("\n-------------------------");
 
     printf("\nElapsed Time: %f \n", (durationSteps[0][1]-durationSteps[0][0]));
-  /*
-   
-   wtffff
-   
-   
-    int32_t*** hexCMBRES = NULL;
-    hexCMBRES = index2address(cmbRes,cmbResRows,cmbResCols, cmbResDims, content){
-
-    println("\nElapsed Time: ", DurationSteps[1,2]-DurationSteps[1,1])
-
-  HexCMBRES=Index2Address(CMBRES, Content[:,1:3:end])
-
-  rows, cols, dummyvalue = size(HexCMBRES)
-
-  FileForAddresses=string("AffectedAddresses-",string(now()))
-
-  open(FileForAddresses, "w") do f
-
-    print(f, "ADDRESSES INVOLVED IN MCUs\n")
-
-    for ktest=1:NRoundsInPattern
-      print(f, "\n\tTest Number: ", ktest)
-      print(f, "\n\t------------------\n")
-
-      for krow = 1:rows
-        if (HexCMBRES[krow,1, ktest]!=0)
-          for kcol = 1:cols
-            ToBePrinted = HexCMBRES[krow, kcol, ktest]
-
-            if (ToBePrinted!=0)
-              StoredWord = Content[CMBRES[krow, kcol, ktest], 3*ktest-1]
-              print(f, "\t0x", hex(ToBePrinted,6))
-              print(f, " (0x", hex(StoredWord,2),") ")
-            else
-              print(f, "\t, ")
-            end
-          end
-          print(f,"\n")
-        else
-          break;
-        end
-      end
-      print(f, "\n------------------\n")
-    end
-  end*/
+  
+    matrixInt323DStruct hexCMBRES;
+    hexCMBRES = index2address(&cmbRes, &content);
     
-    FILE *fp = NULL;
-    fp = fopen("lolailo.txt", "w");
-    fprintf(fp, "%s %d", "lol", 2019);
-    fclose(fp);
+    time_t tiempo = time(0);
+    struct tm *tlocal = localtime(&tiempo);
+    char output[128];
+    char archivo [128];
+    strftime(output, 128,"%Y-%m-%dT%H:%M:%S", tlocal);
+    char* str = "AffectedAddresses-";
+    strcpy(archivo, str);
+    strcat(archivo, output);
     
-    /*fp = fopen("lolailo.txt", "r");
-    char chara = a;
-   
-    while((chara = fgetc(fp)) != '\n'){
-        printf("%c", chara)
-    }*/
+    FILE* FileForAddresses = fopen(archivo, "w");
+    if (FileForAddresses == NULL) {
+        printf("File not created. \n");
+    }
     
-    
+    fputs("ADDRESSES INVOLVED IN MCUs\n", FileForAddresses);
+    int rows = 0, cols = 0;
+    for(ktest = 0; ktest < programInfo.nRoundsInPattern; ktest++){
+        fputs( "\n\tTest Number: ", FileForAddresses);
+        char *test = calloc(3, sizeof(char));
+        sprintf(test, "%d", ktest+1);
+        fputs(test, FileForAddresses);
+        free(test);
+        fputs("\n\t------------------\n", FileForAddresses);
+        for( rows = 0; rows < hexCMBRES.rows; rows++){
+            if(hexCMBRES.data[rows][0][ktest] != 0){
+                for(cols = 0; cols < hexCMBRES.cols;cols++){
+                    int32_t toBePrinted;
+                    toBePrinted = ( hexCMBRES.data[rows][cols][ktest]);
+                    if(toBePrinted != 0){
+                        int32_t storeWord;
+                        storeWord = content.data[cmbRes.data[rows][cols][ktest]][3*ktest+1];
+                        fputs( "\t0x", FileForAddresses);
+                        char *hex = calloc(255, sizeof(char));
+                        sprintf(hex, "%x", toBePrinted);
+                        fputs(hex, FileForAddresses);
+                        char *hex1 = calloc(255, sizeof(char));
+                        sprintf(hex1, "%x", storeWord);
+                        fputs(hex1, FileForAddresses);
+                        free(hex);
+                        free(hex1);
+                    }else{
+                        fputs("\t, ", FileForAddresses);
+                    }
+                }
+                fputs("\n", FileForAddresses);
+            }else{
+                break;
+            }
+        }
+        fputs("\n------------------\n", FileForAddresses);
+    }
+    fclose(FileForAddresses);
     return 0;
 }
