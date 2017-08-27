@@ -34,11 +34,6 @@
 #define NMaxAddressesInEvent 200
 
 /*
- * - Modificar los libera de las matrices para adaptarlos a los structs
- * -
- */
-
-/*
  * Function to free type int32_t 2D matrix's dynamic memory.
  */
 void liberaInt(int32_t** matrix, int rows){
@@ -86,6 +81,29 @@ FILE* openFile(char* name){
     }
     return file;
 }
+
+bool readJLFile(FILE *infoFile, programInfo *programInfo){
+    char *line;
+    size_t len = 0;
+    ssize_t read;
+    while((read = getline(&line, &len, infoFile)) != -1){
+       // printf("%s", line);
+        if (line[0] != '#' && line[0] != '\n') { /* Not a comment or blank space */
+            if (strcmp(&line[0-4], "const")) { /* Const value */
+                if (strcmp(&line[6-14], "NbitsAddre")) {
+                    programInfo->nBitsAddress = (int)&line[19-20]; //MAL
+                }
+                if (strcmp(&line[6-14], "NWordWidth")) {
+                    programInfo->nBitsAddress = (int)&line[17]; //MAL
+                }
+            }
+        }
+    }
+    
+    fclose(infoFile);
+    return true;
+}
+
 
 /*
  * This function allows getting characters from pointer's file, transforming them into fields.
@@ -200,9 +218,6 @@ matrixUint322DStruct transposed_matrix(matrixUint322DStruct matrix){
 	return transposedMatrix;
 }
 
-//Funcion de relleno de fila superior y columna izquierda vector, elemens y matriz para modificarla
-
-
 /*
  * Function to create the DV sets associated with the XOR and positive operations.
  * The idea is simple: The address vector is replicated to create a square matrix
@@ -246,7 +261,8 @@ matrixUint322DStruct create_DVmatrix(uint32_t* addresses, int elems, char* op, u
 	else if (strcmp(op, "pos") == 0){
 		for (i = 0; i < DVmatrixOP.rows; i++){
             for (j = 0; j < DVmatrixOP.cols; j++){
-                 DVmatrix.data[i][j] = abs(DVmatrixOP.data[i][j] - DVmatrixTrans.data[i][j]);
+                /* There is a warning here, but if you 'fix' this, program doesn't work */
+                DVmatrix.data[i][j] = abs(DVmatrixOP.data[i][j] - DVmatrixTrans.data[i][j]);
 			}
 		}
 	}
@@ -361,12 +377,12 @@ matrixUint322DStruct create_DVmatrix(uint32_t* addresses, int elems, char* op, u
  */
 vectorUint32Struct create_DVvector(matrixUint322DStruct* DVmatrix){
 	int ndv = 0.5*DVmatrix->rows*(DVmatrix->rows - 1);
-    // Vector with the elements on the upper triangular of the selected matrix
+    /* Vector with the elements on the upper triangular of the selected matrix */
     vectorUint32Struct DVvector;
     DVvector.data = calloc(ndv, sizeof(uint32_t));
 
 	/* The elements of the matrix are recovered. Elements are added fixing the
-	* column and going down. */
+	 * column and going down. */
 	int index = 0;
     
     for (int kcol = 1; kcol < DVmatrix->rows; kcol++) {
@@ -382,7 +398,9 @@ vectorUint32Struct create_DVvector(matrixUint322DStruct* DVmatrix){
 	return DVvector;
 }
 
-/* Copia de matrices */
+/* 
+ * Function to copy determinate 3D matrix dim to a 2D square matrix selecting copy elems number
+ */
 uint32_t*** copyOfMatrix(uint32_t** matrix, uint32_t*** matrixbackup, int elems, int ktest){
 	int i, j;
 	for (i = 0; i < elems; i++){
@@ -419,7 +437,9 @@ matrixUint322DStruct copyOfMatrix3to2(matrixInt323DStruct* matrix, matrixUint322
     return *matrixbackup;
 }
 
-/* Copia de vector a matriz */
+/* 
+ * Function to save a vector into a matrix of vectors
+ */
 void copyOfVector(uint32_t* vector, uint32_t** vectorbackup, int ndv, int ktest){
 	int i;
 	for (i = 0; i < ndv; i++){
@@ -443,7 +463,8 @@ int32_t countsOfElems(matrixInt322DStruct histogram, int maxValue, int col){
 }
 
 /*
- *
+ * This function allows to count the appearances of each matrix's elem in a selected column.
+ * Returns a vector with the number of appearances in each index. xxx
  */
 vectorInt32Struct countsInt(matrixInt322DStruct* matrix, int col, int maxValue){
     int i, j, count = 0;
@@ -463,7 +484,8 @@ vectorInt32Struct countsInt(matrixInt322DStruct* matrix, int col, int maxValue){
 }
 
 /*
- *
+ * This function allows to count the appearances of each matrix's elem in a selected column.
+ * Returns a vector with the number of appearances in each index. xxx
  */
 vectorInt32Struct countsUint(matrixUint322DStruct* matrix, int col, int maxValue){
     int i, j, count = 0;
@@ -649,15 +671,14 @@ int32_t excessiveRepetitions(matrixInt322DStruct* repInHistVector, int repInHist
  */
 matrixInt322DStruct find_anomalies_histogram(matrixUint322DStruct *histogram, int histogramCol, matrixInt322DStruct *occurrences, int occurrencesCol, int32_t nthreshold, int* n_anomalous_values){ //n_anomalous_values por referencia porque necesitamos el valor
 	/* The total number of elements anomalously repeated. We use +1 since the first
-	* element of the vector is related to 0 repetitions.
-	*/
+	 * element of the vector is related to 0 repetitions. */
 	int i, index = 0, k, k2;
 	int32_t nAnomalies = 0;
 
 	for (i = nthreshold; i < occurrences->rows; i++) {
 		nAnomalies += occurrences->data[i][occurrencesCol];
 	}
-	/*The number of repetitions of the most repeated element. Coincides roughly with the vector length. */
+	/* The number of repetitions of the most repeated element. Coincides roughly with the vector length. */
 	int32_t highestAnomaly = occurrences->rows - 1;
     matrixInt322DStruct anomalies;
     anomalies.rows = nAnomalies;
@@ -667,13 +688,13 @@ matrixInt322DStruct find_anomalies_histogram(matrixUint322DStruct *histogram, in
 		anomalies.data[i] = calloc(anomalies.cols, sizeof(int32_t));
 	}
 	/* the following variable will be used to indicate the number of elements different
-	* from 0, above nthreshold, in the occurrences vector. */
+	 * from 0, above nthreshold, in the occurrences vector. */
 	*n_anomalous_values = 0;
     anomalies.rows = nAnomalies;
     for (k = highestAnomaly; k > nthreshold-1; k--) {
 		/* I've prefered to implement this solution instead of using the native function
-		* "find()" since I believe this solution is faster as it includes breaks once
-		* the number of anomalous occurrences are achieved. */
+		 * "find()" since I believe this solution is faster as it includes breaks once
+		 * the number of anomalous occurrences are achieved. */
 		if (occurrences->data[k][occurrencesCol] != 0){
 			int n_occurrence_value = 0;
 			int occurrence_value = k;
@@ -739,29 +760,28 @@ matrixInt322DStruct extract_some_critical_values(matrixInt322DStruct *anomalous_
 			extracted_values.data[k][0] = anomalous_repetitions->data[k][0];
 			extracted_values.data[k][1] = anomalous_repetitions->data[k][1];
 		}
-        
 		return extracted_values;
 	}
 }
 
 /*
-#This function marks the elements in the DV matrix that are equal to one of
-# the elements of the critical_values vector. The procedure is quite simple to
-# understand. First of all, a boolean matrix with the size of the DV matrix
-# is created to initialize the result to return.
-# Later, a matrix with DV size and with all the elements equal to one of
-# the critical values is created
-#
-#           critical_values[kvalue,1]*ones(UInt32, size(davmatrix))
-#
-# and compared element to element with the DV matrix:
-#
-# round(Bool, davmatrix.==critical_values[kvalue,1]*ones(UInt32, size(davmatrix)))
-#
-# and ORED with the preliminary result value. This recursive solution is
-# implemented in a loop and tried to be parallelized with the instruction @simd
-# If this works, only God knows.
-*/
+ *This function marks the elements in the DV matrix that are equal to one of
+ * the elements of the critical_values vector. The procedure is quite simple to
+ * understand. First of all, a boolean matrix with the size of the DV matrix
+ * is created to initialize the result to return.
+ * Later, a matrix with DV size and with all the elements equal to one of
+ * the critical values is created
+ *
+ *           critical_values[kvalue,1]*ones(UInt32, size(davmatrix))
+ *
+ * and compared element to element with the DV matrix:
+ *
+ * round(Bool, davmatrix.==critical_values[kvalue,1]*ones(UInt32, size(davmatrix)))
+ *
+ * and ORED with the preliminary result value. This recursive solution is
+ * implemented in a loop and tried to be parallelized with the instruction @simd
+ * If this works, only God knows.
+ */
 matrixBool2DStruct marking_addresses(matrixInt322DStruct* davmatrix, matrixInt322DStruct* critical_values){
 	int i, x, y;
 	int32_t value;
@@ -787,55 +807,54 @@ matrixBool2DStruct marking_addresses(matrixInt322DStruct* davmatrix, matrixInt32
 }
 
 /*
- * Esta función, crea un vector temporal de tamaño thesummaryCols, para hacer la unión entre las filas addressRowMin y
- * addressRowMax, colocando los elementos en orden mientras se insertan.
- * This function makes a temp vector with the same dimensions as thesummary, to do the union between the rows
- * addressRowMin and addressRowMax, placing the elements in order during the insertion
+ * This function creates a temp vector with thesummary->cols length, to do the union between two rows: addressRowMin and 
+ * addressRowMax, placing the elements as they are inserted.
+ *
  */
 vectorInt32Struct unionAgrupate_mcus(matrixInt322DStruct* thesummary, int32_t addressRowMin, int32_t addressRowMax){
 	int i, j, x;
     vectorInt32Struct thesummarytemp;
     thesummarytemp.length = thesummary->cols;
 	thesummarytemp.data = calloc(thesummarytemp.length, sizeof(int32_t));
-	// We need a vector to save the two rows' elements for the union
+	/* We need a vector to save the two rows' elements for the union */
 	j = 0; // thesummarytemp index
 	for (i = 0; i < thesummary->cols; i++) {
 		if (thesummary->data[addressRowMin][i] != 0) {
-			if (thesummarytemp.data[0] == 0) { // Empty
+			if (thesummarytemp.data[0] == 0) { /* Empty */
 				thesummarytemp.data[j] = thesummary->data[addressRowMin][i];
 				j++;
 			}
-			else if (thesummarytemp.data[j - 1] < thesummary->data[addressRowMin][i]){ // Last value lowest
+			else if (thesummarytemp.data[j - 1] < thesummary->data[addressRowMin][i]){ /* Last value lowest */
 				thesummarytemp.data[j] = thesummary->data[addressRowMin][i];
 				j++;
 			}
-			else if (thesummarytemp.data[j - 1] > thesummary->data[addressRowMin][i]){ // Last value highest, need a gap
+			else if (thesummarytemp.data[j - 1] > thesummary->data[addressRowMin][i]){ /* Last value highest, need a gap */
 				x = j - 1;
 				while (thesummarytemp.data[x] > thesummary->data[addressRowMin][i]) {
-					thesummarytemp.data[x + 1] = thesummarytemp.data[x]; // One scrolls
+					thesummarytemp.data[x + 1] = thesummarytemp.data[x]; /* One scrolls */
 					x--;
 				}
-				thesummarytemp.data[x + 1] = thesummary->data[addressRowMin][i]; // The value is copied in the correspondent gap
+				thesummarytemp.data[x + 1] = thesummary->data[addressRowMin][i]; /* The value is copied in the correspondent gap */
 			}
 		}
 	}
     for (i = 0; i < thesummary->cols; i++) {
 		if (thesummary->data[addressRowMax][i] != 0) {
-			if (thesummarytemp.data[0] == 0) { // Empty
+			if (thesummarytemp.data[0] == 0) { /* Empty */
 				thesummarytemp.data[j] = thesummary->data[addressRowMax][i];
 				j++;
 			}
-			else if (thesummarytemp.data[j - 1] < thesummary->data[addressRowMax][i]){ // Last value lowest
+			else if (thesummarytemp.data[j - 1] < thesummary->data[addressRowMax][i]){ /* Last value lowest */
 				thesummarytemp.data[j] = thesummary->data[addressRowMax][i];
 				j++;
 			}
-			else if (thesummarytemp.data[j - 1] > thesummary->data[addressRowMax][i]){ // Last value highest, need a gap
+			else if (thesummarytemp.data[j - 1] > thesummary->data[addressRowMax][i]){ /* Last value highest, need a gap */
 				x = j - 1;
 				while (thesummarytemp.data[x] > thesummary->data[addressRowMax][i]) {
-					thesummarytemp.data[x + 1] = thesummarytemp.data[x]; // One scrolls
+					thesummarytemp.data[x + 1] = thesummarytemp.data[x]; /* One scrolls */
 					x--;
 				}
-				thesummarytemp.data[x + 1] = thesummary->data[addressRowMax][i]; // The value is copied in the correspondent gap
+				thesummarytemp.data[x + 1] = thesummary->data[addressRowMax][i]; /* The value is copied in the correspondent gap */
 			}
 		}
 	}
@@ -843,16 +862,15 @@ vectorInt32Struct unionAgrupate_mcus(matrixInt322DStruct* thesummary, int32_t ad
 }
 
 /*
-# keep in mind that davmatrix is a boolean matrix containing FALSE if two elements
-# are not involved in the same MCU and TRUE if so.
-
-# First of all, let us detect the elements different from FALSE. It is easy
-# with the function FIND. The problem is that Julia considers matrix as vectors
-# following the column order. Therefore, it is necessary to make some calculations
-# to place the TRUE values in the matrix. Let us remember that, in Julia,
-# the element [row, col] in a matrix is the element (col-1)*NROws+row in the
-# equivalent vector, with NROws the total number of columns.
-*/
+ * keep in mind that davmatrix is a boolean matrix containing FALSE if two elements
+ * are not involved in the same MCU and TRUE if so.
+ * First of all, let us detect the elements different from FALSE. It is easy
+ * with the function FIND. The problem is that Julia considers matrix as vectors
+ * following the column order. Therefore, it is necessary to make some calculations
+ * to place the TRUE values in the matrix. Let us remember that, in Julia,
+ * the element [row, col] in a matrix is the element (col-1)*NROws+row in the
+ * equivalent vector, with NROws the total number of columns.
+ */
 
 matrixInt322DStruct agrupate_mcus(matrixBool2DStruct* davmatrix){
     /* Let us locate the elements */
@@ -881,11 +899,9 @@ matrixInt322DStruct agrupate_mcus(matrixBool2DStruct* davmatrix){
         relatedpairs.data[i] = calloc(relatedpairs.cols, sizeof(int32_t));
     }
     
-    /*    @simd for k1 = 1:length(nonzerovectorelements)
-     # The first operation calculates the column
-     @inbounds relatedpairs[k1,:] = [rem(nonzerovectorelements[k1], NRows) div(nonzerovectorelements[k1],NRows)+1]
-     # REM means "remainder of division", DIV integer division.
-     end*/
+    /*
+     * The first operation calculates the column
+     */
     for (i = 0; i < relatedpairs.rows; i++) {
         if((nonzerovectorelements.data[i] % davmatrix->rows != 0)){
         relatedpairs.data[i][0] = nonzerovectorelements.data[i] % davmatrix->rows+1;
@@ -897,20 +913,19 @@ matrixInt322DStruct agrupate_mcus(matrixBool2DStruct* davmatrix){
     
     free(nonzerovectorelements.data);
     /* Good, we have created a matrix containing the related pairs. Now, we must
-     # group them in larger events.
-     
-     # First step: A matrix initilizing the events. Perhaps too large, but it is better
-     # to have spare space.
+     * group them in larger events.
+     * First step: A matrix initilizing the events. Perhaps too large, but it is better
+     * to have spare space.
      */
     matrixInt322DStruct thesummary;
     thesummary.rows = count;
     thesummary.data = calloc(count, sizeof(int32_t*));
-    if (count < NMaxAddressesInEvent) { /* If the minimun is newCount */
+    if (count < NMaxAddressesInEvent) { /* If the minimun value is newCount */
         thesummary.cols = count;
         for (i = 0; i < count; i++) {
             thesummary.data[i] = calloc(thesummary.cols, sizeof(int32_t));
         }
-    } else { /* If the minimun is NMaxAddressesInEvent */
+    } else { /* If the minimun value is NMaxAddressesInEvent */
         thesummary.cols = NMaxAddressesInEvent;
         for (i = 0; i < count; i++) {
             thesummary.data[i] = calloc(thesummary.cols, sizeof(int32_t));
@@ -921,11 +936,11 @@ matrixInt322DStruct agrupate_mcus(matrixBool2DStruct* davmatrix){
     int totalEvents = 0, thelargestMCU = 0;
     int32_t firstAddress, secondAddress, firstAddressRow = 0, secondAddressRow = 0;
     for (k = 0; k < count; k++) {
-        //There are several cases. Let us list them in order.
-        //Positions are extrated from the pairs.
+        /* There are several cases. Let us list them in order.
+         * Positions are extrated from the pairs. */
         firstAddress = relatedpairs.data[k][0];
         secondAddress = relatedpairs.data[k][1];
-        //TENEMOS QUE MIRAR SI firstAddress y secondAddress están en thesummary
+        /* We need to look if firstAddress and secondAddress are in the matrix */
         bool firstAddressFound = false, secondAddressFound = false;
         for (i = 0; i < thesummary.rows; i++) {
             for (j = 0; j < thesummary.cols; j++) {
@@ -940,9 +955,9 @@ matrixInt322DStruct agrupate_mcus(matrixBool2DStruct* davmatrix){
             }
         }
         /*
-         # Case 1:
-         # Both addresses are not present in thesummary. They are placed at a new_row
-         # at NTotalEvents
+         * Case 1:
+         * Both addresses are not present in thesummary. They are placed at a new_row
+         * at NTotalEvents.
          */
         if (!firstAddressFound && !secondAddressFound){
             thesummary.data[totalEvents][0] = relatedpairs.data[k][0];
@@ -950,50 +965,50 @@ matrixInt322DStruct agrupate_mcus(matrixBool2DStruct* davmatrix){
             totalEvents++;
         }
         /*
-         # Case 2:
-         # FirstAddress is present, but not SecondAddress
+         * Case 2:
+         * FirstAddress is present, but not SecondAddress
          */
         if (firstAddressFound && !secondAddressFound){
-            //First of all, let us locate the row where the FirstAddress is.
-            //Now, it is necessary to locate the first free column to put the new address.
+            /* First of all, let us locate the row where the FirstAddress is.
+             * Now, it is necessary to locate the first free column to put the new address. */
             x = 0;
             while ((thesummary.data[firstAddressRow][x] != 0) && (x < thesummary.cols)) {
                 x++;
             }
-            //Fixed problem. We do know exactly the position to put the new value.
+            /* Fixed problem. We do know exactly the position to put the new value. */
             if (x < thesummary.cols) {
                 thesummary.data[firstAddressRow][x] = secondAddress;
             }
         }
         /*
-         # Case 3:
-         # FirstAddress absent, Second Address present. similar to previous one.
+         * Case 3:
+         * FirstAddress absent, Second Address present. similar to previous one.
          */
         if (!firstAddressFound && secondAddressFound) {
-            //First of all, let us locate the row where the Second Address is.
-            //Now, it is necessary to locate the first free column to put the new address.
+            /* First of all, let us locate the row where the Second Address is.
+             * Now, it is necessary to locate the first free column to put the new address. */
             x = 0;
             while ((thesummary.data[secondAddressRow][x] != 0) && (x < thesummary.cols)) {
                 x++;
             }
-            //Fixed problem. We do know exactly the position to put the new value.
+            /* Fixed problem. We do know exactly the position to put the new value. */
             if (x < thesummary.cols) {
                 thesummary.data[secondAddressRow][x] = firstAddress;
             }
         }
         /*
-         #Case 4:
-         # Both addresses had been previously detected. Two subcases appear: They
-         # are included in the same row (MCU) so the program must skip this pair or
-         # are included in differen rows. Therefore, both rows must be carefully merged.
+         * Case 4:
+         * Both addresses had been previously detected. Two subcases appear: They
+         * are included in the same row (MCU) so the program must skip this pair or
+         * are included in differen rows. Therefore, both rows must be carefully merged.
          */
         if (firstAddressFound && secondAddressFound) {
             /*
-             # If both values are identical, the pair must be skipped and the program
-             # continue. If different, the rows must be merged.
+             * If both values are identical, the pair must be skipped and the program
+             * continue. If different, the rows must be merged.
              */
             if (firstAddressRow != secondAddressRow){
-                //First step: It is necessary to range the numbers in increasing order.
+                /* First step: It is necessary to range the numbers in increasing order. */
                 int32_t addressRowMin = 0, addressRowMax = 0;
                 if (firstAddressRow < secondAddressRow) {
                     addressRowMin = firstAddressRow;
@@ -1003,23 +1018,18 @@ matrixInt322DStruct agrupate_mcus(matrixBool2DStruct* davmatrix){
                     addressRowMax = firstAddressRow;
                 }
 
-                //Now, let us locate elements in RowMin different from 0
+                /* Now, let us locate elements in RowMin different from 0 */
                 vectorInt32Struct thesummarytemp;
                 thesummarytemp = unionAgrupate_mcus(&thesummary, addressRowMin, addressRowMax);
 
                 /*
-                 * But this is a column vector where the elements are not repeated but
-                 * not disposed in increasing order. Let us solve this:
-                 */
-                /*
-                 * Vec vectorizes the elements of the matrix.
                  * Time to put the elements in the row.
                  */
                 for (i = 0; i < thesummary.cols; i++) {
-                    thesummary.data[addressRowMin][i] = thesummarytemp.data[i]; // Se copia el vector de la unión en la matriz
+                    thesummary.data[addressRowMin][i] = thesummarytemp.data[i]; /* The union vector is copied into the matrix */
                     thesummary.data[addressRowMax][i] = 0;
                 }
-                //Also, as two events have been merged, the number of total events is lower:
+                /* Also, as two events have been merged, the number of total events is lower: */
                 totalEvents--;
             }
         }
@@ -1027,10 +1037,8 @@ matrixInt322DStruct agrupate_mcus(matrixBool2DStruct* davmatrix){
     
     liberaInt(relatedpairs.data, count);
     /*
-     #Really good. Now, we will separate the cells with information from those with
-     #zeros.
-     # The number of rows is easy to calculate: NTotalEvents. Concerning the other
-     # element:
+     * Now, we will separate the cells with information from those with zeros.
+     * The number of rows is easy to calculate: NTotalEvents. Concerning the other element:
      */
     int ind = 0, sum = 0;
     for(j = 2; j < thesummary.cols; j++) {
@@ -1159,6 +1167,7 @@ int findEqual(matrixInt322DStruct* matrix, int selectedRow, int selectedCol, int
  */
 matrixInt322DStruct cutZerosFromArray(matrixInt322DStruct *matrix, bool* isMatrix, bool* isVector){
 	int i, j = 0, countIni = 0, countFin = 0, newRows = 0, newCols = 0;
+    bool empty = false;
     
     if (isMatrix != NULL && isVector != NULL) {
         *isMatrix = false;
@@ -1198,9 +1207,16 @@ matrixInt322DStruct cutZerosFromArray(matrixInt322DStruct *matrix, bool* isMatri
 			}
 			lastCol--;
 		}
-		/* The new size of the matrix is calculated */
-		newRows = abs(lastRow - firstRow);
-		newCols = abs(lastCol - firstCol);
+		/* Check if the matrix is empty */
+        if (firstRow == matrix->rows && lastRow == 0 && firstCol == matrix->cols && lastCol == 0) {
+            newRows = 0;
+            newCols = 0;
+            empty = true;
+        } else {
+            /* The new size of the matrix is calculated */
+            newRows = abs(lastRow - firstRow);
+            newCols = abs(lastCol - firstCol);
+        }
         matrixInt322DStruct result;
         result.rows = newRows;
         result.cols = newCols;
@@ -1209,11 +1225,13 @@ matrixInt322DStruct cutZerosFromArray(matrixInt322DStruct *matrix, bool* isMatri
 			result.data[i] = calloc(result.cols, sizeof(int32_t));
 		}
 		/* We copy the old matrix in the new one */
-		for (i = firstRow; i < lastRow; i++) {
-			for (j = firstCol; j < lastCol; j++) {
-				result.data[i][j] = matrix->data[i][j];
-			}
-		}
+        if (!empty) {
+            for (i = firstRow; i < lastRow; i++) {
+                for (j = firstCol; j < lastCol; j++) {
+                    result.data[i][j] = matrix->data[i][j];
+                }
+            }
+        }
         matrix->rows = result.rows;
         matrix->cols = result.cols;
 		return result;
@@ -1282,14 +1300,15 @@ matrixInt323DStruct cutZerosFromMCUsummary(matrixInt323DStruct* MCUSummary){
     bool isMatrix;
     bool isVector;
 
-    matrixInt322DStruct dimensionsMCU;
+   /* matrixInt322DStruct dimensionsMCU;
     dimensionsMCU.rows = 2;
     dimensionsMCU.cols = MCUSummary->dims;
 	dimensionsMCU.data = calloc(dimensionsMCU.rows, sizeof(int32_t*));
 	for (i = 0; i < dimensionsMCU.rows; i++) {
 		dimensionsMCU.data[i] = calloc(dimensionsMCU.cols, sizeof(int32_t));
-	}
-	for (i = 0; i < dimensionsMCU.cols; i++) {
+	}*/
+	//for (i = 0; i < dimensionsMCU.cols; i++) {
+    for (i = 0; i < MCUSummary->dims; i++) {
         /* We need to separate each matrix on the test */
         matrixInt322DStruct tmpMatrix;
         tmpMatrix.rows = MCUSummary->rows;
@@ -1304,8 +1323,8 @@ matrixInt323DStruct cutZerosFromMCUsummary(matrixInt323DStruct* MCUSummary){
             }
         }
 		cutZerosFromArray(&tmpMatrix, &isMatrix, &isVector);
-		dimensionsMCU.data[0][i] = tmpMatrix.rows;
-		dimensionsMCU.data[1][i] = tmpMatrix.cols;
+		/*dimensionsMCU.data[0][i] = tmpMatrix.rows;
+		dimensionsMCU.data[1][i] = tmpMatrix.cols; */
         /* Its necessary to know the maximun values to adapt the total matrix */
 		if (tmpMatrix.rows > maxRows) {
 			maxRows = tmpMatrix.rows;
@@ -1313,9 +1332,9 @@ matrixInt323DStruct cutZerosFromMCUsummary(matrixInt323DStruct* MCUSummary){
 		if (tmpMatrix.cols > maxCols) {
 			maxCols = tmpMatrix.cols;
 		}
-        //liberaInt(tmpMatrix.data, tmpMatrixRows);
+        liberaInt(tmpMatrix.data, tmpMatrix.rows);
 	}
-	// Una vez guardadas en la matriz de valores todos los nuevos tamaños, se copia la matriz en una matriz nueva
+    /* Now we know the limit values and we can proceed creating the new matrix */
     matrixInt323DStruct simpleMCUSummary;
     simpleMCUSummary.rows = maxRows;
     simpleMCUSummary.cols = maxCols;
@@ -1337,13 +1356,13 @@ matrixInt323DStruct cutZerosFromMCUsummary(matrixInt323DStruct* MCUSummary){
 	}
     simpleMCUSummary.rows = maxRows;
     simpleMCUSummary.cols = maxCols;
-	//liberaInt(dimensionsMCU,2);
 	return simpleMCUSummary;
 }
 
 /*
- * Función que recibe un vector y una matriz, devuelve un vector con los elementos que estén en el vector inicial, 
- * pero que no estén en la matriz. Si no, devuelve array vacío
+ * This function receives a vector and a matrix.
+ * Returns a vector with the elements which are in the vector but not in the matrix. 
+ * If they're not elements satisfying the condition, an empty vector is returned.
  */
 vectorInt32Struct setdiffTraceRule(vectorInt32Struct *vector, matrixInt322DStruct *matrix){
     int i, x, y, cont = 0;
@@ -1372,15 +1391,15 @@ vectorInt32Struct setdiffTraceRule(vectorInt32Struct *vector, matrixInt322DStruc
 }
 
 /*
- * This function joins two or three vectors without ordering their elements
+ * This function joins two or three vectors without ordering their elements.
  */
 vectorInt32Struct unionVec(vectorInt32Struct *v1, vectorInt32Struct *v2, vectorInt32Struct *v3){
     vectorInt32Struct unionVec;
     int i, j, cont = 0;
-    if (v3 == NULL) { // Two vectors union
+    if (v3 == NULL) { /* Two vectors union */
         unionVec.length = v1->length + v2->length;
         unionVec.data = calloc(unionVec.length, sizeof(int32_t));
-        for (i = 0; i < v1->length; i++) { // The fisrt vector is copied without the repeated elements
+        for (i = 0; i < v1->length; i++) { /* The fisrt vector is copied without the repeated elements */
             if (i == 0) {
                 unionVec.data[i] = v1->data
                 [i];
@@ -1390,7 +1409,7 @@ vectorInt32Struct unionVec(vectorInt32Struct *v1, vectorInt32Struct *v2, vectorI
                 while (v1->data[i] != unionVec.data[j] && j < cont) {
                     j++;
                 }
-                if (j == cont) { //  There is not equal element
+                if (j == cont) { /* There is not equal element */
                     unionVec.data[cont] = v1->data[i];
                     cont++;
                 }
@@ -1401,16 +1420,16 @@ vectorInt32Struct unionVec(vectorInt32Struct *v1, vectorInt32Struct *v2, vectorI
             while (j < cont && v2->data[i] != unionVec.data[j]) {
                 j++;
             }
-            if (j == cont) { // There is not equal element
+            if (j == cont) { /* There is not equal element */
                 unionVec.data[cont] = v2->data[i];
                 cont++;
             }
         }
         unionVec.data = realloc(unionVec.data, cont*sizeof(int32_t));
-    }else { // Three vectors union
+    }else { /* Three vectors union */
         unionVec.length = v1->length + v2->length + v3->length;
         unionVec.data = calloc(unionVec.length, sizeof(int32_t));
-        for (i = 0; i < v1->length; i++) { // Se copia el primer vector eliminando los elementos repetidos
+        for (i = 0; i < v1->length; i++) { /* The fisrt vector is copied without the repeated elements */
             if (i == 0) {
                 unionVec.data[i] = v1->data[i];
                 cont++;
@@ -1419,7 +1438,7 @@ vectorInt32Struct unionVec(vectorInt32Struct *v1, vectorInt32Struct *v2, vectorI
                 while (v1->data[i] != unionVec.data[j] && j < cont) {
                     j++;
                 }
-                if (j == cont) { // No se ha encontrado elemento igual
+                if (j == cont) { /* There is not equal element */
                     unionVec.data[cont] = v1->data[i];
                     cont++;
                 }
@@ -1430,7 +1449,7 @@ vectorInt32Struct unionVec(vectorInt32Struct *v1, vectorInt32Struct *v2, vectorI
             while (j < cont && v2->data[i] != unionVec.data[j]) {
                 j++;
             }
-            if (j == cont) { // No se ha encontrado elemento igual
+            if (j == cont) { /* There is not equal element */
                 unionVec.data[cont] = v2->data[i];
                 cont++;
             }
@@ -1440,7 +1459,7 @@ vectorInt32Struct unionVec(vectorInt32Struct *v1, vectorInt32Struct *v2, vectorI
             while (j < cont && v3->data[i] != unionVec.data[j]) {
                 j++;
             }
-            if (j == cont) { // No se ha encontrado elemento igual
+            if (j == cont) { /* There is not equal element */
                 unionVec.data[cont] = v3->data[i];
                 cont++;
             }
@@ -1452,18 +1471,18 @@ vectorInt32Struct unionVec(vectorInt32Struct *v1, vectorInt32Struct *v2, vectorI
 }
 
 /*
-# An alternative implementation of the trace rule.
-
-### Anomal XOR values is used to avoid the repetition of elements. It is just
-### XORExtractedValues[1,:]
-*/
+ * An alternative implementation of the trace rule.
+ * Anomal XOR values is used to avoid the repetition of elements. It is just
+ * XORExtractedValues[1,:]
+ */
 vectorInt32Struct traceRule(matrixInt322DStruct *xorDVtotalrepetitions, matrixUint322DStruct *totalDVhistogram, matrixInt322DStruct *anomalXORvalues, long int LN){
     int i, j, z, index;
-    int32_t nBits = (log(LN + 1) / log(2)); // ejemplo nBits = 24
+    int32_t nBits = (log(LN + 1) / log(2));
     
-	// Elements with 1-trace
+	/* Elements with 1-trace */
 	printf("\n\tInvestigating Trace = 1: ");
 	//Crea un array de 24 elementos 0 -> 24-1 con valores potencia de 2
+    /* An array with nBits is created with  */
     vectorInt32Struct candidatesT1;
     candidatesT1.length = nBits;
 	candidatesT1.data = calloc(candidatesT1.length, sizeof(int32_t));
@@ -1475,19 +1494,18 @@ vectorInt32Struct traceRule(matrixInt322DStruct *xorDVtotalrepetitions, matrixUi
     
     vectorInt32Struct selectedT1;
     selectedT1.length = nBits;
-    selectedT1.data = calloc(selectedT1.length, sizeof(int32_t)); //Luego se redimensiona al número de elemntos real
+    selectedT1.data = calloc(selectedT1.length, sizeof(int32_t)); /* Later, the number of elements will be resized */
     int sT1Lenght = 0;
-    for (i = 0; i < nBits; i++) { // Se recorre el totalDVhistogram, en las posiciones de los candidatos - 1, pq nuestro histg empieza 0
+    for (i = 0; i < nBits; i++) {
         if (totalDVhistogram->data[candidatesT1.data[i]-1][1] >= nT1Threshold) {
             selectedT1.data[sT1Lenght] = candidatesT1.data[i];
             sT1Lenght++;
         }
     }
     selectedT1.length = sT1Lenght;
-    selectedT1.data = realloc(selectedT1.data, selectedT1.length*sizeof(int32_t));
+    selectedT1.data = realloc(selectedT1.data, selectedT1.length * sizeof(int32_t));
     free(candidatesT1.data);
 
-    // Devolver array con los elementos que estén en selectedt1, pero que no estén en anomalxorvalues
     vectorInt32Struct winnersT1;
     winnersT1 = setdiffTraceRule(&selectedT1, anomalXORvalues);
     
@@ -1497,15 +1515,15 @@ vectorInt32Struct traceRule(matrixInt322DStruct *xorDVtotalrepetitions, matrixUi
         printf("s");
     printf(" found.");
     
-    /// Elements with 2-trace
+    /* Elements with 2-trace */
     printf("\n\tInvestigating Trace = 2: ");
     vectorInt32Struct candidatesT2;
-    candidatesT2.length = 0.5*nBits*(nBits-1);
+    candidatesT2.length = 0.5 * nBits * (nBits-1);
     candidatesT2.data = calloc(candidatesT2.length, sizeof(int32_t));
     index = 0;
     for (i = 0; i < (nBits-1); i++) {
         for (j = i+1; j < nBits; j++) {
-            candidatesT2.data[index] = (pow(2, i))+(pow(2, j)); // CandidatesT2[index]=2^k1+2^k2
+            candidatesT2.data[index] = (pow(2, i))+(pow(2, j)); /* CandidatesT2[index] = 2^k1 + 2^k2 */
             index++;
         }
     }
@@ -1514,7 +1532,7 @@ vectorInt32Struct traceRule(matrixInt322DStruct *xorDVtotalrepetitions, matrixUi
    
     vectorInt32Struct selectedT2;
     selectedT2.length = candidatesT2.length;
-    selectedT2.data = calloc(candidatesT2.length, sizeof(int32_t)); //Luego se redimensiona al número de elemntos real
+    selectedT2.data = calloc(candidatesT2.length, sizeof(int32_t)); /* Later, the number of elements will be resized */
     int sT2Lenght = 0;
     for (i = 0; i < candidatesT2.length; i++) {
         if (totalDVhistogram->data[candidatesT2.data[i]-1][1] >= nT2Threshold) {
@@ -1523,7 +1541,7 @@ vectorInt32Struct traceRule(matrixInt322DStruct *xorDVtotalrepetitions, matrixUi
         }
     }
     selectedT2.length = sT2Lenght;
-    selectedT2.data = realloc(selectedT2.data, sT2Lenght*sizeof(int32_t));
+    selectedT2.data = realloc(selectedT2.data, sT2Lenght * sizeof(int32_t));
     free(candidatesT2.data);
     
     vectorInt32Struct winnersT2;
@@ -1535,7 +1553,7 @@ vectorInt32Struct traceRule(matrixInt322DStruct *xorDVtotalrepetitions, matrixUi
         printf("s");
     printf(" found.");
     
-    /// Elements with 3-trace
+    /* Elements with 3-trace */
     printf("\n\tInvestigating Trace = 3: ");
     vectorInt32Struct candidatesT3;
     candidatesT3.length = nBits*(nBits-1)*(nBits-2)/6;
@@ -1544,13 +1562,13 @@ vectorInt32Struct traceRule(matrixInt322DStruct *xorDVtotalrepetitions, matrixUi
     for (i = 0; i < (nBits-2); i++) {
         for (j = i+1; j < (nBits-1); j++) {
             for (z = j+1; z < nBits; z++) {
-                candidatesT3.data[index] = (pow(2, i))+(pow(2, j))+(pow(2, z)); // 2^k1+2^k2+2^k3
+                candidatesT3.data[index] = (pow(2, i))+(pow(2, j))+(pow(2, z)); /* 2^k1 + 2^k2 + 2^k3 */
                 index++;
             }
         }
     }
     vectorInt32Struct selectedT3;
-    selectedT3.data = calloc(candidatesT3.length, sizeof(int32_t)); //Luego se redimensiona al número de elemntos real
+    selectedT3.data = calloc(candidatesT3.length, sizeof(int32_t)); /* Later, the number of elements will be resized */
     int sT3Lenght = 0;
     for (i = 0; i < candidatesT3.length; i++) {
         if (totalDVhistogram->data[candidatesT3.data[i]-1][1] >= nT2Threshold) {
@@ -1559,7 +1577,7 @@ vectorInt32Struct traceRule(matrixInt322DStruct *xorDVtotalrepetitions, matrixUi
         }
     }
     selectedT3.length = sT3Lenght;
-    selectedT3.data = realloc(selectedT3.data, selectedT3.length*sizeof(int32_t));
+    selectedT3.data = realloc(selectedT3.data, selectedT3.length * sizeof(int32_t));
     
     free(candidatesT3.data);
     
@@ -1580,7 +1598,9 @@ vectorInt32Struct traceRule(matrixInt322DStruct *xorDVtotalrepetitions, matrixUi
     return vectorUnion;
 }
 
-
+/*
+ *
+ */
 matrixInt323DStruct propose_MCUs(char* op, matrixUint323DStruct *XORDVmatrix3D, matrixUint323DStruct *POSDVmatrix3D, matrixInt322DStruct *anomalXOR, matrixInt322DStruct *anomalPOS, vectorIntStruct* nAddressesInRound){
 	int i, j, ktest;
 	int rows = ceil(XORDVmatrix3D->rows / 2 - 1);
@@ -1734,6 +1754,9 @@ matrixInt323DStruct propose_MCUs(char* op, matrixUint323DStruct *XORDVmatrix3D, 
 	}
 }
 
+/*
+ *
+ */
 matrixInt322DStruct condensate_summary(matrixInt323DStruct* summary3D, vectorIntStruct* nAddressesInRound){
 	int i, j, k = 1, sum = 0;
     matrixInt322DStruct condensateSummary;
@@ -1746,7 +1769,6 @@ matrixInt322DStruct condensate_summary(matrixInt323DStruct* summary3D, vectorInt
         k++;
 	}
 	for (i = 1; i < summary3D->dims + 1; i++) {
-		// elems tendrá la longitud del nuevo vector
 		int nEvents = 0;
         matrixInt322DStruct summary2D;
         summary2D.rows = summary3D->rows;
@@ -1765,7 +1787,6 @@ matrixInt322DStruct condensate_summary(matrixInt323DStruct* summary3D, vectorInt
             condensateSummary.data[k][i] = nEvents - sum;
             sum = 0;
 		}
-		// Apparently, the following solution is a bit faster.
         condensateSummary.data[0][i] = nAddressesInRound->data[i-1] - findNotEqualMatrix(&summary2D, 0);
 	}
     condensateSummary.rows = summary3D->cols;
@@ -1774,14 +1795,14 @@ matrixInt322DStruct condensate_summary(matrixInt323DStruct* summary3D, vectorInt
 }
 
 /*
-# This function investigates occurrences of several bitflips in an only one
-# address. It returns a matrix of variable number of rows but with four collumns.
-# The information is:
-# First Column: Experiment in which it was observed.
-# Second column: The position of the address in the address vector.
-# Third Column: The exact address.
-# Fourth Column: The number of flipped bits.
-*/
+ * This function investigates occurrences of several bitflips in an only one
+ * address. It returns a matrix of variable number of rows but with four collumns.
+ * The information is:
+ * First Column: Experiment in which it was observed.
+ * Second column: The position of the address in the address vector.
+ * Third Column: The exact address.
+ * Fourth Column: The number of flipped bits.
+ */
 matrixInt322DStruct locate_mbus(matrixInt322DStruct* content, int** pattern, int nRoundsInPattern, int datawidth){
 	int i, j, nDetected = 0;
     matrixInt322DStruct summary;
@@ -1810,7 +1831,8 @@ matrixInt322DStruct locate_mbus(matrixInt322DStruct* content, int** pattern, int
 		}
 	}
 
-    return cutZerosFromArray(&summary, NULL, NULL);
+    matrixInt322DStruct result = cutZerosFromArray(&summary, NULL, NULL);
+    return result;
 }
 
 /*
@@ -1830,7 +1852,6 @@ matrixInt322DStruct extractAnomalDVSelfConsistency(char* op, matrixInt322DStruct
     if (strcmp(op, "xor") == 0) {
 		printf("\n\t\tXOR operation...");
 		opNthreshold = excessiveRepetitions(opDVtotalrepetitions, 1, totalDVhistogram->rows, "xor", randomnessThreshold);
-        // Redondeo hacia arriba posible solución?
         testOPa = find_anomalies_histogram(totalDVhistogram, 1, opDVtotalrepetitions, 1, opNthreshold, n_anomalous_values);
         *XORANOMALS = *n_anomalous_values;
 
@@ -1958,7 +1979,10 @@ matrixInt322DStruct extractAnomalDVSelfConsistency(char* op, matrixInt322DStruct
 	return oPExtracted_values;
 }
 
-matrixInt323DStruct index2address(matrixInt323DStruct* indexMatrix, matrixInt322DStruct* addressMatrix){
+/*
+ *
+ */
+matrixInt323DStruct index2address(matrixInt323DStruct *indexMatrix, matrixInt322DStruct *addressMatrix){
 	int i, j, z;
     matrixInt323DStruct result;
     result.rows = indexMatrix->rows;
@@ -1986,6 +2010,9 @@ matrixInt323DStruct index2address(matrixInt323DStruct* indexMatrix, matrixInt322
 	return result;
 }
 
+/*
+ *
+ */
 vectorInt32Struct criticalXORValuesFromClusters(matrixInt323DStruct* PrelMCUSummary, matrixInt322DStruct* AddressMatrix, matrixInt322DStruct* XORextracted_values, matrixInt322DStruct* xorDVtotalrepetitions, matrixInt322DStruct* DVHistogram){
     vectorInt32Struct newCandidates;
     newCandidates.length = 0;
@@ -2019,11 +2046,6 @@ vectorInt32Struct criticalXORValuesFromClusters(matrixInt323DStruct* PrelMCUSumm
 		}		
     }
     newCandidates.data = realloc(newCandidates.data, newCandidates.length * sizeof(int32_t));
-    
-    printf("\n");
-    for (i = 0; i < newCandidates.length; i++) {
-        printf("%x ", newCandidates.data[i]);
-    }
 
 	int32_t xorNthreshold = excessiveRepetitions(xorDVtotalrepetitions, 1, DVHistogram->rows, "xor", randomnessThreshold);
 
@@ -2038,11 +2060,14 @@ vectorInt32Struct criticalXORValuesFromClusters(matrixInt323DStruct* PrelMCUSumm
         }
     }
     purgedCandidatesXOR.length = purgedCandidatesLenght;
-    purgedCandidatesXOR.data = realloc(purgedCandidatesXOR.data, purgedCandidatesXOR.length*sizeof(int32_t));
+    purgedCandidatesXOR.data = realloc(purgedCandidatesXOR.data, purgedCandidatesXOR.length * sizeof(int32_t));
     
 	return purgedCandidatesXOR;
 }
 
+/*
+ *
+ */
 void extractAnomalDVfromClusters(matrixInt322DStruct* content, matrixInt322DStruct* XORextracted_values, matrixInt322DStruct* POSextracted_values, matrixInt322DStruct* xorDVtotalrepetitions, matrixInt322DStruct* posDVtotalrepetitions, matrixUint322DStruct* totalDVhistogram, matrixInt323DStruct* xordvmatrixbackup, matrixInt323DStruct* posdvmatrixbackup, vectorIntStruct* nAddressesInRound, long int LN, vectorInt32Struct* discoveredXORDVs, vectorInt32Struct* discoveredPOSDVs, matrixInt322DStruct* tempXORDVvalues, matrixInt322DStruct* tempPOSDVvalues){
 
     bool foundNewDVValues = true;
@@ -2062,7 +2087,6 @@ void extractAnomalDVfromClusters(matrixInt322DStruct* content, matrixInt322DStru
         tempPOSDVvalues->data[i] = calloc(tempPOSDVvalues->cols, sizeof(int32_t));
     }
 
-    //COPIA OBLIGADA, Se podría hacer función de copia de matriz simple a otra matriz simple
     for (i = 0; i < tempXORDVvalues->rows; i++) {
         for (j = 0; j < tempXORDVvalues->cols; j++) {
             tempXORDVvalues->data[i][j] = XORextracted_values->data[i][j];
@@ -2086,33 +2110,6 @@ void extractAnomalDVfromClusters(matrixInt322DStruct* content, matrixInt322DStru
         tempPOS_summary = propose_MCUs("pos", xordvmatrixbackup, posdvmatrixbackup, tempXORDVvalues, tempPOSDVvalues, nAddressesInRound);
         tempCMB_summary = propose_MCUs("cmb", xordvmatrixbackup, posdvmatrixbackup, tempXORDVvalues, tempPOSDVvalues, nAddressesInRound);
         
-       
-        printf("\n");
-        for (int i = 0; i < tempXOR_summary.rows; i++) {
-            for (int j = 0; j < tempXOR_summary.cols; j++) {
-                printf("%d ", tempXOR_summary.data[i][j][0]);
-            }
-            printf("\n");
-        }
-        
-        printf("\n");
-        for (int i = 0; i < tempXOR_summary.rows; i++) {
-            for (int j = 0; j < tempXOR_summary.cols; j++) {
-                printf("%d ", tempXOR_summary.data[i][j][1]);
-            }
-            printf("\n");
-        }
-        
-        printf("\n");
-        for (int i = 0; i < tempXOR_summary.rows; i++) {
-            for (int j = 0; j < tempXOR_summary.cols; j++) {
-                printf("%d ", tempXOR_summary.data[i][j][2]);
-            }
-            printf("\n");
-        }
-        
-        
-        
         printf(" Ended. Searching new Elements...");
 
         printf(" XOR...");
@@ -2120,13 +2117,7 @@ void extractAnomalDVfromClusters(matrixInt322DStruct* content, matrixInt322DStru
         int nProposedXORDV = 0;
         vectorInt32Struct proposedXORDV;
         proposedXORDV = criticalXORValuesFromClusters(&tempCMB_summary, content, tempXORDVvalues, xorDVtotalrepetitions, totalDVhistogram);
-		
-            for (int j = 0; j < proposedXORDV.length; j++) {
-                printf("%d ", proposedXORDV.data[j]);
-            }
-            printf("\n");
     
-        
         vectorInt32Struct proposedPOSDV;
         nProposedXORDV = proposedXORDV.length;
         int nProposedPOSDV = 0;
@@ -2207,7 +2198,9 @@ void extractAnomalDVfromClusters(matrixInt322DStruct* content, matrixInt322DStru
     }
 }
 
-
+/*
+ *
+ */
 matrixInt322DStruct criticalXORvaluesFromXORingRule(matrixInt322DStruct* XORextracted_values, matrixInt322DStruct* XORDVtotalrepetitions, matrixUint322DStruct* totalDVhistogram, vectorInt32Struct* candidates){
 	int i, j;
 	bool candidateFind = false, prelCandidateFind = false;
@@ -2247,7 +2240,7 @@ matrixInt322DStruct criticalXORvaluesFromXORingRule(matrixInt322DStruct* XORextr
 
     vectorInt32Struct candidatesCase1;
     candidatesCase1.length = 0;
-    candidatesCase1.data = calloc(prelCandidates.length, sizeof(int32_t)); //Luego se redimensiona al número de elemntos real
+    candidatesCase1.data = calloc(prelCandidates.length, sizeof(int32_t)); /* Later, the number of elements will be resized */
     for (i = 0; i < prelCandidates.length; i++) {
         if (totalDVhistogram->data[prelCandidates.data[i]-1][1] >= nThresholdCase1) {
             candidatesCase1.data[candidatesCase1.length] = prelCandidates.data[i];
@@ -2270,7 +2263,6 @@ matrixInt322DStruct criticalXORvaluesFromXORingRule(matrixInt322DStruct* XORextr
 	sort(oldXORValues);
 
     /* Case 2: XORingDV elements with confirmed XORs to obtain another one.*/
-
     printf("\tCASE 2: XORing DV elements with confirmed values... ");
     vectorInt32Struct DVElements;
     DVElements.length = totalDVhistogram->rows;
@@ -2290,26 +2282,25 @@ matrixInt322DStruct criticalXORvaluesFromXORingRule(matrixInt322DStruct* XORextr
     selectedPrelCandidates.data = calloc(1, sizeof(int32_t));
     printf(" Searching... ");
     int kdv, kxor;
-	bool xoredFind = false, kdvFind = false;
+	bool xoredFind = false;
 	for (kdv = 0; kdv < index; kdv++){
 		for (kxor = 0; kxor < oldXORValues.length; kxor++){
 			int xored = DVElements.data[kdv] ^ oldXORValues.data[kxor];
-			//presencePrelCandidates[xored + 1] = true;
-               if ((findEqualVector(&oldXORValues, xored) != 0) && (findEqualVector(&oldXORValues, kdv) == 0)) {
-                   vectorInt32Struct vKdv;
-                   vKdv.length = 1;
-                   vKdv.data = calloc(1, sizeof(int32_t));
-                   vKdv.data[0] = kdv;
-                   selectedPrelCandidates = unionVec(&selectedPrelCandidates, &vKdv, NULL);
-                }
-			}
-		}
+            if ((findEqualVector(&oldXORValues, xored) != 0) && (findEqualVector(&oldXORValues, kdv) == 0)) {
+               vectorInt32Struct vKdv;
+               vKdv.length = 1;
+               vKdv.data = calloc(1, sizeof(int32_t));
+               vKdv.data[0] = kdv;
+               selectedPrelCandidates = unionVec(&selectedPrelCandidates, &vKdv, NULL);
+            }
+        }
+    }
 
     int nThresholdCase2 = excessiveRepetitions(XORDVtotalrepetitions, 1, totalDVhistogram->rows, "xor", randomnessThreshold);
 
     vectorInt32Struct candidatesCase2;
     candidatesCase2.length = 0;
-    candidatesCase2.data = calloc(selectedPrelCandidates.length, sizeof(int32_t)); //Luego se redimensiona al número de elemntos real
+    candidatesCase2.data = calloc(selectedPrelCandidates.length, sizeof(int32_t)); /* Later, the number of elements will be resized */
     for (i = 0; i < selectedPrelCandidates.length; i++) {
         if (totalDVhistogram->data[prelCandidates.data[i]-1][1] >= nThresholdCase2) {
             candidatesCase2.data[candidatesCase2.length] = selectedPrelCandidates.data[i];

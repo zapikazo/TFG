@@ -189,6 +189,7 @@ DIST          = /Users/pau/Qt/5.7/clang_64/mkspecs/features/spec_pre.prf \
 		/Users/pau/Qt/5.7/clang_64/mkspecs/features/qt_config.prf \
 		/Users/pau/Qt/5.7/clang_64/mkspecs/macx-clang/qmake.conf \
 		/Users/pau/Qt/5.7/clang_64/mkspecs/features/spec_post.prf \
+		../portada/.qmake.stash \
 		/Users/pau/Qt/5.7/clang_64/mkspecs/features/exclusive_builds.prf \
 		/Users/pau/Qt/5.7/clang_64/mkspecs/features/mac/sdk.prf \
 		/Users/pau/Qt/5.7/clang_64/mkspecs/features/toolchain.prf \
@@ -214,7 +215,9 @@ DIST          = /Users/pau/Qt/5.7/clang_64/mkspecs/features/spec_pre.prf \
 		/Users/pau/Qt/5.7/clang_64/mkspecs/features/exceptions.prf \
 		/Users/pau/Qt/5.7/clang_64/mkspecs/features/yacc.prf \
 		/Users/pau/Qt/5.7/clang_64/mkspecs/features/lex.prf \
-		../portada/portada.pro ../portada/mainwindow.h ../portada/main.cpp \
+		../portada/portada.pro ../portada/mainwindow.h \
+		../portada/HeadersToImport/libs.h \
+		../portada/HeadersToImport/strucs.h ../portada/main.cpp \
 		../portada/mainwindow.cpp
 QMAKE_TARGET  = portada
 DESTDIR       = 
@@ -364,6 +367,7 @@ Makefile: ../portada/portada.pro /Users/pau/Qt/5.7/clang_64/mkspecs/macx-clang/q
 		/Users/pau/Qt/5.7/clang_64/mkspecs/features/qt_config.prf \
 		/Users/pau/Qt/5.7/clang_64/mkspecs/macx-clang/qmake.conf \
 		/Users/pau/Qt/5.7/clang_64/mkspecs/features/spec_post.prf \
+		.qmake.stash \
 		/Users/pau/Qt/5.7/clang_64/mkspecs/features/exclusive_builds.prf \
 		/Users/pau/Qt/5.7/clang_64/mkspecs/features/mac/sdk.prf \
 		/Users/pau/Qt/5.7/clang_64/mkspecs/features/toolchain.prf \
@@ -530,6 +534,7 @@ Makefile: ../portada/portada.pro /Users/pau/Qt/5.7/clang_64/mkspecs/macx-clang/q
 /Users/pau/Qt/5.7/clang_64/mkspecs/features/qt_config.prf:
 /Users/pau/Qt/5.7/clang_64/mkspecs/macx-clang/qmake.conf:
 /Users/pau/Qt/5.7/clang_64/mkspecs/features/spec_post.prf:
+.qmake.stash:
 /Users/pau/Qt/5.7/clang_64/mkspecs/features/exclusive_builds.prf:
 /Users/pau/Qt/5.7/clang_64/mkspecs/features/mac/sdk.prf:
 /Users/pau/Qt/5.7/clang_64/mkspecs/features/toolchain.prf:
@@ -588,7 +593,7 @@ dist: distdir FORCE
 distdir: FORCE
 	@test -d $(DISTDIR) || mkdir -p $(DISTDIR)
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
-	$(COPY_FILE) --parents ../portada/mainwindow.h $(DISTDIR)/
+	$(COPY_FILE) --parents ../portada/mainwindow.h ../portada/HeadersToImport/libs.h ../portada/HeadersToImport/strucs.h $(DISTDIR)/
 	$(COPY_FILE) --parents ../portada/main.cpp ../portada/mainwindow.cpp $(DISTDIR)/
 	$(COPY_FILE) --parents ../portada/mainwindow.ui $(DISTDIR)/
 
@@ -600,6 +605,7 @@ clean: compiler_clean
 
 distclean: clean 
 	-$(DEL_FILE) -r portada.app
+	-$(DEL_FILE) .qmake.stash
 	-$(DEL_FILE) Makefile
 
 
@@ -649,13 +655,18 @@ main.o: ../portada/main.cpp ../portada/mainwindow.h \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QMainWindow \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qmainwindow.h \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QApplication \
-		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qapplication.h
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qapplication.h \
+		../portada/SourcesToImport/program.c \
+		../portada/HeadersToImport/libs.h \
+		../portada/HeadersToImport/strucs.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o main.o ../portada/main.cpp
 
 mainwindow.o: ../portada/mainwindow.cpp ../portada/mainwindow.h \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QMainWindow \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qmainwindow.h \
-		ui_mainwindow.h
+		../portada/ui_mainwindow.h \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QFileDialog \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qfiledialog.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o mainwindow.o ../portada/mainwindow.cpp
 
 moc_mainwindow.o: moc_mainwindow.cpp 

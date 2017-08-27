@@ -10,9 +10,15 @@
 #include "libs.h"
 #include "strucs.h"
 
-//TimeMessages POR DEFINIR
+int main(int argc, char* argv[]){
+    FILE* contentFile = NULL;
 
-int main(){
+    //Esto para cuando este todo acabado
+   /* if (argc == 2) {
+        contentFile = openFile(argv[1]);
+    }*/
+    contentFile = openFile("CY62167_090nm_TS.csv");
+
     /* Matrix which save times involved in the different stages to detect bottlenecks */
     float durationSteps[11][2] = {0};
     
@@ -30,16 +36,14 @@ int main(){
     // Con la interfaz gráfica, seleccionar el archivo sobre el que se quiere interactuar --> JL y que este redirija al .csv
     /* File openings */
     //" primeros nBits4Blocks = 1, tercero = 0
-    FILE* contentFile = openFile("CY62167_090nm_TS.csv");
-
-   // FILE* contentFile = openFile("CY62167_090nm_NTS.csv");
-    //FILE* contentFile = openFile("CY62167_130nm_NTS.csv");
-
-
-    FILE* infoFile = openFile("CY62167_090nm_TS.jl");
+    
+    FILE *infoFile = openFile("CY62167_090nm_TS.jl");
     if (contentFile == NULL || infoFile == NULL) {
         return EXIT_FAILURE;
     }
+    
+    programInfo programInfo;
+    readJLFile(infoFile, &programInfo);
 
    /* const Pattern = [
                      1 0x00
@@ -52,7 +56,6 @@ int main(){
     matrixInt322DStruct content;
     content.rows = 0;
     content.cols = 0;
-    programInfo programInfo;
 
     int commas = 0, c;
     while((c = fgetc(contentFile)) != '\n'){
@@ -570,28 +573,28 @@ int main(){
 
     matrixInt322DStruct mbuSummary = locate_mbus(&content, programInfo.pattern, programInfo.nRoundsInPattern, programInfo.nWordWidth);
 
-    if((mbuSummary.rows*mbuSummary.cols)>0){
+    if((mbuSummary.rows * mbuSummary.cols) > 0){
         printf("\n\tThe following MBUs have been observed...\n");
         printf("\n THE PRESENCE OF MBUs MAKES THE FOLLOWING RESULTS INACCURATE.");
-        printf("\n\tFor you information, the expected average numbers of several SBUs in a cell is ");
-        printf("\t\t");
+        printf("\n\tFor your information, the expected average numbers of several SBUs in a cell is ");
+        printf("\n");
 
         for(int i = 0; i < programInfo.nRoundsInPattern; i++){
-            printf("Test %d: %d \t", i, 7*nAddressesInRound.data[i]*(nAddressesInRound.data[i]-1)/16);
+            printf("Test %d: %d \t", i+1, 7*nAddressesInRound.data[i]*(nAddressesInRound.data[i]-1)/16);
         }
         printf("\n");
-    }else{
+    } else {
     	printf("\n\t---> Fortunately, your data lacks MBUs and following results are not commited.\n");
     }
 
     printf("\nKINDS OF EVENTS");
     int i,j,z;
     for(i = 0; i< programInfo.nRoundsInPattern;i++){
-    	printf("\nTest %d: %d SBUs", i,finalResult.data[0][i+1]);
+    	printf("\nTest %d: %d SBUs", i+1, finalResult.data[0][i+1]);
 
-    	for(j = 1;j < finalResult.rows;j++){
+    	for(j = 1; j < finalResult.rows; j++){
             if(finalResult.data[j][i+1] !=0){
-    			printf("\n \t%d %d-bit MCU", finalResult.data[j][i+1],j);
+    			printf("\n \t%d %d-bit MCU", finalResult.data[j][i+1], j+1);
     			if(finalResult.data[j][i+1]!=1){
     				printf("s");
     			}
@@ -728,6 +731,19 @@ int main(){
       print(f, "\n------------------\n")
     end
   end*/
+    
+    FILE *fp = NULL;
+    fp = fopen("lolailo.txt", "w");
+    fprintf(fp, "%s %d", "lol", 2019);
+    fclose(fp);
+    
+    /*fp = fopen("lolailo.txt", "r");
+    char chara = a;
+   
+    while((chara = fgetc(fp)) != '\n'){
+        printf("%c", chara)
+    }*/
+    
     
     return 0;
 }
