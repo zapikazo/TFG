@@ -24,11 +24,8 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 
 SOURCES += main.cpp\
-        mainwindow.cpp \
-    SourcesToImport/program.c
+        mainwindow.cpp
 
-HEADERS  += mainwindow.h \
-    HeadersToImport/libs.h \
-    HeadersToImport/strucs.h
+HEADERS  += mainwindow.h
 
 FORMS    += mainwindow.ui

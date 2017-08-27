@@ -84,6 +84,8 @@ dependencies: /Users/pau/Documents/FDI/CUARTO/TFG/IU/portada/main.cpp \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/Headers/qkeysequence.h \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/qtabwidget.h \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/Headers/qicon.h \
+  /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/QDialog \
+  /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/qdialog.h \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/QApplication \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/qapplication.h \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/qcoreapplication.h \
@@ -93,6 +95,4 @@ dependencies: /Users/pau/Documents/FDI/CUARTO/TFG/IU/portada/main.cpp \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/Headers/qinputmethod.h \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/qlocale.h \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/qvariant.h \
-  /usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/qmap.h \
-  SourcesToImport/program.c HeadersToImport/libs.h \
-  HeadersToImport/strucs.h
+  /usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/qmap.h

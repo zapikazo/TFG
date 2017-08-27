@@ -84,4 +84,6 @@ dependencies: \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/Headers/qcursor.h \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/Headers/qkeysequence.h \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/qtabwidget.h \
-  /usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/Headers/qicon.h
+  /usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/Headers/qicon.h \
+  /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/QDialog \
+  /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/qdialog.h

@@ -85,6 +85,8 @@ dependencies: \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/Headers/qkeysequence.h \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/qtabwidget.h \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/Headers/qicon.h \
+  /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/QDialog \
+  /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/qdialog.h \
   ui_mainwindow.h \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/QVariant \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/qvariant.h \
@@ -127,15 +129,10 @@ dependencies: \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/qrubberband.h \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/QLabel \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/qlabel.h \
-  /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/QMenuBar \
-  /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/qmenubar.h \
-  /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/qmenu.h \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/QPushButton \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/qpushbutton.h \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/qabstractbutton.h \
-  /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/QStatusBar \
-  /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/qstatusbar.h \
-  /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/QTabWidget \
+  /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/QSpacerItem \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/QToolBar \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/qtoolbar.h \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/QVBoxLayout \
@@ -147,4 +144,5 @@ dependencies: \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/qfile.h \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/qfiledevice.h \
   /usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/qurl.h \
-  /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/qdialog.h
+  /usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/QProcess \
+  /usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/qprocess.h

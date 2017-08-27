@@ -8,6 +8,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    this->setWindowTitle("SBUs vs. MCUs");
 }
 
 MainWindow::~MainWindow()
@@ -17,7 +18,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_pushButton_clicked()
 {
-    QStringList fileName = QFileDialog::getOpenFileNames(this, "Select a file to open...", QDir::homePath());
+    QStringList fileName = QFileDialog::getOpenFileNames(this, "Select a file to open...", QDir::currentPath());
     if(fileName.size() != 0){
         ui->label->clear();
         ui->label->setText(fileName.at(0));
@@ -33,9 +34,13 @@ void MainWindow::on_pushButton_clicked()
 
 void MainWindow::on_pushButton_2_clicked()
 {
-    QProcess *process = new QProcess();
-    QString program = "./program";
-    QString file = this->fileName;
-    process->start(program, QStringList() << file);
-    //process->execute("./program", this->fileName);
+    //if (this->fileName.at(0) != null){
+    //Comprobar si fileName tiene valor
+        QProcess *process = new QProcess();
+        QString program = "./program";
+        QString file = this->fileName;
+        process->start(program, QStringList() << file);
+        //process->execute("./program", this->fileName);
+        this->window.show();
+   // }
 }

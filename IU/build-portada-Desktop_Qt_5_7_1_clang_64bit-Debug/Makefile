@@ -215,9 +215,7 @@ DIST          = /Users/pau/Qt/5.7/clang_64/mkspecs/features/spec_pre.prf \
 		/Users/pau/Qt/5.7/clang_64/mkspecs/features/exceptions.prf \
 		/Users/pau/Qt/5.7/clang_64/mkspecs/features/yacc.prf \
 		/Users/pau/Qt/5.7/clang_64/mkspecs/features/lex.prf \
-		../portada/portada.pro ../portada/mainwindow.h \
-		../portada/HeadersToImport/libs.h \
-		../portada/HeadersToImport/strucs.h ../portada/main.cpp \
+		../portada/portada.pro ../portada/mainwindow.h ../portada/main.cpp \
 		../portada/mainwindow.cpp
 QMAKE_TARGET  = portada
 DESTDIR       = 
@@ -593,7 +591,7 @@ dist: distdir FORCE
 distdir: FORCE
 	@test -d $(DISTDIR) || mkdir -p $(DISTDIR)
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
-	$(COPY_FILE) --parents ../portada/mainwindow.h ../portada/HeadersToImport/libs.h ../portada/HeadersToImport/strucs.h $(DISTDIR)/
+	$(COPY_FILE) --parents ../portada/mainwindow.h $(DISTDIR)/
 	$(COPY_FILE) --parents ../portada/main.cpp ../portada/mainwindow.cpp $(DISTDIR)/
 	$(COPY_FILE) --parents ../portada/mainwindow.ui $(DISTDIR)/
 
@@ -655,10 +653,7 @@ main.o: ../portada/main.cpp ../portada/mainwindow.h \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QMainWindow \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qmainwindow.h \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QApplication \
-		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qapplication.h \
-		../portada/SourcesToImport/program.c \
-		../portada/HeadersToImport/libs.h \
-		../portada/HeadersToImport/strucs.h
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qapplication.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o main.o ../portada/main.cpp
 
 mainwindow.o: ../portada/mainwindow.cpp ../portada/mainwindow.h \
@@ -666,7 +661,9 @@ mainwindow.o: ../portada/mainwindow.cpp ../portada/mainwindow.h \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qmainwindow.h \
 		../portada/ui_mainwindow.h \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QFileDialog \
-		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qfiledialog.h
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qfiledialog.h \
+		/Users/pau/Qt/5.7/clang_64/lib/QtCore.framework/Headers/QProcess \
+		/Users/pau/Qt/5.7/clang_64/lib/QtCore.framework/Headers/qprocess.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o mainwindow.o ../portada/mainwindow.cpp
 
 moc_mainwindow.o: moc_mainwindow.cpp 

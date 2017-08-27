@@ -43,7 +43,7 @@ compiler_moc_header_make_all: moc_mainwindow.cpp
 compiler_moc_header_clean:
 	-$(DEL_FILE) moc_mainwindow.cpp
 moc_mainwindow.cpp: /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/QMainWindow \
-		/usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/qmainwindow.h \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/QDialog \
 		mainwindow.h \
 		moc_predefs.h \
 		/usr/local/Cellar/qt5/5.8.0_1/bin/moc

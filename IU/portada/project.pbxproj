@@ -75,20 +75,6 @@
 			sourceTree = "<absolute>";
 			lastKnownFileType = "sourcecode.c.h";
 		};
-		FD7A9B1E1552E9C514DD1EB1 = {
-			isa = PBXFileReference;
-			path = "/Users/pau/Documents/FDI/CUARTO/TFG/IU/portada/HeadersToImport/libs.h";
-			name = "libs.h";
-			sourceTree = "<absolute>";
-			lastKnownFileType = "sourcecode.c.h";
-		};
-		FE4ADA0442CD440E6C6B9EED = {
-			isa = PBXFileReference;
-			path = "/Users/pau/Documents/FDI/CUARTO/TFG/IU/portada/HeadersToImport/strucs.h";
-			name = "strucs.h";
-			sourceTree = "<absolute>";
-			lastKnownFileType = "sourcecode.c.h";
-		};
 		4332D56EC5BB4210DDEE284E = {
 			isa = PBXFileReference;
 			path = "/Users/pau/Documents/FDI/CUARTO/TFG/IU/portada/portada.pro";
@@ -139,21 +125,12 @@
 			name = "Generated Sources";
 			sourceTree = "<group>";
 		};
-		B2206B46C32453F543DC3A04 = {
-			isa = PBXGroup;
-			children = (
-				"FD7A9B1E1552E9C514DD1EB1",
-				"FE4ADA0442CD440E6C6B9EED");
-			name = "HeadersToImport";
-			sourceTree = "<group>";
-		};
 		2EB56BE3C2D93CDAB0C52E67 = {
 			isa = PBXGroup;
 			children = (
 				"44430D2959435CA769E2D574",
 				"BCD5ED8437CBE5EAE7DC17E7",
-				"3C82A09AE3468B1B38F24B51",
-				"B2206B46C32453F543DC3A04");
+				"3C82A09AE3468B1B38F24B51");
 			name = "Sources";
 			sourceTree = "<group>";
 		};
