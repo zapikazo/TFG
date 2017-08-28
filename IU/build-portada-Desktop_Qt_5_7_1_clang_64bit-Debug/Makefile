@@ -624,6 +624,8 @@ compiler_moc_header_clean:
 	-$(DEL_FILE) moc_mainwindow.cpp
 moc_mainwindow.cpp: /Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QMainWindow \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qmainwindow.h \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QDialog \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qdialog.h \
 		../portada/mainwindow.h \
 		/Users/pau/Qt/5.7/clang_64/bin/moc
 	/Users/pau/Qt/5.7/clang_64/bin/moc $(DEFINES) -D__APPLE__ -D__GNUC__=4 -D__APPLE_CC__ -I/Users/pau/Qt/5.7/clang_64/mkspecs/macx-clang -I/Users/pau/Documents/FDI/CUARTO/TFG/IU/portada -I/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers -I/Users/pau/Qt/5.7/clang_64/lib/QtGui.framework/Headers -I/Users/pau/Qt/5.7/clang_64/lib/QtCore.framework/Headers -I. -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1 -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/8.0.0/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk/usr/include -F/Users/pau/Qt/5.7/clang_64/lib ../portada/mainwindow.h -o moc_mainwindow.cpp
@@ -652,18 +654,38 @@ compiler_clean: compiler_moc_header_clean compiler_uic_clean
 main.o: ../portada/main.cpp ../portada/mainwindow.h \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QMainWindow \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qmainwindow.h \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QDialog \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qdialog.h \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QApplication \
-		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qapplication.h
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qapplication.h \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QGraphicsScene \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qgraphicsscene.h \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QGraphicsView \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qgraphicsview.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o main.o ../portada/main.cpp
 
 mainwindow.o: ../portada/mainwindow.cpp ../portada/mainwindow.h \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QMainWindow \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qmainwindow.h \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QDialog \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qdialog.h \
 		../portada/ui_mainwindow.h \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QFileDialog \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qfiledialog.h \
 		/Users/pau/Qt/5.7/clang_64/lib/QtCore.framework/Headers/QProcess \
-		/Users/pau/Qt/5.7/clang_64/lib/QtCore.framework/Headers/qprocess.h
+		/Users/pau/Qt/5.7/clang_64/lib/QtCore.framework/Headers/qprocess.h \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QGraphicsScene \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qgraphicsscene.h \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QGraphicsItem \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qgraphicsitem.h \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QGraphicsRectItem \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QSplitter \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qsplitter.h \
+		../portada/view.h \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QFrame \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qframe.h \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QGraphicsView \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qgraphicsview.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o mainwindow.o ../portada/mainwindow.cpp
 
 moc_mainwindow.o: moc_mainwindow.cpp 

@@ -17,6 +17,8 @@ public:
     ~MainWindow();
     QString fileName;
     QDialog window;
+    void rellenoVentana();
+    void createMemory();
 
 private slots:
     void on_pushButton_clicked();
