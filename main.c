@@ -18,16 +18,18 @@ int main(int argc, char* argv[]){
     previouslyKnownValues prevKnoVals;
     
     /* Matrix which save times involved in the different stages to detect bottlenecks */
-    float durationSteps[11][2] = {0};
+    clock_t durationSteps[11][2] = {0};
     
     /* Row 0 of durationSteps devoted to the total program time */
-    durationSteps[0][0] = time(NULL);
+    durationSteps[0][0] = clock();
     /* Row 1 of durationSteps devoted to loading libraries */
-    durationSteps[1][0] = time(NULL);
+    durationSteps[1][0] = clock();
 
     if (argc != 2) {
         //infoFile = openFile(argv[1]);
-        infoFile = openFile("CY62167_090nm_TS.jl");
+        //infoFile = openFile("CY62167_090nm_TS.jl");
+        infoFile = openFile("CY62167_130nm_TS.jl");
+
         if (infoFile != NULL) {
             contentFileName = readJLFile(infoFile, &programInfo, &prevKnoVals);
             contentFile = openFile(contentFileName);
@@ -41,10 +43,10 @@ int main(int argc, char* argv[]){
     
     /* Loading a library with specific function */
     printf("Loading library with specific functions\n");
-    durationSteps[1][1] = time(NULL);
+    durationSteps[1][1] = clock();
     /* Row 2 of durationSteps devoted to loading data */
     printf("Loading data\n");
-    durationSteps[2][0] = time(NULL);
+    durationSteps[2][0] = clock();
 
     /* Now, the matrix with data and that showing the patterns must be consistent: */
     /* Content matrix dimensions */
@@ -89,7 +91,7 @@ int main(int argc, char* argv[]){
     
     fclose(contentFile);
     
-    durationSteps[2][1] = time(NULL);
+    durationSteps[2][1] = clock();
     printf("Finished the DATA load.\n");
 
     /* Verify everything is correct */
@@ -175,7 +177,7 @@ int main(int argc, char* argv[]){
      * for the XOR operation, the other for the positive */
     printf("Creating Histograms...\n");
     /* Row 3 devoted to creating histograms */
-    durationSteps[3][0]=time(NULL);
+    durationSteps[3][0] = clock();
 
     /* Thus, the first column of the histogram contains the number, the other
      * the number of occurrences in each test. */
@@ -304,11 +306,11 @@ int main(int argc, char* argv[]){
 		printf("Done.\n");
     }
 
-    durationSteps[3][1] = time(NULL);
+    durationSteps[3][1] = clock();
             
     printf("Counting repetitions in partial histograms...\n");
     /* Row 5 devoted to counting events */
-    durationSteps[4][0] = time(NULL);
+    durationSteps[4][0] = clock();
     
     /* We need to get the maximum value for the vector creation  */
     int maxXORValue = 0, maxPOSValue = 0;
@@ -417,15 +419,15 @@ int main(int argc, char* argv[]){
         printf("Created statistics for combinations.\n");
     }
     
-    durationSteps[4][1] = time(NULL);
+    durationSteps[4][1] = clock();
     printf("STARTING TO LOOK UP ANOMALOUSLY REPEATED VALUES...\n");
-    durationSteps[5][0] = time(NULL);
+    durationSteps[5][0] = clock();
     int XORANOMALS = 0;
     
     matrixInt322DStruct XORextracted_values00 = extractAnomalDVSelfConsistency("xor", &xorDVtotalrepetitions, &totalDVHistogram, &nAddressesInRound, &xordvhistogram, &xordvmatrixbackup, &XORANOMALS);
     matrixInt322DStruct POSextracted_values00 = extractAnomalDVSelfConsistency("pos", &posDVtotalrepetitions, &totalDVHistogram, &nAddressesInRound, &posdvhistogram, &posdvmatrixbackup, &XORANOMALS);
 
-    durationSteps[5][1] = time(NULL);
+    durationSteps[5][1] = clock();
     
     /* Thus, selfconsistency is completed. Now, it is time to apply the TRACE rule. */
     printf("APPLYING THE TRACE RULE FOR XOR DV SET...\n");
@@ -552,7 +554,7 @@ int main(int argc, char* argv[]){
     extractAnomalDVfromClusters(&content, &XORextracted_values04, &POSextracted_values03, &xorDVtotalrepetitions, &posDVtotalrepetitions, &totalDVHistogram, &xordvmatrixbackup, &posdvmatrixbackup, &nAddressesInRound, LN, &discoveredXORDvs2, &discoveredPOSDvs2, &XORextracted_values05, &POSextracted_values05);
 
     printf("\n\tWARNING: MCUs IN POSITIVE SUBTRACION IN QUARANTINE.\n");
-    durationSteps[0][1] = time(NULL);
+    durationSteps[0][1] = clock();
     
     printf(" ");
     
@@ -568,6 +570,21 @@ int main(int argc, char* argv[]){
 
     printf("\nPRESENTING RESULTS:\n");
     printf("\nWARNING: This program is not prepared to deal with Experiments with MBUs!!!!!!!!");
+
+    time_t tiempo = time(0);
+    struct tm *tlocal = localtime(&tiempo);
+    char output[128];
+    char archivoResultado [128];
+    strftime(output, 128,"%Y-%m-%dT%H-%M-%S.txt", tlocal);
+    char* archiveResult = "Results-";
+    strcpy(archivoResultado, archiveResult);
+    strcat(archivoResultado, output);
+    
+    FILE* fileResults = NULL;
+    fileResults = fopen(archivoResultado,"w");
+    if(fileResults == NULL){
+    	printf("\n Error creating the finalResult archive for QT");
+    }
 
     matrixInt322DStruct mbuSummary = locate_mbus(&content, programInfo.pattern, programInfo.nRoundsInPattern, programInfo.nWordWidth);
 
@@ -587,27 +604,50 @@ int main(int argc, char* argv[]){
 
     printf("\nKINDS OF EVENTS");
     int i,j,z;
+
+	char *hex2 = calloc(255, sizeof(char));
+    char *prt = calloc(255, sizeof(char));
     for(i = 0; i< programInfo.nRoundsInPattern;i++){
     	printf("\nTest %d: %d SBUs", i+1, finalResult.data[0][i+1]);
-
+        sprintf(prt, "%d", finalResult.data[0][i+1]);
+        fputs(prt, fileResults);
+        fputs("\n", fileResults);
     	for(j = 1; j < finalResult.rows; j++){
             if(finalResult.data[j][i+1] !=0){
+                int32_t print;
     			printf("\n \t%d %d-bit MCU", finalResult.data[j][i+1], j+1);
+                char *num = calloc(1, sizeof(char));
+                sprintf(num, "%d", j+1);
+                fputs(num, fileResults);
+                fputs(" ", fileResults);
+				print = finalResult.data[j][i+1];
+				sprintf(hex2, "%d", print);
+    			fputs(hex2, fileResults);
+                
     			if(finalResult.data[j][i+1]!=1){
     				printf("s");
     			}
-   		}else{
-    			printf("			");
-    		}
-
+			}else{
+                    fputs("-", fileResults);
+					printf("			");
+                
+            }
+            fputs("\n", fileResults);
     	}
+        
     	int32_t sum = 0;
     	for(z= 0 ;z < finalResult.rows;z++){
     		sum+= (finalResult.data[z][0]*finalResult.data[z][i+1]);
     	}
     	printf("\n Affected Addresses: %d",sum);
+    	sprintf(hex2, "%d", sum);
+        fputs("s", fileResults);
+    	fputs(hex2, fileResults);
+        fputs("\n", fileResults);
+        fputs("*\n", fileResults);
     }
     
+    fputs("-------\n", fileResults);
     printf("\n\n*******************************************************************");
     printf("\nSUMMARY OF THE PROPOSED ANOMALOUS DV VALUES:");
     printf("\nSelf-consistence after XORing: ");
@@ -681,14 +721,11 @@ int main(int argc, char* argv[]){
     printf("\n-------------------------");
     printf("\n-------------------------");
 
-    printf("\nElapsed Time: %f \n", (durationSteps[0][1]-durationSteps[0][0]));
-  
+    printf("\nElapsed Time: %f s\n", ((float)(durationSteps[0][1] - durationSteps[0][0]) / 1000000.0F ));
+    
     matrixInt323DStruct hexCMBRES;
     hexCMBRES = index2address(&cmbRes, &content);
     
-    time_t tiempo = time(0);
-    struct tm *tlocal = localtime(&tiempo);
-    char output[128];
     char archivo [128];
     strftime(output, 128,"%Y-%m-%dT%H:%M:%S", tlocal);
     char* str = "AffectedAddresses-";
@@ -713,16 +750,16 @@ int main(int argc, char* argv[]){
             if(hexCMBRES.data[rows][0][ktest] != 0){
                 for(cols = 0; cols < hexCMBRES.cols;cols++){
                     int32_t toBePrinted;
-                    toBePrinted = ( hexCMBRES.data[rows][cols][ktest]);
+                    toBePrinted = (hexCMBRES.data[rows][cols][ktest]);
                     if(toBePrinted != 0){
                         int32_t storeWord;
                         storeWord = content.data[cmbRes.data[rows][cols][ktest]][3*ktest+1];
                         fputs( "\t0x", FileForAddresses);
                         char *hex = calloc(255, sizeof(char));
-                        sprintf(hex, "%x", toBePrinted);
+                        sprintf(hex, "%.*x",6, toBePrinted);
                         fputs(hex, FileForAddresses);
                         char *hex1 = calloc(255, sizeof(char));
-                        sprintf(hex1, "%x", storeWord);
+                        sprintf(hex1, " (0x%.*x)",2, storeWord);
                         fputs(hex1, FileForAddresses);
                         free(hex);
                         free(hex1);
@@ -737,6 +774,37 @@ int main(int argc, char* argv[]){
         }
         fputs("\n------------------\n", FileForAddresses);
     }
+    
+    for(ktest = 0; ktest < programInfo.nRoundsInPattern; ktest++){
+        char *test = calloc(3, sizeof(char));
+        sprintf(test, "%d", ktest+1);
+        fputs(test, fileResults);
+        free(test);
+        fputs("\n", fileResults);
+        for(rows = 0; rows < hexCMBRES.rows; rows++){
+            if(hexCMBRES.data[rows][0][ktest] != 0){
+                for(cols = 0; cols < hexCMBRES.cols;cols++){
+                    int32_t toBePrinted;
+                    toBePrinted = (hexCMBRES.data[rows][cols][ktest]);
+                    if(toBePrinted != 0){
+                        int32_t storeWord;
+                        storeWord = content.data[cmbRes.data[rows][cols][ktest]][3*ktest+1];
+                        fputs( "\t0x", fileResults);
+                        char *hex = calloc(255, sizeof(char));
+                        sprintf(hex, "%.*x", 6, toBePrinted);
+                        fputs(hex, fileResults);
+                        free(hex);
+                    }else{
+                        fputs("\t- ", fileResults);
+                    }
+                }
+                fputs("\n", fileResults);
+            }else{
+                break;
+            }
+        }
+    }
+    fclose(fileResults);
     fclose(FileForAddresses);
     return 0;
 }

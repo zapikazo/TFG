@@ -2101,7 +2101,7 @@ matrixInt322DStruct extractAnomalDVSelfConsistency(char* op, matrixInt322DStruct
 matrixInt323DStruct index2address(matrixInt323DStruct *indexMatrix, matrixInt322DStruct *addressMatrix){
 	int i, j, z;
     matrixInt323DStruct result;
-    result.rows = indexMatrix->rows;
+    result.rows = indexMatrix->rows-1;
     result.cols = indexMatrix->cols;
     result.dims = indexMatrix->dims;
     result.data = calloc(result.rows, sizeof(int32_t**));
@@ -2111,14 +2111,14 @@ matrixInt323DStruct index2address(matrixInt323DStruct *indexMatrix, matrixInt322
 			result.data[i][j] = calloc(result.dims, sizeof(int32_t));
 		}
 	}
-	for (z = 0; z < indexMatrix->dims; z++) {
-		for (i = 0; i < indexMatrix->rows; i++) {
-			for (j = 0; j < indexMatrix->cols; j++) {
+	for (z = 0; z < result.dims; z++) {
+		for (i = 0; i < result.rows; i++) {
+			for (j = 0; j < result.cols; j++) {
 				if (indexMatrix->data[i][j][z] == 0) {
 					break;
 				}
 				else {
-					result.data[i][j][z] = addressMatrix->data[indexMatrix->data[i][j][z]][z*3];
+					result.data[i][j][z] = addressMatrix->data[indexMatrix->data[i][j][z]-1][3*z];
 				}
 			}
 		}
@@ -2394,7 +2394,6 @@ matrixInt322DStruct criticalXORvaluesFromXORingRule(matrixInt322DStruct* XORextr
     selectedPrelCandidates.data = calloc(1, sizeof(int32_t));
     printf(" Searching... ");
     int kdv, kxor;
-	bool xoredFind = false;
 	for (kdv = 0; kdv < index; kdv++){
 		for (kxor = 0; kxor < oldXORValues.length; kxor++){
 			int xored = DVElements.data[kdv] ^ oldXORValues.data[kxor];
