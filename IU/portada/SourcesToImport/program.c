@@ -7,52 +7,53 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include <math.h>
-#include "libs.h"
-#include "strucs.h"
+#include "HeadersToImport/libs.h"
+#include "HeadersToImport/strucs.h"
 
-int main(int argc, char* argv[]){
-    FILE* infoFile = NULL;
-    FILE* contentFile = NULL;
-    programInfo programInfo;
-    char* contentFileName;
-    previouslyKnownValues prevKnoVals;
-    
+//TimeMessages POR DEFINIR
+
+int program(char* fileName){
     /* Matrix which save times involved in the different stages to detect bottlenecks */
-    clock_t durationSteps[11][2] = {0};
+    float durationSteps[11][2] = {{0}};
     
     /* Row 0 of durationSteps devoted to the total program time */
-    durationSteps[0][0] = clock();
+    durationSteps[0][0] = time(NULL);
     /* Row 1 of durationSteps devoted to loading libraries */
-    durationSteps[1][0] = clock();
-
-    if (argc != 2) {
-        //infoFile = openFile(argv[1]);
-        //infoFile = openFile("CY62167_090nm_TS.jl");
-        infoFile = openFile("CY62167_130nm_TS.jl");
-
-        if (infoFile != NULL) {
-            contentFileName = readJLFile(infoFile, &programInfo, &prevKnoVals);
-            contentFile = openFile(contentFileName);
-        } else {
-            printf("File name not found. \n");
-            return EXIT_FAILURE;
-        }
-    } else {
-        return EXIT_FAILURE;
-    }
-    
+    durationSteps[1][0] = time(NULL);
     /* Loading a library with specific function */
     printf("Loading library with specific functions\n");
-    durationSteps[1][1] = clock();
+    durationSteps[1][1] = time(NULL);
     /* Row 2 of durationSteps devoted to loading data */
     printf("Loading data\n");
-    durationSteps[2][0] = clock();
+    durationSteps[2][0] = time(NULL);
+    
+    // Con la interfaz gráfica, seleccionar el archivo sobre el que se quiere interactuar --> JL y que este redirija al .csv
+    /* File openings */
+    //" primeros nBits4Blocks = 1, tercero = 0
+    FILE* contentFile = openFile("CY62167_090nm_TS.csv");
 
+   // FILE* contentFile = openFile("CY62167_090nm_NTS.csv");
+    //FILE* contentFile = openFile("CY62167_130nm_NTS.csv");
+    printf("Loading library with specific functions\n");
+
+
+    FILE* infoFile = openFile("CY62167_090nm_TS.jl");
+    if (contentFile == NULL || infoFile == NULL) {
+        return EXIT_FAILURE;
+    }
+
+   /* const Pattern = [
+                     1 0x00
+                     2 0x55
+                     3 0xFF
+                     ];*/
+    
     /* Now, the matrix with data and that showing the patterns must be consistent: */
     /* Content matrix dimensions */
     matrixInt322DStruct content;
     content.rows = 0;
     content.cols = 0;
+    programInfo programInfo;
 
     int commas = 0, c;
     while((c = fgetc(contentFile)) != '\n'){
@@ -62,6 +63,23 @@ int main(int argc, char* argv[]){
     programInfo.nRoundsInPattern = (commas+1)/3;
     content.cols = programInfo.nRoundsInPattern * 3;
     rewind(contentFile);
+    
+    //nBitsAddress = (nBitsAddress-2)*4;
+    //SEGUN EL JL SON 21, necesitamos la apertura de dos ficheros
+    //programInfo programInfo;
+    programInfo.nBitsAddress = 21;
+    programInfo.nBits4Blocks = 1;
+    programInfo.nWordWidth = 8;
+    
+    // Leer jl para obtener patterns
+    programInfo.pattern = (int32_t**)calloc(3, sizeof(int32_t*));
+    for (int i = 0; i < 3; i++) {
+        programInfo.pattern[i] = (int32_t*)calloc(2, sizeof(int32_t));
+        programInfo.pattern[i][0] = i+1;
+    }
+    programInfo.pattern[0][1] = 0x00;
+    programInfo.pattern[1][1] = 0x55;
+    programInfo.pattern[2][1] = 0xFF;
 
     /* When we found a "\n" the rows can be incremented */
     while ((c=fgetc(contentFile)) != EOF) {
@@ -81,7 +99,7 @@ int main(int argc, char* argv[]){
     /* Obtaining the file data */
     for (a = 0; a < content.rows; a++){
         for (b = 0; b < content.cols; b++){
-            char* line = malloc(sizeof(char)*11);
+            char* line = (char*)malloc(sizeof(char)*11);
             getfield(contentFile, line);
             content.data[a][b] = (int32_t)strtol(line, NULL, 16);
             line = NULL;
@@ -89,9 +107,7 @@ int main(int argc, char* argv[]){
         }
     }
     
-    fclose(contentFile);
-    
-    durationSteps[2][1] = clock();
+    durationSteps[2][1] = time(NULL);
     printf("Finished the DATA load.\n");
 
     /* Verify everything is correct */
@@ -100,7 +116,7 @@ int main(int argc, char* argv[]){
     if ((isalnum(programInfo.nBitsAddress) == 0) && (programInfo.nBitsAddress > 0) && (programInfo.nBitsAddress < 32)) {
         isAddressSizeGood = true;
     } else {
-        printf("The variable nBitsAddress badly defined in the datafile. Skipping analysis. \n");
+        printf("Upsss: The variable nBitsAddress badly defined in the datafile. Skipping analysis.\n");
         EXIT_FAILURE;
     }
 
@@ -110,7 +126,7 @@ int main(int argc, char* argv[]){
     /* A small dictionary to save and quickly access some values */
     vectorIntStruct nAddressesInRound;
     nAddressesInRound.length = programInfo.nRoundsInPattern;
-    nAddressesInRound.data = calloc(nAddressesInRound.length, sizeof(int));
+    nAddressesInRound.data =(int*) calloc(nAddressesInRound.length, sizeof(int));
     
     /* The following value is just to initialize some variables.
      * Also used later to determine Shallowness of XORing Rule. */
@@ -120,46 +136,46 @@ int main(int argc, char* argv[]){
     matrixUint322DStruct xordvbackup;
     xordvbackup.rows = NDVTop;
     xordvbackup.cols = programInfo.nRoundsInPattern;
-    xordvbackup.data = calloc(xordvbackup.rows, sizeof(uint32_t*));
+    xordvbackup.data = (uint32_t**)calloc(xordvbackup.rows, sizeof(uint32_t*));
     for(a = 0; a < xordvbackup.rows; a++){
-    	xordvbackup.data[a] = calloc(xordvbackup.cols, sizeof(uint32_t));
+    	xordvbackup.data[a] = (uint32_t*)calloc(xordvbackup.cols, sizeof(uint32_t));
     }
 
     matrixInt322DStruct posdvbackup;
     posdvbackup.rows = NDVTop;
     posdvbackup.cols = programInfo.nRoundsInPattern;
-    posdvbackup.data = calloc(posdvbackup.rows, sizeof(int32_t*));
+    posdvbackup.data = (int32_t**)(posdvbackup.rows, sizeof(int32_t*));
     for(a = 0; a < posdvbackup.rows; a++){
-    	posdvbackup.data[a] = calloc(posdvbackup.cols, sizeof(int32_t));
+    	posdvbackup.data[a] = (int32_t*)calloc(posdvbackup.cols, sizeof(int32_t));
     }
     
     matrixUint323DStruct xordvmatrixbackup;
     xordvmatrixbackup.rows = content.rows;
     xordvmatrixbackup.cols = content.rows;
     xordvmatrixbackup.dims = programInfo.nRoundsInPattern;
-    xordvmatrixbackup.data = calloc(content.rows, sizeof(uint32_t**));
+    xordvmatrixbackup.data = (uint32_t***)calloc(content.rows, sizeof(uint32_t**));
     for(a = 0; a < content.rows; a++){
-    	xordvmatrixbackup.data[a] = calloc(content.rows, sizeof(uint32_t*));
+        xordvmatrixbackup.data[a] = (uint32_t**)calloc(content.rows, sizeof(uint32_t*));
         for(b = 0; b < content.rows; b++){
-            xordvmatrixbackup.data[a][b] = calloc(programInfo.nRoundsInPattern, sizeof(uint32_t));
+            xordvmatrixbackup.data[a][b] = (uint32_t*)calloc(programInfo.nRoundsInPattern, sizeof(uint32_t));
         }
     }
     matrixInt323DStruct posdvmatrixbackup;
     posdvmatrixbackup.rows = content.rows;
     posdvmatrixbackup.cols = content.rows;
     posdvmatrixbackup.dims = programInfo.nRoundsInPattern;
-    posdvmatrixbackup.data = calloc(content.rows, sizeof(int32_t**));
+    posdvmatrixbackup.data = (int32_t***)calloc(content.rows, sizeof(int32_t**));
     for(a = 0; a < content.rows; a++){
-        posdvmatrixbackup.data[a] = calloc(content.rows, sizeof(int32_t*));
+        posdvmatrixbackup.data[a] = (int32_t**)calloc(content.rows, sizeof(int32_t*));
         for(b = 0; b < content.rows; b++){
-            posdvmatrixbackup.data[a][b] = calloc(programInfo.nRoundsInPattern, sizeof(int32_t));
+            posdvmatrixbackup.data[a][b] = (int32_t*)calloc(programInfo.nRoundsInPattern, sizeof(int32_t));
         }
     }
 
     /* Check if the dimensions of the data are correct */
     bool isConsistentPatternRawData = false;
     if (content.cols != (3*programInfo.nRoundsInPattern)){
-        printf("The number of rounds differs from pattern matrix to raw data matrix. Fix it. \n");
+        printf("Mmmmmm: The number of rounds differs from pattern matrix to raw data matrix. Fix it. Bye.\n");
         EXIT_FAILURE;
     } else {
         isConsistentPatternRawData = true;
@@ -177,7 +193,7 @@ int main(int argc, char* argv[]){
      * for the XOR operation, the other for the positive */
     printf("Creating Histograms...\n");
     /* Row 3 devoted to creating histograms */
-    durationSteps[3][0] = clock();
+    durationSteps[3][0]=time(NULL);
 
     /* Thus, the first column of the histogram contains the number, the other
      * the number of occurrences in each test. */
@@ -185,9 +201,9 @@ int main(int argc, char* argv[]){
     matrixInt322DStruct xordvhistogram;
     xordvhistogram.rows = LN;
     xordvhistogram.cols = programInfo.nRoundsInPattern + 1;
-    xordvhistogram.data = calloc(LN, sizeof(int32_t *));
+    xordvhistogram.data = (int32_t**)calloc(LN, sizeof(int32_t *));
     for(a = 0; a < xordvhistogram.rows; a++){
-    	xordvhistogram.data[a] = calloc(xordvhistogram.cols, sizeof(int32_t));
+    	xordvhistogram.data[a] = (int32_t*)calloc(xordvhistogram.cols, sizeof(int32_t));
         xordvhistogram.data[a][0] = b;
         b++;
     }
@@ -197,9 +213,9 @@ int main(int argc, char* argv[]){
     matrixInt322DStruct posdvhistogram;
     posdvhistogram.rows = LN;
     posdvhistogram.cols = programInfo.nRoundsInPattern + 1;
-    posdvhistogram.data = calloc(posdvhistogram.rows, sizeof(int32_t *));
+    posdvhistogram.data = (int32_t**)calloc(posdvhistogram.rows, sizeof(int32_t *));
     for(a = 0; a < posdvhistogram.rows; a++){
-    	posdvhistogram.data[a] = calloc(posdvhistogram.cols, sizeof(int32_t));
+    	posdvhistogram.data[a] = (int32_t*)calloc(posdvhistogram.cols, sizeof(int32_t));
         posdvhistogram.data[a][0] = b;
         b++;
     }
@@ -218,7 +234,7 @@ int main(int argc, char* argv[]){
         uint32_t* addresses = extract_addressvector(columnvector, &elems);
         columnvector = NULL;
 
-        uint32_t* RWcyclesVector = calloc(elems, sizeof(uint32_t));
+        uint32_t* RWcyclesVector = (uint32_t*)calloc(elems, sizeof(uint32_t));
         for (k = 0; k < elems; k++) {
         	RWcyclesVector[k] = content.data[k][3*ktest-1];
         }
@@ -247,10 +263,10 @@ int main(int argc, char* argv[]){
         
         /* Other variables must be saved as well. But the procedure is a bit different
          * as the elements do not have identical size. */
-        copyOfMatrix(xordvmatrix.data, xordvmatrixbackup.data, elems, ktest);
-        copyOfMatrix(posdvmatrix.data, posdvmatrixbackup.data, elems, ktest);
-        copyOfVector(xordvvector.data, xordvbackup.data, ndv, ktest);
-        copyOfVector(posdvvector.data, posdvbackup.data, ndv, ktest);
+        copyOfMatrix(xordvmatrix.data, (uint32_t***)xordvmatrixbackup.data, elems, ktest);
+        copyOfMatrix(posdvmatrix.data, (uint32_t***)posdvmatrixbackup.data, elems, ktest);
+        copyOfVector(xordvvector.data, (uint32_t**)xordvbackup.data, ndv, ktest);
+        copyOfVector(posdvvector.data, (uint32_t**)posdvbackup.data, ndv, ktest);
         free(xordvvector.data);
         free(posdvvector.data);
         free(xordvmatrix.data);
@@ -262,10 +278,10 @@ int main(int argc, char* argv[]){
     matrixUint322DStruct totalDVHistogram;
     totalDVHistogram.rows = LN;
     totalDVHistogram.cols = 3;
-    totalDVHistogram.data = calloc(LN, sizeof(uint32_t*));
+    totalDVHistogram.data = (uint32_t**)(LN, sizeof(uint32_t*));
     b = 1;
 	for (a = 0; a < totalDVHistogram.rows; a++){
-		totalDVHistogram.data[a] = calloc(totalDVHistogram.cols, sizeof(uint32_t));
+		totalDVHistogram.data[a] = (uint32_t*)calloc(totalDVHistogram.cols, sizeof(uint32_t));
         totalDVHistogram.data[a][0] = b;
         b++;
 	}
@@ -276,10 +292,10 @@ int main(int argc, char* argv[]){
     
     vectorIntStruct arrayMaxXORValue;
     arrayMaxXORValue.length = programInfo.nRoundsInPattern;
-    arrayMaxXORValue.data = calloc(arrayMaxXORValue.length, sizeof(int));
+    arrayMaxXORValue.data = (int*)calloc(arrayMaxXORValue.length, sizeof(int));
     vectorIntStruct arrayMaxPOSValue;
     arrayMaxPOSValue.length = programInfo.nRoundsInPattern;
-    arrayMaxPOSValue.data = calloc(arrayMaxPOSValue.length, sizeof(int));
+    arrayMaxPOSValue.data = (int*)calloc(arrayMaxPOSValue.length, sizeof(int));
     
 	if (programInfo.nRoundsInPattern > 1){
 		/* First column for LN, Second column for XOR, Third for subtraction.*/
@@ -306,11 +322,11 @@ int main(int argc, char* argv[]){
 		printf("Done.\n");
     }
 
-    durationSteps[3][1] = clock();
+    durationSteps[3][1] = time(NULL);
             
     printf("Counting repetitions in partial histograms...\n");
     /* Row 5 devoted to counting events */
-    durationSteps[4][0] = clock();
+    durationSteps[4][0] = time(NULL);
     
     /* We need to get the maximum value for the vector creation  */
     int maxXORValue = 0, maxPOSValue = 0;
@@ -328,17 +344,17 @@ int main(int argc, char* argv[]){
     matrixInt322DStruct xordvrepetitions;
     xordvrepetitions.rows = maxXORValue + 1;
     xordvrepetitions.cols = programInfo.nRoundsInPattern + 1;
-    xordvrepetitions.data = calloc(xordvrepetitions.rows, sizeof(int32_t*));
+    xordvrepetitions.data = (int32_t**)calloc(xordvrepetitions.rows, sizeof(int32_t*));
     for(a = 0; a < xordvrepetitions.rows; a++){
-        xordvrepetitions.data[a] = calloc(xordvrepetitions.cols, sizeof(int32_t));
+        xordvrepetitions.data[a] = (int32_t*)calloc(xordvrepetitions.cols, sizeof(int32_t));
     }
 
     matrixInt322DStruct posdvrepetitions;
     posdvrepetitions.rows = maxPOSValue + 1;
     posdvrepetitions.cols = programInfo.nRoundsInPattern + 1;
-    posdvrepetitions.data = calloc(posdvrepetitions.rows, sizeof(int32_t*));
+    posdvrepetitions.data = (int32_t**)calloc(posdvrepetitions.rows, sizeof(int32_t*));
     for(a = 0; a < posdvrepetitions.rows; a++){
-        posdvrepetitions.data[a] = calloc(posdvrepetitions.cols, sizeof(int32_t));
+        posdvrepetitions.data[a] = (int32_t*)calloc(posdvrepetitions.cols, sizeof(int32_t));
     }
 
 	for (int i = 1; i < xordvrepetitions.rows; i++){
@@ -379,17 +395,17 @@ int main(int argc, char* argv[]){
     matrixInt322DStruct xorDVtotalrepetitions;
     xorDVtotalrepetitions.rows = maxTotalXORValue + 1;
     xorDVtotalrepetitions.cols = 2;
-	xorDVtotalrepetitions.data = calloc(xorDVtotalrepetitions.rows, sizeof(int32_t *));
+	xorDVtotalrepetitions.data = (int32_t**)calloc(xorDVtotalrepetitions.rows, sizeof(int32_t *));
 	for (a = 0; a < xorDVtotalrepetitions.rows; a++){
-		xorDVtotalrepetitions.data[a] = calloc(xorDVtotalrepetitions.cols, sizeof(int32_t));
+		xorDVtotalrepetitions.data[a] = (int32_t*)calloc(xorDVtotalrepetitions.cols, sizeof(int32_t));
 	}
 
     matrixInt322DStruct posDVtotalrepetitions;
     posDVtotalrepetitions.rows = maxTotalPOSValue + 1;
     posDVtotalrepetitions.cols = 2;
-    posDVtotalrepetitions.data = calloc(posDVtotalrepetitions.rows, sizeof(int32_t *));
+    posDVtotalrepetitions.data = (int32_t**)calloc(posDVtotalrepetitions.rows, sizeof(int32_t *));
 	for (a = 0; a < posDVtotalrepetitions.rows; a++){
-		posDVtotalrepetitions.data[a] = calloc(posDVtotalrepetitions.cols, sizeof(int32_t));
+		posDVtotalrepetitions.data[a] = (int32_t*)calloc(posDVtotalrepetitions.cols, sizeof(int32_t));
 	}
     
     if (programInfo.nRoundsInPattern > 1){
@@ -419,15 +435,15 @@ int main(int argc, char* argv[]){
         printf("Created statistics for combinations.\n");
     }
     
-    durationSteps[4][1] = clock();
+    durationSteps[4][1] = time(NULL);
     printf("STARTING TO LOOK UP ANOMALOUSLY REPEATED VALUES...\n");
-    durationSteps[5][0] = clock();
+    durationSteps[5][0] = time(NULL);
     int XORANOMALS = 0;
     
-    matrixInt322DStruct XORextracted_values00 = extractAnomalDVSelfConsistency("xor", &xorDVtotalrepetitions, &totalDVHistogram, &nAddressesInRound, &xordvhistogram, &xordvmatrixbackup, &XORANOMALS);
+    matrixInt322DStruct XORextracted_values00 = extractAnomalDVSelfConsistency("xor", &xorDVtotalrepetitions, &totalDVHistogram, &nAddressesInRound, &xordvhistogram, (matrixInt323DStruct*)&xordvmatrixbackup, &XORANOMALS);
     matrixInt322DStruct POSextracted_values00 = extractAnomalDVSelfConsistency("pos", &posDVtotalrepetitions, &totalDVHistogram, &nAddressesInRound, &posdvhistogram, &posdvmatrixbackup, &XORANOMALS);
 
-    durationSteps[5][1] = clock();
+    durationSteps[5][1] = time(NULL);
     
     /* Thus, selfconsistency is completed. Now, it is time to apply the TRACE rule. */
     printf("APPLYING THE TRACE RULE FOR XOR DV SET...\n");
@@ -436,9 +452,9 @@ int main(int argc, char* argv[]){
     matrixInt322DStruct XORextracted_values01;
     XORextracted_values01.rows = XORextracted_values00.rows + XORextracted_TraceRule.length;
     XORextracted_values01.cols = 2;
-    XORextracted_values01.data = calloc(XORextracted_values01.rows, sizeof(int32_t*));
+    XORextracted_values01.data = (int32_t**)calloc(XORextracted_values01.rows, sizeof(int32_t*));
     for (a = 0; a < XORextracted_values01.rows; a++) {
-        XORextracted_values01.data[a] = calloc(XORextracted_values01.cols, sizeof(int32_t));
+        XORextracted_values01.data[a] = (int32_t*)calloc(XORextracted_values01.cols, sizeof(int32_t));
     }
     
     int index = 0;
@@ -457,9 +473,9 @@ int main(int argc, char* argv[]){
     matrixInt322DStruct POSextracted_values01;
     POSextracted_values01.rows = POSextracted_values00.rows;
     POSextracted_values01.cols = 2;
-    POSextracted_values01.data = calloc(POSextracted_values01.rows, sizeof(int32_t*));
+    POSextracted_values01.data = (int32_t**)calloc(POSextracted_values01.rows, sizeof(int32_t*));
     for (a = 0; a < POSextracted_values01.rows; a++) {
-        POSextracted_values01.data[a] = calloc(2, sizeof(int32_t));
+        POSextracted_values01.data[a] = (int32_t*)calloc(2, sizeof(int32_t));
     }
     for (a = 0; a < POSextracted_values01.rows; a++) {
         for (b = 0; b < 2; b++) {
@@ -468,37 +484,17 @@ int main(int argc, char* argv[]){
     }
     
     /** USING DV VALUES INTRODUCED BY USER. **/
-    printf("\nRECYCLING PREVIOUSLY KNOWN DV ELEMENTS...");
+ /*   printf("\nRECYCLING PREVIOUSLY KNOWN DV ELEMENTS...");
     
-    vectorInt32Struct UnknowXORValues = setdiff(&prevKnoVals.XORextracted_values, &XORextracted_values01, 0);
-    matrixInt322DStruct opXOR;
-    opXOR.rows = UnknowXORValues.length;
-    opXOR.cols = 2;
-    opXOR.data = calloc(opXOR.rows, sizeof(int32_t*));
-    for (int i = 0; i < opXOR.rows; i++) {
-        opXOR.data[i] = calloc(opXOR.cols, sizeof(int32_t));
-    }
-    for (int i = 0; i < UnknowXORValues.length; i++) {
-        opXOR.data[i][0] = totalDVHistogram.data[UnknowXORValues.data[i]][0];
-        opXOR.data[i][1] = totalDVHistogram.data[UnknowXORValues.data[i]][1];
-    }
-    matrixInt322DStruct XORextracted_values02 = vcat(&XORextracted_values01, &opXOR);
-    
-    vectorInt32Struct UnknowPOSValues = setdiff(&prevKnoVals.POSextracted_values, &POSextracted_values01, 0);
-    matrixInt322DStruct opPOS;
-    opPOS.rows = UnknowPOSValues.length;
-    opPOS.cols = 2;
-    opPOS.data = calloc(opPOS.rows, sizeof(int32_t*));
-    for (int i = 0; i < opPOS.rows; i++) {
-        opPOS.data[i] = calloc(opPOS.cols, sizeof(int32_t));
-    }
-    for (int i = 0; i < UnknowPOSValues.length; i++) {
-        opPOS.data[i][0] = totalDVHistogram.data[UnknowPOSValues.data[i]][0];
-        opPOS.data[i][1] = totalDVHistogram.data[UnknowPOSValues.data[i]][2];
-    }
-    matrixInt322DStruct POSextracted_values02 = vcat(&POSextracted_values01, &opPOS);
 
-    int nUnknownXORValues = UnknowXORValues.length, nUnknownPOSValues = UnknowPOSValues.length;
+    printf("\nRECYCLING PREVIOUSLY KNOWN DV ELEMENTS...");
+    //UnknowXORValues = setdiff(PreviouslyKnownXOR, XORextracted_values01[:,1])
+    //XORextracted_values02=vcat(XORextracted_values01, TotalDVhistogram[UnknowXORValues, 1:2])
+    //UnknowPOSValues = setdiff(PreviouslyKnownPOS, POSextracted_values01[:,1])
+    //POSextracted_values02=vcat(POSextracted_values01, TotalDVhistogram[UnknowPOSValues, [1,3]])
+    int nUnknownXORValues, nUnknownPOSValues;
+    //NUnknownXORValues = length(UnknowXORValues)
+    //NUnknownPOSValues = length(UnknowPOSValues)
     
     printf("\n\tXOR: ");
     if (nUnknownXORValues > 0){
@@ -520,7 +516,7 @@ int main(int argc, char* argv[]){
     } else {
         printf("Nothing to include.\n");
     }
-    printf(" ");
+    printf(" ");*/
 
     /* Time for Exploring MCUs */
     printf("\nSEARCHING INSIDE MCUs (FIRST PASS)...");
@@ -531,15 +527,17 @@ int main(int argc, char* argv[]){
     vectorInt32Struct discoveredXORDvs;
     vectorInt32Struct discoveredPOSDvs;
 
-    extractAnomalDVfromClusters(&content, &XORextracted_values02, &POSextracted_values02, &xorDVtotalrepetitions, &posDVtotalrepetitions, &totalDVHistogram, &xordvmatrixbackup, &posdvmatrixbackup, &nAddressesInRound, LN, &discoveredXORDvs, &discoveredPOSDvs, &XORextracted_values03, &POSextracted_values03);
+    extractAnomalDVfromClusters(&content, &XORextracted_values01, &POSextracted_values01, &xorDVtotalrepetitions, &posDVtotalrepetitions, &totalDVHistogram, (matrixInt323DStruct*)&xordvmatrixbackup, &posdvmatrixbackup, &nAddressesInRound, LN, &discoveredXORDvs, &discoveredPOSDvs, &XORextracted_values03, &POSextracted_values03);
 
     printf("\n\tWARNING: MCUs IN POSITIVE SUBTRACION IN QUARANTINE.\n");
-
+    //POSDVsMCU1=[];
+    //POSextracted_values03=POSextracted_values02;
     /* XORing RULE */
     printf("\n\nAPPLYING XORING RULE...");
     vectorInt32Struct XORDVfromXORing;
 
     matrixInt322DStruct XORextracted_values04 = criticalXORvaluesFromXORingRule(&XORextracted_values03, &xorDVtotalrepetitions, &totalDVHistogram, &XORDVfromXORing);
+    //POSextracted_values04=POSextracted_values03
 
     /** Time for Exploring MCUs **/
     printf("\nSEARCHING INSIDE MCUs (SECOND PASS)...");
@@ -551,103 +549,68 @@ int main(int argc, char* argv[]){
     vectorInt32Struct discoveredPOSDvs2;
     discoveredPOSDvs2.length = 0;
     
-    extractAnomalDVfromClusters(&content, &XORextracted_values04, &POSextracted_values03, &xorDVtotalrepetitions, &posDVtotalrepetitions, &totalDVHistogram, &xordvmatrixbackup, &posdvmatrixbackup, &nAddressesInRound, LN, &discoveredXORDvs2, &discoveredPOSDvs2, &XORextracted_values05, &POSextracted_values05);
+    extractAnomalDVfromClusters(&content, &XORextracted_values04, &POSextracted_values03, &xorDVtotalrepetitions, &posDVtotalrepetitions, &totalDVHistogram, (matrixInt323DStruct*)&xordvmatrixbackup, &posdvmatrixbackup, &nAddressesInRound, LN, &discoveredXORDvs2, &discoveredPOSDvs2, &XORextracted_values05, &POSextracted_values05);
 
     printf("\n\tWARNING: MCUs IN POSITIVE SUBTRACION IN QUARANTINE.\n");
-    durationSteps[0][1] = clock();
+    //POSDVsMCU2=[];
+    //POSextracted_values05=POSextracted_values04;
+    durationSteps[0][1]=time(NULL);
     
     printf(" ");
     
     printf("\nMAKING THE FINAL ORGANIZATION OF ADDRESSES FOR PRESENTATION...");
-    matrixInt323DStruct cmbRes = propose_MCUs("cmb", &xordvmatrixbackup, &posdvmatrixbackup, &XORextracted_values05, &POSextracted_values03, &nAddressesInRound);
+    matrixInt323DStruct cmbRes = propose_MCUs("cmb", &xordvmatrixbackup, (matrixUint323DStruct*)&posdvmatrixbackup, &XORextracted_values05, &POSextracted_values03, &nAddressesInRound);
 
     matrixInt322DStruct finalResult = condensate_summary(&cmbRes, &nAddressesInRound);
 
     printf("\tEnded.");
     
     printf("*******************************************************************");
+    printf("*******************************************************************");
 
 
     printf("\nPRESENTING RESULTS:\n");
     printf("\nWARNING: This program is not prepared to deal with Experiments with MBUs!!!!!!!!");
 
-    time_t tiempo = time(0);
-    struct tm *tlocal = localtime(&tiempo);
-    char output[128];
-    char archivoResultado [128];
-    strftime(output, 128,"%Y-%m-%dT%H-%M-%S.txt", tlocal);
-    char* archiveResult = "Results-";
-    strcpy(archivoResultado, archiveResult);
-    strcat(archivoResultado, output);
-    
-    FILE* fileResults = NULL;
-    fileResults = fopen(archivoResultado,"w");
-    if(fileResults == NULL){
-    	printf("\n Error creating the finalResult archive for QT");
-    }
-
     matrixInt322DStruct mbuSummary = locate_mbus(&content, programInfo.pattern, programInfo.nRoundsInPattern, programInfo.nWordWidth);
 
-    if((mbuSummary.rows * mbuSummary.cols) > 0){
+    if((mbuSummary.rows*mbuSummary.cols)>0){
         printf("\n\tThe following MBUs have been observed...\n");
         printf("\n THE PRESENCE OF MBUs MAKES THE FOLLOWING RESULTS INACCURATE.");
-        printf("\n\tFor your information, the expected average numbers of several SBUs in a cell is ");
-        printf("\n");
+        printf("\n\tFor you information, the expected average numbers of several SBUs in a cell is ");
+        printf("\t\t");
 
         for(int i = 0; i < programInfo.nRoundsInPattern; i++){
-            printf("Test %d: %d \t", i+1, 7*nAddressesInRound.data[i]*(nAddressesInRound.data[i]-1)/16);
+            printf("Test %d: %d \t", i, 7*nAddressesInRound.data[i]*(nAddressesInRound.data[i]-1)/16);
         }
         printf("\n");
-    } else {
+    }else{
     	printf("\n\t---> Fortunately, your data lacks MBUs and following results are not commited.\n");
     }
 
     printf("\nKINDS OF EVENTS");
     int i,j,z;
-
-	char *hex2 = calloc(255, sizeof(char));
-    char *prt = calloc(255, sizeof(char));
     for(i = 0; i< programInfo.nRoundsInPattern;i++){
-    	printf("\nTest %d: %d SBUs", i+1, finalResult.data[0][i+1]);
-        sprintf(prt, "%d", finalResult.data[0][i+1]);
-        fputs(prt, fileResults);
-        fputs("\n", fileResults);
-    	for(j = 1; j < finalResult.rows; j++){
+    	printf("\nTest %d: %d SBUs", i,finalResult.data[0][i+1]);
+
+    	for(j = 1;j < finalResult.rows;j++){
             if(finalResult.data[j][i+1] !=0){
-                int32_t print;
-    			printf("\n \t%d %d-bit MCU", finalResult.data[j][i+1], j+1);
-                char *num = calloc(1, sizeof(char));
-                sprintf(num, "%d", j+1);
-                fputs(num, fileResults);
-                fputs(" ", fileResults);
-				print = finalResult.data[j][i+1];
-				sprintf(hex2, "%d", print);
-    			fputs(hex2, fileResults);
-                
+    			printf("\n \t%d %d-bit MCU", finalResult.data[j][i+1],j);
     			if(finalResult.data[j][i+1]!=1){
     				printf("s");
     			}
-			}else{
-                    fputs("-", fileResults);
-					printf("			");
-                
-            }
-            fputs("\n", fileResults);
+   		}else{
+    			printf("			");
+    		}
+
     	}
-        
     	int32_t sum = 0;
     	for(z= 0 ;z < finalResult.rows;z++){
     		sum+= (finalResult.data[z][0]*finalResult.data[z][i+1]);
     	}
     	printf("\n Affected Addresses: %d",sum);
-    	sprintf(hex2, "%d", sum);
-        fputs("s", fileResults);
-    	fputs(hex2, fileResults);
-        fputs("\n", fileResults);
-        fputs("*\n", fileResults);
     }
     
-    fputs("-------\n", fileResults);
     printf("\n\n*******************************************************************");
     printf("\nSUMMARY OF THE PROPOSED ANOMALOUS DV VALUES:");
     printf("\nSelf-consistence after XORing: ");
@@ -672,17 +635,19 @@ int main(int argc, char* argv[]){
     printf("\nAdded anomalous DV values: ");
     printf("\n\tXOR operation:");
 
-    for (i = 0; i < UnknowXORValues.length; i++) {
-        printf("\n0x%x", UnknowXORValues.data[i]);
-    }
-    
+    /*
+     * FALTA por setdiff
+     *   for k in UnknowXORValues
+    	print("0x",hex(k,5), "\n")
+  	  	  end
+     */
     printf("\n ");
     printf("\n\tPOS. SUB. operation:");
-
-    for (i = 0; i < UnknowPOSValues.length; i++) {
-        printf("\n0x%x", UnknowPOSValues.data[i]);
-    }
-    
+/*FALTA por setdiff
+    for k in UnknowPOSValues
+       print(k, " (0x",hex(k,5), ")\n")
+     end
+*/
     printf("\n--------------------------");
     printf("\nMCU for XORing (First Pass): ");
 
@@ -718,93 +683,51 @@ int main(int argc, char* argv[]){
     	printf("\n %d (0x%x)", discoveredPOSDvs2.data[i], k);
     }
 
-    printf("\n-------------------------");
+    printf("\n--------------------------");
     printf("\n-------------------------");
 
-    printf("\nElapsed Time: %f s\n", ((float)(durationSteps[0][1] - durationSteps[0][0]) / 1000000.0F ));
+    printf("\nElapsed Time: %f \n", (durationSteps[0][1]-durationSteps[0][0]));
+  /*
+    int32_t*** hexCMBRES = NULL;
+    hexCMBRES = index2address(cmbRes,cmbResRows,cmbResCols, cmbResDims, content){
+
+    println("\nElapsed Time: ", DurationSteps[1,2]-DurationSteps[1,1])
+
+  HexCMBRES=Index2Address(CMBRES, Content[:,1:3:end])
+
+  rows, cols, dummyvalue = size(HexCMBRES)
+
+  FileForAddresses=string("AffectedAddresses-",string(now()))
+
+  open(FileForAddresses, "w") do f
+
+    print(f, "ADDRESSES INVOLVED IN MCUs\n")
+
+    for ktest=1:NRoundsInPattern
+      print(f, "\n\tTest Number: ", ktest)
+      print(f, "\n\t------------------\n")
+
+      for krow = 1:rows
+        if (HexCMBRES[krow,1, ktest]!=0)
+          for kcol = 1:cols
+            ToBePrinted = HexCMBRES[krow, kcol, ktest]
+
+            if (ToBePrinted!=0)
+              StoredWord = Content[CMBRES[krow, kcol, ktest], 3*ktest-1]
+              print(f, "\t0x", hex(ToBePrinted,6))
+              print(f, " (0x", hex(StoredWord,2),") ")
+            else
+              print(f, "\t, ")
+            end
+          end
+          print(f,"\n")
+        else
+          break;
+        end
+      end
+      print(f, "\n------------------\n")
+    end
+  end*/
     
-    matrixInt323DStruct hexCMBRES;
-    hexCMBRES = index2address(&cmbRes, &content);
-    
-    char archivo [128];
-    strftime(output, 128,"%Y-%m-%dT%H:%M:%S", tlocal);
-    char* str = "AffectedAddresses-";
-    strcpy(archivo, str);
-    strcat(archivo, output);
-    
-    FILE* FileForAddresses = fopen(archivo, "w");
-    if (FileForAddresses == NULL) {
-        printf("File not created. \n");
-    }
-    
-    fputs("ADDRESSES INVOLVED IN MCUs\n", FileForAddresses);
-    int rows = 0, cols = 0;
-    for(ktest = 0; ktest < programInfo.nRoundsInPattern; ktest++){
-        fputs( "\n\tTest Number: ", FileForAddresses);
-        char *test = calloc(3, sizeof(char));
-        sprintf(test, "%d", ktest+1);
-        fputs(test, FileForAddresses);
-        free(test);
-        fputs("\n\t------------------\n", FileForAddresses);
-        for( rows = 0; rows < hexCMBRES.rows; rows++){
-            if(hexCMBRES.data[rows][0][ktest] != 0){
-                for(cols = 0; cols < hexCMBRES.cols;cols++){
-                    int32_t toBePrinted;
-                    toBePrinted = (hexCMBRES.data[rows][cols][ktest]);
-                    if(toBePrinted != 0){
-                        int32_t storeWord;
-                        storeWord = content.data[cmbRes.data[rows][cols][ktest]][3*ktest+1];
-                        fputs( "\t0x", FileForAddresses);
-                        char *hex = calloc(255, sizeof(char));
-                        sprintf(hex, "%.*x",6, toBePrinted);
-                        fputs(hex, FileForAddresses);
-                        char *hex1 = calloc(255, sizeof(char));
-                        sprintf(hex1, " (0x%.*x)",2, storeWord);
-                        fputs(hex1, FileForAddresses);
-                        free(hex);
-                        free(hex1);
-                    }else{
-                        fputs("\t, ", FileForAddresses);
-                    }
-                }
-                fputs("\n", FileForAddresses);
-            }else{
-                break;
-            }
-        }
-        fputs("\n------------------\n", FileForAddresses);
-    }
-    
-    for(ktest = 0; ktest < programInfo.nRoundsInPattern; ktest++){
-        char *test = calloc(3, sizeof(char));
-        sprintf(test, "%d", ktest+1);
-        fputs(test, fileResults);
-        free(test);
-        fputs("\n", fileResults);
-        for(rows = 0; rows < hexCMBRES.rows; rows++){
-            if(hexCMBRES.data[rows][0][ktest] != 0){
-                for(cols = 0; cols < hexCMBRES.cols;cols++){
-                    int32_t toBePrinted;
-                    toBePrinted = (hexCMBRES.data[rows][cols][ktest]);
-                    if(toBePrinted != 0){
-                        int32_t storeWord;
-                        storeWord = content.data[cmbRes.data[rows][cols][ktest]][3*ktest+1];
-                        fputs( "\t0x", fileResults);
-                        char *hex = calloc(255, sizeof(char));
-                        sprintf(hex, "%.*x", 6, toBePrinted);
-                        fputs(hex, fileResults);
-                        free(hex);
-                    }else{
-                        fputs("\t- ", fileResults);
-                    }
-                }
-                fputs("\n", fileResults);
-            }else{
-                break;
-            }
-        }
-    }
-    fclose(fileResults);
-    fclose(FileForAddresses);
     return 0;
 }
