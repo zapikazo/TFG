@@ -6,7 +6,7 @@
 
 QT       += core gui
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport
 
 TARGET = portada
 TEMPLATE = app
@@ -24,8 +24,16 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 
 SOURCES += main.cpp\
-        mainwindow.cpp
+        mainwindow.cpp \
+    secondwindow.cpp \
+    mywid.cpp \
+    experiment.cpp
 
-HEADERS  += mainwindow.h
+HEADERS  += mainwindow.h \
+    secondwindow.h \
+    mywid.h \
+    experiment.h
 
-FORMS    += mainwindow.ui
+FORMS    += mainwindow.ui \
+    secondwindow.ui \
+    mywid.ui

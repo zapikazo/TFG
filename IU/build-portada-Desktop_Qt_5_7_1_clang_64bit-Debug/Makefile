@@ -12,10 +12,10 @@ MAKEFILE      = Makefile
 
 CC            = /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang
 CXX           = /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++
-DEFINES       = -DQT_DEPRECATED_WARNINGS -DQT_QML_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB
+DEFINES       = -DQT_DEPRECATED_WARNINGS -DQT_QML_DEBUG -DQT_PRINTSUPPORT_LIB -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB
 CFLAGS        = -pipe -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk -mmacosx-version-min=10.8 -g -Wall -W -fPIC $(DEFINES)
 CXXFLAGS      = -pipe -stdlib=libc++ -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk -mmacosx-version-min=10.8 -g -std=gnu++11 -Wall -W -fPIC $(DEFINES)
-INCPATH       = -I../portada -I. -I/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers -I/Users/pau/Qt/5.7/clang_64/lib/QtGui.framework/Headers -I/Users/pau/Qt/5.7/clang_64/lib/QtCore.framework/Headers -I. -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk/System/Library/Frameworks/OpenGL.framework/Headers -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk/System/Library/Frameworks/AGL.framework/Headers -I. -I/Users/pau/Qt/5.7/clang_64/mkspecs/macx-clang -F/Users/pau/Qt/5.7/clang_64/lib
+INCPATH       = -I../portada -I. -I/Users/pau/Qt/5.7/clang_64/lib/QtPrintSupport.framework/Headers -I/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers -I/Users/pau/Qt/5.7/clang_64/lib/QtGui.framework/Headers -I/Users/pau/Qt/5.7/clang_64/lib/QtCore.framework/Headers -I. -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk/System/Library/Frameworks/OpenGL.framework/Headers -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk/System/Library/Frameworks/AGL.framework/Headers -I. -I/Users/pau/Qt/5.7/clang_64/mkspecs/macx-clang -F/Users/pau/Qt/5.7/clang_64/lib
 QMAKE         = /Users/pau/Qt/5.7/clang_64/bin/qmake
 DEL_FILE      = rm -f
 CHK_DIR_EXISTS= test -d
@@ -36,7 +36,7 @@ DISTNAME      = portada1.0.0
 DISTDIR = /Users/pau/Documents/FDI/CUARTO/TFG/IU/build-portada-Desktop_Qt_5_7_1_clang_64bit-Debug/.tmp/portada1.0.0
 LINK          = /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++
 LFLAGS        = -headerpad_max_install_names -stdlib=libc++ -Wl,-syslibroot,/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk -mmacosx-version-min=10.8 -Wl,-rpath,/Users/pau/Qt/5.7/clang_64/lib
-LIBS          = $(SUBLIBS) -F/Users/pau/Qt/5.7/clang_64/lib -framework QtWidgets -framework QtGui -framework QtCore -framework DiskArbitration -framework IOKit -framework OpenGL -framework AGL 
+LIBS          = $(SUBLIBS) -F/Users/pau/Qt/5.7/clang_64/lib -framework QtPrintSupport -framework QtWidgets -framework QtGui -framework QtCore -framework DiskArbitration -framework IOKit -framework OpenGL -framework AGL 
 AR            = /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ar cq
 RANLIB        = /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ranlib -s
 SED           = sed
@@ -49,10 +49,20 @@ OBJECTS_DIR   = ./
 ####### Files
 
 SOURCES       = ../portada/main.cpp \
-		../portada/mainwindow.cpp moc_mainwindow.cpp
+		../portada/mainwindow.cpp \
+		../portada/secondwindow.cpp \
+		../portada/mywid.cpp \
+		../portada/experiment.cpp moc_mainwindow.cpp \
+		moc_secondwindow.cpp \
+		moc_mywid.cpp
 OBJECTS       = main.o \
 		mainwindow.o \
-		moc_mainwindow.o
+		secondwindow.o \
+		mywid.o \
+		experiment.o \
+		moc_mainwindow.o \
+		moc_secondwindow.o \
+		moc_mywid.o
 DIST          = /Users/pau/Qt/5.7/clang_64/mkspecs/features/spec_pre.prf \
 		/Users/pau/Qt/5.7/clang_64/mkspecs/qdevice.pri \
 		/Users/pau/Qt/5.7/clang_64/mkspecs/features/device_config.prf \
@@ -215,8 +225,14 @@ DIST          = /Users/pau/Qt/5.7/clang_64/mkspecs/features/spec_pre.prf \
 		/Users/pau/Qt/5.7/clang_64/mkspecs/features/exceptions.prf \
 		/Users/pau/Qt/5.7/clang_64/mkspecs/features/yacc.prf \
 		/Users/pau/Qt/5.7/clang_64/mkspecs/features/lex.prf \
-		../portada/portada.pro ../portada/mainwindow.h ../portada/main.cpp \
-		../portada/mainwindow.cpp
+		../portada/portada.pro ../portada/mainwindow.h \
+		../portada/secondwindow.h \
+		../portada/mywid.h \
+		../portada/experiment.h ../portada/main.cpp \
+		../portada/mainwindow.cpp \
+		../portada/secondwindow.cpp \
+		../portada/mywid.cpp \
+		../portada/experiment.cpp
 QMAKE_TARGET  = portada
 DESTDIR       = 
 TARGET        = portada.app/Contents/MacOS/portada
@@ -225,7 +241,7 @@ TARGET        = portada.app/Contents/MacOS/portada
 first: all
 ####### Build rules
 
-$(TARGET): ui_mainwindow.h $(OBJECTS)  
+$(TARGET): ui_mainwindow.h ui_secondwindow.h ui_mywid.h $(OBJECTS)  
 	@test -d portada.app/Contents/MacOS/ || mkdir -p portada.app/Contents/MacOS/
 	$(LINK) $(LFLAGS) -o $(TARGET) $(OBJECTS) $(OBJCOMP) $(LIBS)
 
@@ -392,6 +408,7 @@ Makefile: ../portada/portada.pro /Users/pau/Qt/5.7/clang_64/mkspecs/macx-clang/q
 		/Users/pau/Qt/5.7/clang_64/mkspecs/features/yacc.prf \
 		/Users/pau/Qt/5.7/clang_64/mkspecs/features/lex.prf \
 		../portada/portada.pro \
+		/Users/pau/Qt/5.7/clang_64/lib/QtPrintSupport.framework/QtPrintSupport.prl \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/QtWidgets.prl \
 		/Users/pau/Qt/5.7/clang_64/lib/QtGui.framework/QtGui.prl \
 		/Users/pau/Qt/5.7/clang_64/lib/QtCore.framework/QtCore.prl
@@ -559,6 +576,7 @@ Makefile: ../portada/portada.pro /Users/pau/Qt/5.7/clang_64/mkspecs/macx-clang/q
 /Users/pau/Qt/5.7/clang_64/mkspecs/features/yacc.prf:
 /Users/pau/Qt/5.7/clang_64/mkspecs/features/lex.prf:
 ../portada/portada.pro:
+/Users/pau/Qt/5.7/clang_64/lib/QtPrintSupport.framework/QtPrintSupport.prl:
 /Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/QtWidgets.prl:
 /Users/pau/Qt/5.7/clang_64/lib/QtGui.framework/QtGui.prl:
 /Users/pau/Qt/5.7/clang_64/lib/QtCore.framework/QtCore.prl:
@@ -591,9 +609,9 @@ dist: distdir FORCE
 distdir: FORCE
 	@test -d $(DISTDIR) || mkdir -p $(DISTDIR)
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
-	$(COPY_FILE) --parents ../portada/mainwindow.h $(DISTDIR)/
-	$(COPY_FILE) --parents ../portada/main.cpp ../portada/mainwindow.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents ../portada/mainwindow.ui $(DISTDIR)/
+	$(COPY_FILE) --parents ../portada/mainwindow.h ../portada/secondwindow.h ../portada/mywid.h ../portada/experiment.h $(DISTDIR)/
+	$(COPY_FILE) --parents ../portada/main.cpp ../portada/mainwindow.cpp ../portada/secondwindow.cpp ../portada/mywid.cpp ../portada/experiment.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents ../portada/mainwindow.ui ../portada/secondwindow.ui ../portada/mywid.ui $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -619,25 +637,56 @@ benchmark: first
 
 compiler_rcc_make_all:
 compiler_rcc_clean:
-compiler_moc_header_make_all: moc_mainwindow.cpp
+compiler_moc_header_make_all: moc_mainwindow.cpp moc_secondwindow.cpp moc_mywid.cpp
 compiler_moc_header_clean:
-	-$(DEL_FILE) moc_mainwindow.cpp
+	-$(DEL_FILE) moc_mainwindow.cpp moc_secondwindow.cpp moc_mywid.cpp
 moc_mainwindow.cpp: /Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QMainWindow \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qmainwindow.h \
+		/Users/pau/Qt/5.7/clang_64/lib/QtGui.framework/Headers/QPainter \
+		/Users/pau/Qt/5.7/clang_64/lib/QtGui.framework/Headers/qpainter.h \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QDialog \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qdialog.h \
 		../portada/mainwindow.h \
 		/Users/pau/Qt/5.7/clang_64/bin/moc
-	/Users/pau/Qt/5.7/clang_64/bin/moc $(DEFINES) -D__APPLE__ -D__GNUC__=4 -D__APPLE_CC__ -I/Users/pau/Qt/5.7/clang_64/mkspecs/macx-clang -I/Users/pau/Documents/FDI/CUARTO/TFG/IU/portada -I/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers -I/Users/pau/Qt/5.7/clang_64/lib/QtGui.framework/Headers -I/Users/pau/Qt/5.7/clang_64/lib/QtCore.framework/Headers -I. -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1 -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/8.0.0/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk/usr/include -F/Users/pau/Qt/5.7/clang_64/lib ../portada/mainwindow.h -o moc_mainwindow.cpp
+	/Users/pau/Qt/5.7/clang_64/bin/moc $(DEFINES) -D__APPLE__ -D__GNUC__=4 -D__APPLE_CC__ -I/Users/pau/Qt/5.7/clang_64/mkspecs/macx-clang -I/Users/pau/Documents/FDI/CUARTO/TFG/IU/portada -I/Users/pau/Qt/5.7/clang_64/lib/QtPrintSupport.framework/Headers -I/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers -I/Users/pau/Qt/5.7/clang_64/lib/QtGui.framework/Headers -I/Users/pau/Qt/5.7/clang_64/lib/QtCore.framework/Headers -I. -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1 -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/8.0.0/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk/usr/include -F/Users/pau/Qt/5.7/clang_64/lib ../portada/mainwindow.h -o moc_mainwindow.cpp
+
+moc_secondwindow.cpp: /Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QDialog \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qdialog.h \
+		/Users/pau/Qt/5.7/clang_64/lib/QtGui.framework/Headers/QPainter \
+		/Users/pau/Qt/5.7/clang_64/lib/QtGui.framework/Headers/qpainter.h \
+		../portada/secondwindow.h \
+		/Users/pau/Qt/5.7/clang_64/bin/moc
+	/Users/pau/Qt/5.7/clang_64/bin/moc $(DEFINES) -D__APPLE__ -D__GNUC__=4 -D__APPLE_CC__ -I/Users/pau/Qt/5.7/clang_64/mkspecs/macx-clang -I/Users/pau/Documents/FDI/CUARTO/TFG/IU/portada -I/Users/pau/Qt/5.7/clang_64/lib/QtPrintSupport.framework/Headers -I/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers -I/Users/pau/Qt/5.7/clang_64/lib/QtGui.framework/Headers -I/Users/pau/Qt/5.7/clang_64/lib/QtCore.framework/Headers -I. -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1 -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/8.0.0/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk/usr/include -F/Users/pau/Qt/5.7/clang_64/lib ../portada/secondwindow.h -o moc_secondwindow.cpp
+
+moc_mywid.cpp: /Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QWidget \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qwidget.h \
+		/Users/pau/Qt/5.7/clang_64/lib/QtGui.framework/Headers/QPainter \
+		/Users/pau/Qt/5.7/clang_64/lib/QtGui.framework/Headers/qpainter.h \
+		../portada/mywid.h \
+		/Users/pau/Qt/5.7/clang_64/bin/moc
+	/Users/pau/Qt/5.7/clang_64/bin/moc $(DEFINES) -D__APPLE__ -D__GNUC__=4 -D__APPLE_CC__ -I/Users/pau/Qt/5.7/clang_64/mkspecs/macx-clang -I/Users/pau/Documents/FDI/CUARTO/TFG/IU/portada -I/Users/pau/Qt/5.7/clang_64/lib/QtPrintSupport.framework/Headers -I/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers -I/Users/pau/Qt/5.7/clang_64/lib/QtGui.framework/Headers -I/Users/pau/Qt/5.7/clang_64/lib/QtCore.framework/Headers -I. -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1 -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/8.0.0/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk/usr/include -F/Users/pau/Qt/5.7/clang_64/lib ../portada/mywid.h -o moc_mywid.cpp
 
 compiler_moc_source_make_all:
 compiler_moc_source_clean:
-compiler_uic_make_all: ui_mainwindow.h
+compiler_uic_make_all: ui_mainwindow.h ui_secondwindow.h ui_mywid.h
 compiler_uic_clean:
-	-$(DEL_FILE) ui_mainwindow.h
+	-$(DEL_FILE) ui_mainwindow.h ui_secondwindow.h ui_mywid.h
 ui_mainwindow.h: ../portada/mainwindow.ui \
 		/Users/pau/Qt/5.7/clang_64/bin/uic
 	/Users/pau/Qt/5.7/clang_64/bin/uic ../portada/mainwindow.ui -o ui_mainwindow.h
+
+ui_secondwindow.h: ../portada/secondwindow.ui \
+		/Users/pau/Qt/5.7/clang_64/bin/uic \
+		../portada/mywid.h \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QWidget \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qwidget.h \
+		/Users/pau/Qt/5.7/clang_64/lib/QtGui.framework/Headers/QPainter \
+		/Users/pau/Qt/5.7/clang_64/lib/QtGui.framework/Headers/qpainter.h
+	/Users/pau/Qt/5.7/clang_64/bin/uic ../portada/secondwindow.ui -o ui_secondwindow.h
+
+ui_mywid.h: ../portada/mywid.ui \
+		/Users/pau/Qt/5.7/clang_64/bin/uic
+	/Users/pau/Qt/5.7/clang_64/bin/uic ../portada/mywid.ui -o ui_mywid.h
 
 compiler_rez_source_make_all:
 compiler_rez_source_clean:
@@ -654,6 +703,8 @@ compiler_clean: compiler_moc_header_clean compiler_uic_clean
 main.o: ../portada/main.cpp ../portada/mainwindow.h \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QMainWindow \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qmainwindow.h \
+		/Users/pau/Qt/5.7/clang_64/lib/QtGui.framework/Headers/QPainter \
+		/Users/pau/Qt/5.7/clang_64/lib/QtGui.framework/Headers/qpainter.h \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QDialog \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qdialog.h \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QApplication \
@@ -667,6 +718,8 @@ main.o: ../portada/main.cpp ../portada/mainwindow.h \
 mainwindow.o: ../portada/mainwindow.cpp ../portada/mainwindow.h \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QMainWindow \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qmainwindow.h \
+		/Users/pau/Qt/5.7/clang_64/lib/QtGui.framework/Headers/QPainter \
+		/Users/pau/Qt/5.7/clang_64/lib/QtGui.framework/Headers/qpainter.h \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QDialog \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qdialog.h \
 		../portada/ui_mainwindow.h \
@@ -674,22 +727,47 @@ mainwindow.o: ../portada/mainwindow.cpp ../portada/mainwindow.h \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qfiledialog.h \
 		/Users/pau/Qt/5.7/clang_64/lib/QtCore.framework/Headers/QProcess \
 		/Users/pau/Qt/5.7/clang_64/lib/QtCore.framework/Headers/qprocess.h \
-		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QGraphicsScene \
-		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qgraphicsscene.h \
-		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QGraphicsItem \
-		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qgraphicsitem.h \
-		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QGraphicsRectItem \
-		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QSplitter \
-		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qsplitter.h \
 		../portada/view.h \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QFrame \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qframe.h \
 		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QGraphicsView \
-		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qgraphicsview.h
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qgraphicsview.h \
+		../portada/secondwindow.h \
+		../portada/mywid.h \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QWidget \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qwidget.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o mainwindow.o ../portada/mainwindow.cpp
+
+secondwindow.o: ../portada/secondwindow.cpp ../portada/secondwindow.h \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QDialog \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qdialog.h \
+		/Users/pau/Qt/5.7/clang_64/lib/QtGui.framework/Headers/QPainter \
+		/Users/pau/Qt/5.7/clang_64/lib/QtGui.framework/Headers/qpainter.h \
+		ui_secondwindow.h \
+		../portada/mywid.h \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QWidget \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qwidget.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o secondwindow.o ../portada/secondwindow.cpp
+
+mywid.o: ../portada/mywid.cpp ../portada/mywid.h \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/QWidget \
+		/Users/pau/Qt/5.7/clang_64/lib/QtWidgets.framework/Headers/qwidget.h \
+		/Users/pau/Qt/5.7/clang_64/lib/QtGui.framework/Headers/QPainter \
+		/Users/pau/Qt/5.7/clang_64/lib/QtGui.framework/Headers/qpainter.h \
+		ui_mywid.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o mywid.o ../portada/mywid.cpp
+
+experiment.o: ../portada/experiment.cpp ../portada/experiment.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o experiment.o ../portada/experiment.cpp
 
 moc_mainwindow.o: moc_mainwindow.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_mainwindow.o moc_mainwindow.cpp
+
+moc_secondwindow.o: moc_secondwindow.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_secondwindow.o moc_secondwindow.cpp
+
+moc_mywid.o: moc_mywid.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_mywid.o moc_mywid.cpp
 
 ####### Install
 

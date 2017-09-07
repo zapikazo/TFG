@@ -14,8 +14,8 @@ LEX       = flex
 LEXFLAGS  = 
 YACC      = yacc
 YACCFLAGS = -d
-DEFINES       = -DQT_DEPRECATED_WARNINGS -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB
-INCPATH       = -I. -I/usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers -I/usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/Headers -I/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers -I. -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk/System/Library/Frameworks/OpenGL.framework/Headers -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk/System/Library/Frameworks/AGL.framework/Headers -I. -I/usr/local/Cellar/qt5/5.8.0_1/mkspecs/macx-clang -F/usr/local/Cellar/qt5/5.8.0_1/lib
+DEFINES       = -DQT_DEPRECATED_WARNINGS -DQT_NO_DEBUG -DQT_PRINTSUPPORT_LIB -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB
+INCPATH       = -I. -I/usr/local/Cellar/qt5/5.8.0_1/lib/QtPrintSupport.framework/Headers -I/usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers -I/usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/Headers -I/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers -I. -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk/System/Library/Frameworks/OpenGL.framework/Headers -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk/System/Library/Frameworks/AGL.framework/Headers -I. -I/usr/local/Cellar/qt5/5.8.0_1/mkspecs/macx-clang -F/usr/local/Cellar/qt5/5.8.0_1/lib
 DEL_FILE  = rm -f
 MOVE      = mv -f
 
@@ -30,7 +30,7 @@ check: first
 
 benchmark: first
 
-compilers: moc_predefs.h moc_mainwindow.cpp ui_mainwindow.h
+compilers: moc_predefs.h moc_mainwindow.cpp moc_qcustomplot.cpp ui_mainwindow.h
 compiler_rcc_make_all:
 compiler_rcc_clean:
 compiler_moc_predefs_make_all: moc_predefs.h
@@ -39,15 +39,65 @@ compiler_moc_predefs_clean:
 moc_predefs.h: /usr/local/Cellar/qt5/5.8.0_1/mkspecs/features/data/dummy.cpp
 	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ -pipe -stdlib=libc++ -O2 -std=gnu++11 -Wall -W -dM -E -o moc_predefs.h /usr/local/Cellar/qt5/5.8.0_1/mkspecs/features/data/dummy.cpp
 
-compiler_moc_header_make_all: moc_mainwindow.cpp
+compiler_moc_header_make_all: moc_mainwindow.cpp moc_qcustomplot.cpp
 compiler_moc_header_clean:
-	-$(DEL_FILE) moc_mainwindow.cpp
+	-$(DEL_FILE) moc_mainwindow.cpp moc_qcustomplot.cpp
 moc_mainwindow.cpp: /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/QMainWindow \
 		/usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/QDialog \
+		qcustomplot.h \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/QObject \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/QPointer \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/QWidget \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/Headers/QPainter \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/Headers/QPaintEvent \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/Headers/QMouseEvent \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/Headers/QPixmap \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/QVector \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/QString \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/QDateTime \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/QMultiMap \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/QFlags \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/QDebug \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/Headers/QVector2D \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/QStack \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/QCache \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/QMargins \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/qmath.h \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/qnumeric.h \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtPrintSupport.framework/Headers/QPrinter \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtPrintSupport.framework/Headers/QPrintEngine \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/QtNumeric \
 		mainwindow.h \
 		moc_predefs.h \
 		/usr/local/Cellar/qt5/5.8.0_1/bin/moc
-	/usr/local/Cellar/qt5/5.8.0_1/bin/moc $(DEFINES) --include ./moc_predefs.h -I/usr/local/Cellar/qt5/5.8.0_1/mkspecs/macx-clang -I/Users/pau/Documents/FDI/CUARTO/TFG/IU/portada -I/usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers -I/usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/Headers -I/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1 -I/usr/local/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/8.0.0/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -F/usr/local/Cellar/qt5/5.8.0_1/lib mainwindow.h -o moc_mainwindow.cpp
+	/usr/local/Cellar/qt5/5.8.0_1/bin/moc $(DEFINES) --include ./moc_predefs.h -I/usr/local/Cellar/qt5/5.8.0_1/mkspecs/macx-clang -I/Users/pau/Documents/FDI/CUARTO/TFG/IU/portada -I/usr/local/Cellar/qt5/5.8.0_1/lib/QtPrintSupport.framework/Headers -I/usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers -I/usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/Headers -I/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1 -I/usr/local/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/8.0.0/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -F/usr/local/Cellar/qt5/5.8.0_1/lib mainwindow.h -o moc_mainwindow.cpp
+
+moc_qcustomplot.cpp: /usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/QObject \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/QPointer \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers/QWidget \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/Headers/QPainter \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/Headers/QPaintEvent \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/Headers/QMouseEvent \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/Headers/QPixmap \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/QVector \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/QString \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/QDateTime \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/QMultiMap \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/QFlags \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/QDebug \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/Headers/QVector2D \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/QStack \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/QCache \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/QMargins \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/qmath.h \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/qnumeric.h \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtPrintSupport.framework/Headers/QPrinter \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtPrintSupport.framework/Headers/QPrintEngine \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers/QtNumeric \
+		qcustomplot.h \
+		moc_predefs.h \
+		/usr/local/Cellar/qt5/5.8.0_1/bin/moc
+	/usr/local/Cellar/qt5/5.8.0_1/bin/moc $(DEFINES) --include ./moc_predefs.h -I/usr/local/Cellar/qt5/5.8.0_1/mkspecs/macx-clang -I/Users/pau/Documents/FDI/CUARTO/TFG/IU/portada -I/usr/local/Cellar/qt5/5.8.0_1/lib/QtPrintSupport.framework/Headers -I/usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers -I/usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/Headers -I/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1 -I/usr/local/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/8.0.0/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -F/usr/local/Cellar/qt5/5.8.0_1/lib qcustomplot.h -o moc_qcustomplot.cpp
 
 compiler_moc_source_make_all:
 compiler_moc_source_clean:

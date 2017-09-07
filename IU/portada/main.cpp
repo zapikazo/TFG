@@ -9,11 +9,5 @@ int main(int argc, char *argv[])
     MainWindow w;
     w.show();
 
-    QGraphicsScene scene;
-    scene.addText("Hello, world!");
-
-    QGraphicsView view(&scene);
-    view.show();
-
    return a.exec();
 }

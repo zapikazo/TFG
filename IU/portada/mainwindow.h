@@ -2,7 +2,9 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QPainter>
 #include <QDialog>
+#include "experiment.h"
 
 namespace Ui {
 class MainWindow;
@@ -17,8 +19,8 @@ public:
     ~MainWindow();
     QString fileName;
     QDialog window;
-    void rellenoVentana();
-    void createMemory();
+
+    std::vector<Experiment> fileReading();
 
 private slots:
     void on_pushButton_clicked();

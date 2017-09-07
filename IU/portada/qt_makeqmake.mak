@@ -186,6 +186,7 @@ project.pbxproj: portada.pro /usr/local/Cellar/qt5/5.8.0_1/mkspecs/macx-clang/qm
 		/usr/local/Cellar/qt5/5.8.0_1/mkspecs/features/yacc.prf \
 		/usr/local/Cellar/qt5/5.8.0_1/mkspecs/features/lex.prf \
 		portada.pro \
+		/usr/local/Cellar/qt5/5.8.0_1/lib/QtPrintSupport.framework/QtPrintSupport.prl \
 		/usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/QtWidgets.prl \
 		/usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/QtGui.prl \
 		/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/QtCore.prl
@@ -367,6 +368,7 @@ project.pbxproj: portada.pro /usr/local/Cellar/qt5/5.8.0_1/mkspecs/macx-clang/qm
 /usr/local/Cellar/qt5/5.8.0_1/mkspecs/features/yacc.prf:
 /usr/local/Cellar/qt5/5.8.0_1/mkspecs/features/lex.prf:
 portada.pro:
+/usr/local/Cellar/qt5/5.8.0_1/lib/QtPrintSupport.framework/QtPrintSupport.prl:
 /usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/QtWidgets.prl:
 /usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/QtGui.prl:
 /usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/QtCore.prl:

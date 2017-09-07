@@ -46,6 +46,21 @@
 					);
 			};
 		};
+		4BAE6553BCA9FAD405D06BD2 = {
+			isa = PBXFileReference;
+			path = "/Users/pau/Documents/FDI/CUARTO/TFG/IU/portada/qcustomplot.cpp";
+			name = "qcustomplot.cpp";
+			sourceTree = "<absolute>";
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		EE4B4E1831736863EED61249 = {
+			fileRef = "4BAE6553BCA9FAD405D06BD2";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
 		4D8B78780D6D8CE52ECB3358 = {
 			isa = PBXFileReference;
 			path = "/Users/pau/Documents/FDI/CUARTO/TFG/IU/portada/moc_mainwindow.cpp";
@@ -55,6 +70,21 @@
 		};
 		BEFBE0B99F0175737611B4BF = {
 			fileRef = "4D8B78780D6D8CE52ECB3358";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		79B33454FE135AA1D806DF28 = {
+			isa = PBXFileReference;
+			path = "/Users/pau/Documents/FDI/CUARTO/TFG/IU/portada/moc_qcustomplot.cpp";
+			name = "moc_qcustomplot.cpp";
+			sourceTree = "<absolute>";
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		EBA6EC7991D4700E3A029B22 = {
+			fileRef = "79B33454FE135AA1D806DF28";
 			isa = PBXBuildFile;
 			settings = {
 				ATTRIBUTES = (
@@ -72,6 +102,13 @@
 			isa = PBXFileReference;
 			path = "/Users/pau/Documents/FDI/CUARTO/TFG/IU/portada/mainwindow.h";
 			name = "mainwindow.h";
+			sourceTree = "<absolute>";
+			lastKnownFileType = "sourcecode.c.h";
+		};
+		FF6645D7B456AE8861B268EF = {
+			isa = PBXFileReference;
+			path = "/Users/pau/Documents/FDI/CUARTO/TFG/IU/portada/qcustomplot.h";
+			name = "qcustomplot.h";
 			sourceTree = "<absolute>";
 			lastKnownFileType = "sourcecode.c.h";
 		};
@@ -121,6 +158,7 @@
 			isa = PBXGroup;
 			children = (
 				"4D8B78780D6D8CE52ECB3358",
+				"79B33454FE135AA1D806DF28",
 				"57C19A0B6E5A37D3DEF910CA");
 			name = "Generated Sources";
 			sourceTree = "<group>";
@@ -130,7 +168,9 @@
 			children = (
 				"44430D2959435CA769E2D574",
 				"BCD5ED8437CBE5EAE7DC17E7",
-				"3C82A09AE3468B1B38F24B51");
+				"4BAE6553BCA9FAD405D06BD2",
+				"3C82A09AE3468B1B38F24B51",
+				"FF6645D7B456AE8861B268EF");
 			name = "Sources";
 			sourceTree = "<group>";
 		};
@@ -172,11 +212,27 @@
 			files = (
 				"EFA64B5D7507D67C5C2ED302",
 				"1880987D6A33878AA8F8CC95",
+				"EE4B4E1831736863EED61249",
 				"BEFBE0B99F0175737611B4BF",
+				"EBA6EC7991D4700E3A029B22",
 				"AD6E768B972AED5157F2507B");
 			isa = PBXSourcesBuildPhase;
 			runOnlyForDeploymentPostprocessing = 0;
 			name = "Compile Sources";
+		};
+		6751DA9C09AF580373060DFA = {
+			isa = PBXFileReference;
+			name = "QtPrintSupport.framework";
+			path = "/usr/local/Cellar/qt5/5.8.0_1/lib/QtPrintSupport.framework";
+			refType = 0;
+			sourceTree = "<absolute>";
+			lastKnownFileType = "wrapper.framework";
+		};
+		A63D13B18101A70412E37D8D = {
+			fileRef = "6751DA9C09AF580373060DFA";
+			isa = PBXBuildFile;
+			settings = {
+			};
 		};
 		3286DF9230840824B0DACDF1 = {
 			isa = PBXFileReference;
@@ -278,6 +334,7 @@
 		};
 		AF39DD055C3EF8226FBE929D = {
 			children = (
+				"6751DA9C09AF580373060DFA",
 				"3286DF9230840824B0DACDF1",
 				"70B9DB3FCF9CC110BFDDC81C",
 				"3DBC7F7DA8296AA40A1DF1C1",
@@ -292,6 +349,7 @@
 		D1C883685E82D5676953459A = {
 			buildActionMask = 2147483647;
 			files = (
+				"A63D13B18101A70412E37D8D",
 				"EB1E2840776F84AC1AADC83E",
 				"7EC2AB01C2301FB6FE66798C",
 				"29DBCED1E94A498E7A83EE3F",
@@ -391,6 +449,7 @@
 				MACOSX_DEPLOYMENT_TARGET = "10.9";
 				HEADER_SEARCH_PATHS = (
 					".",
+					"/usr/local/Cellar/qt5/5.8.0_1/lib/QtPrintSupport.framework/Headers",
 					"/usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers",
 					"/usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/Headers",
 					"/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers",
@@ -413,6 +472,7 @@
 					"-fPIC",
 					"-DQT_DEPRECATED_WARNINGS",
 					"-DQT_NO_DEBUG",
+					"-DQT_PRINTSUPPORT_LIB",
 					"-DQT_WIDGETS_LIB",
 					"-DQT_GUI_LIB",
 					"-DQT_CORE_LIB");
@@ -426,6 +486,7 @@
 					"-fPIC",
 					"-DQT_DEPRECATED_WARNINGS",
 					"-DQT_NO_DEBUG",
+					"-DQT_PRINTSUPPORT_LIB",
 					"-DQT_WIDGETS_LIB",
 					"-DQT_GUI_LIB",
 					"-DQT_CORE_LIB");
@@ -470,6 +531,7 @@
 				MACOSX_DEPLOYMENT_TARGET = "10.9";
 				HEADER_SEARCH_PATHS = (
 					".",
+					"/usr/local/Cellar/qt5/5.8.0_1/lib/QtPrintSupport.framework/Headers",
 					"/usr/local/Cellar/qt5/5.8.0_1/lib/QtWidgets.framework/Headers",
 					"/usr/local/Cellar/qt5/5.8.0_1/lib/QtGui.framework/Headers",
 					"/usr/local/Cellar/qt5/5.8.0_1/lib/QtCore.framework/Headers",
@@ -492,6 +554,7 @@
 					"-fPIC",
 					"-DQT_DEPRECATED_WARNINGS",
 					"-DQT_NO_DEBUG",
+					"-DQT_PRINTSUPPORT_LIB",
 					"-DQT_WIDGETS_LIB",
 					"-DQT_GUI_LIB",
 					"-DQT_CORE_LIB");
@@ -505,6 +568,7 @@
 					"-fPIC",
 					"-DQT_DEPRECATED_WARNINGS",
 					"-DQT_NO_DEBUG",
+					"-DQT_PRINTSUPPORT_LIB",
 					"-DQT_WIDGETS_LIB",
 					"-DQT_GUI_LIB",
 					"-DQT_CORE_LIB");

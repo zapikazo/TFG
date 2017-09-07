@@ -2,11 +2,11 @@
 #include "ui_mainwindow.h"
 #include <QFileDialog>
 #include <QProcess>
-#include <QGraphicsScene>
-#include <QGraphicsItem>
-#include <QGraphicsRectItem>
-#include <QSplitter>
+#include <fstream>
+#include <iostream>
 #include "view.h"
+#include "secondwindow.h"
+#include "mywid.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -45,49 +45,52 @@ void MainWindow::on_pushButton_2_clicked()
         QString file = this->fileName;
         process->start(program, QStringList() << file);
         //process->execute("./program", this->fileName);
-        rellenoVentana();
-        this->window.show();
+
+        SecondWindow secondWindow;
+        secondWindow.setTitle(file);
+        secondWindow.setExperiments(fileReading()); //Devuelve el vector de experimentos
+        secondWindow.setModal(true);
+        secondWindow.exec();
     }
 }
 
-void MainWindow::rellenoVentana()
+std::vector<Experiment> MainWindow::fileReading()
 {
-    this->window.setWindowTitle("MAIN");
-    this->window.resize(680, 450);
-    QHBoxLayout* mainLayout = new QHBoxLayout();
-    QVBoxLayout* listLayout = new QVBoxLayout();
-   // listLayout->setSizeConstraint(300);
-    QVBoxLayout* graphLayout = new QVBoxLayout();
-    //graphLayout->SetMaximumSize;
-    createMemory();
+    std::vector<Experiment> exp;
+    int exps = 0;
+    int maxMCU = 0;
+    std::vector<std::pair<int, int>> events;
 
-    QPushButton* button = new QPushButton();
-    QPushButton* button2 = new QPushButton();
+    std::ifstream ifs ("results.txt", std::ifstream::in);
+    //Lectura de fichero
+    ifs >> exps;
+    ifs >> maxMCU;
+    for (int i = 0; i < exps; i++){
+        int n;
+        ifs >> n;
+        events.push_back(std::pair<int, int>(1, n));
+        for (int j = 2; j <= maxMCU; j++){
+            ifs >> n;
+            ifs >> n;
+            events.push_back(std::pair<int, int>(j, n));
+        }
+        Experiment e;
+        e.events = events;
+        exp.push_back(e);
+        events.clear();
+    }
 
-    listLayout->addWidget(button);
-    graphLayout->addWidget(button2);
+    /*int32_t*** result;
+    result = new int32_t**[this->maxRows];
+    for(int i = 0; i < this->maxRows; i++) {
+        result[i] = new int32_t*[4];
+        for(int j = 0; j < 4; j++){
+            result[i][j] = new int32_t[this->experiments];
+        }
+    }*/
 
-    mainLayout->addLayout(graphLayout);
-    mainLayout->addSpacing(50);
-    mainLayout->addLayout(listLayout);
 
-    this->window.setLayout(mainLayout);
 
-    /*QGraphicsScene *scene;
-    QSplitter *h1Splitter = new QSplitter;
-
-    QSplitter *vSplitter = new QSplitter;
-    vSplitter->setOrientation(Qt::Vertical);
-    vSplitter->addWidget(h1Splitter);
-
-    QGraphicsView *view = new QGraphicsView();
-    view->setScene(scene);
-    h1Splitter->addWidget(view);
-
-    graphLayout->addWidget(vSplitter);*/
-}
-
-void MainWindow::createMemory()
-{
-
+    ifs.close();
+    return exp;
 }
